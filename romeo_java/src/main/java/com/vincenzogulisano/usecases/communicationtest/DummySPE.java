@@ -8,12 +8,18 @@ import com.vincenzogulisano.javapythoncommunicator.StatReporter;
 
 public class DummySPE implements Actionable {
 
+    private final int numReporters;
     private final List<DummyStatReporter> statReporters;
 
-    public DummySPE(int numReporters, StatReporter statReporter) {
+    public DummySPE(int numReporters) {
+        this.numReporters = numReporters;
         this.statReporters = new LinkedList<>();
+    }
+
+    @Override
+    public void setStatReporter(StatReporter reporter) {
         for (int i = 0; i < numReporters; i++) {
-            statReporters.add(new DummyStatReporter("reporter_" + i, statReporter));
+            statReporters.add(new DummyStatReporter("reporter_" + i, reporter));
         }
         startInternalThread();
     }
@@ -46,15 +52,4 @@ public class DummySPE implements Actionable {
         System.out.println("Unimplemented method 'actionB'");
     }
 
-    public static void main(String[] args) throws InterruptedException {
-
-        DummySPE statReporter = new DummySPE(3, new StatReporter() {
-            @Override
-            public void report(long ts, String id, double value) {
-                System.out.println("Custom Reporting - Timestamp: " + ts + ", ID: " + id + ", Value: " + value);
-            }
-        });
-
-        Thread.sleep(10000);
-    }
 }

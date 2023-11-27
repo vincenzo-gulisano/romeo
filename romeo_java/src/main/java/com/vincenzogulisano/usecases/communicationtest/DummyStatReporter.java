@@ -38,15 +38,4 @@ public class DummyStatReporter {
         reportingThread.start();
     }
 
-    public static void main(String[] args) throws InterruptedException {
-
-        DummyStatReporter statReporter = new DummyStatReporter("exampleId", new StatReporter() {
-            @Override
-            public void report(long ts, String id, double value) {
-                System.out.println("Custom Reporting - Timestamp: " + ts + ", ID: " + id + ", Value: " + value);
-            }
-        });
-
-        Thread.sleep(10000);
-    }
 }

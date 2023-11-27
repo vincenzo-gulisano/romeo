@@ -6,4 +6,6 @@ public interface Actionable {
 
     void actionB();
 
+    void setStatReporter(StatReporter reporter);
+
 }
