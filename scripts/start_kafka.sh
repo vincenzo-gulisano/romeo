@@ -1,12 +1,14 @@
 kafka_folder=/home/vincenzo/kafka_2.13-3.6.0
 
+rm -rf /tmp/kafka-logs/ /tmp/zookeeper/
+
 echo "Starting zookeeper..."
-screen -dmS kafka_zookper ${kafka_folder}/bin/zookeeper-server-start.sh ${kafka_folder}/config/zookeeper.properties
+${kafka_folder}/bin/zookeeper-server-start.sh ${kafka_folder}/config/zookeeper.properties &
 
 sleep 10
 
 echo "Starting kafka..."
-screen -dmS kafka_server ${kafka_folder}/bin/kafka-server-start.sh ${kafka_folder}/config/server.properties
+${kafka_folder}/bin/kafka-server-start.sh ${kafka_folder}/config/server.properties &
 
 sleep 10
 
