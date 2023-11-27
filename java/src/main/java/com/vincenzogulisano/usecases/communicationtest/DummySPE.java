@@ -30,7 +30,7 @@ public class DummySPE implements Actionable {
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    // e.printStackTrace();
                 }
             }
         });

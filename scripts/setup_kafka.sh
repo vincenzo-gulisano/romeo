@@ -14,6 +14,6 @@ sleep 5
 
 echo "Registering topics actions and logs"
 ${kafka_folder}/bin/kafka-topics.sh --create --topic actions --bootstrap-server localhost:9092
-${kafka_folder}/bin/kafka-topics.sh --create --topic logs --bootstrap-server localhost:9092
+${kafka_folder}/bin/kafka-topics.sh --create --topic stats --bootstrap-server localhost:9092
 
 echo "All done, if you want to terminate kafka run stop_kafka.sh ${zookeper_pid} ${kafka_pid}"

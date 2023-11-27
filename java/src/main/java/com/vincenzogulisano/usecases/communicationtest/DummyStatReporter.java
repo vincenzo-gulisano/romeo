@@ -26,7 +26,7 @@ public class DummyStatReporter {
                     // Invoke report with current time, id, and a random double
                     statReporter.report(System.currentTimeMillis(), id, r.nextDouble());
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    
                 }
             }
         });
