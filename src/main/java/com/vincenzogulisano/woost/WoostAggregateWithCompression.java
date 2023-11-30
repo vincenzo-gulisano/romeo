@@ -10,9 +10,9 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Consumer;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -22,6 +22,7 @@ import com.vincenzogulisano.javapythoncommunicator.Actionable;
 import com.vincenzogulisano.javapythoncommunicator.StatReporter;
 
 import common.metrics.Metric;
+import common.metrics.Metrics;
 import common.metrics.TimeMetric;
 import common.tuple.RichTuple;
 import component.operator.in1.aggregate.BaseKeyExtractor;
@@ -57,7 +58,9 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
 
     // Used to retrieve D updated
     private ConcurrentLinkedQueue<Long> dUpdates;
-    private List<FileMonitor> fileMonitors;
+    // private List<FileMonitor> fileMonitors;
+    private String statsFolder;
+    private StatReporter statReporter;
 
     public WoostAggregateWithCompression(
             String id,
@@ -74,32 +77,22 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         this.aggregateWindow = aggregateWindow;
         this.compressionTimeThreshold = compressionTimeThreshold;
 
-        windowsMetric = LiebreContext.userMetrics().newTotalCountMetric("windows", "count");
-        tuplesMetric = LiebreContext.userMetrics().newTotalCountMetric("tuples", "count");
-        memoryMetric = LiebreContext.userMetrics().newTotalCountMetric("memory", "size");
-        compressionsMetric = LiebreContext.userMetrics().newTotalCountMetric("comp", "count");
-        compressionRatio = LiebreContext.userMetrics().newAverageTimeMetric("ratio", "percent");
-        decompressionMetric = LiebreContext.userMetrics().newTotalCountMetric("dec", "count");
-        maxEventTimeMetric = LiebreContext.userMetrics().newTotalMaxMetric("eventtime", "max");
-
         tsKeys = new TreeMap<>();
         keyLatestTs = new HashMap<>();
 
         this.dUpdates = new ConcurrentLinkedQueue<>();
-        this.fileMonitors = new LinkedList<>();
-        // TODO this is not appropiate, changes in Liebre can break this code
-        this.fileMonitors.add(new FileMonitor("windows", statsFolder + File.separator + "windows.csv"));
-        this.fileMonitors.add(new FileMonitor("tuples", statsFolder + File.separator + "tuples.csv"));
-        this.fileMonitors.add(new FileMonitor("memory", statsFolder + File.separator + "memory.csv"));
-        this.fileMonitors.add(new FileMonitor("comp", statsFolder + File.separator + "comp.csv"));
-        this.fileMonitors.add(new FileMonitor("ratio", statsFolder + File.separator + "ratio.csv"));
-        this.fileMonitors.add(new FileMonitor("dec", statsFolder + File.separator + "dec.csv"));
-        this.fileMonitors.add(new FileMonitor("eventtime", statsFolder + File.separator + "eventtime.csv"));
+        // this.fileMonitors = new LinkedList<>();
+        this.statsFolder = statsFolder;
+        // this.fileMonitors.add(new FileMonitor("eventtime", statsFolder +
+        // File.separator + "eventtime.max.csv"));
 
     }
 
     @Override
     public void enable() {
+
+        System.out.println("Enabling statistiscs");
+
         super.enable();
         windowsMetric.enable();
         tuplesMetric.enable();
@@ -108,6 +101,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         decompressionMetric.enable();
         maxEventTimeMetric.enable();
         compressionRatio.enable();
+
     }
 
     @Override
@@ -146,6 +140,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
             Long d = dUpdates.poll();
             if (d != null) {
                 compressionTimeThreshold = d;
+                System.out.println("Compression threshold updated to " + compressionTimeThreshold);
             }
         }
 
@@ -370,15 +365,38 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
 
     @Override
     public void changeD(long v) {
+        System.out.println("Storing change request to d:" + v);
         dUpdates.add(v);
     }
 
     @Override
     public void setStatReporter(StatReporter reporter) {
-        fileMonitors.forEach(m -> {
-            m.setStatReporter(reporter);
-            m.startMonitoring();
-        });
+        System.out.println("Setting stat reporter");
+        this.statReporter = reporter;
+
+        System.out.println("Registering consumers");
+        HashMap<String, Consumer<Object[]>> consumers = new HashMap<>();
+        consumers.put("windows", x -> reporter.report((long) x[0], "windows", ((Long) x[1]).doubleValue()));
+        consumers.put("tuples", x -> reporter.report((long) x[0], "tuples", ((Long) x[1]).doubleValue()));
+        consumers.put("memory", x -> reporter.report((long) x[0], "memory", ((Long) x[1]).doubleValue()));
+        consumers.put("comp", x -> reporter.report((long) x[0], "comp", ((Long) x[1]).doubleValue()));
+        consumers.put("ratio", x -> reporter.report((long) x[0], "ratio", ((Long) x[1]).doubleValue()));
+        consumers.put("dec", x -> reporter.report((long) x[0], "dec", ((Long) x[1]).doubleValue()));
+        consumers.put("eventtime", x -> reporter.report((long) x[0], "eventtime", ((Long) x[1]).doubleValue()));
+
+        System.out.println("Setting metrics type in Liebre");
+        LiebreContext.setUserMetrics(Metrics.fileAndConsumer(statsFolder,consumers));
+
+        System.out.println("Creating statistics");
+        windowsMetric = LiebreContext.userMetrics().newTotalCountMetric("windows", "count");
+        tuplesMetric = LiebreContext.userMetrics().newTotalCountMetric("tuples", "count");
+        memoryMetric = LiebreContext.userMetrics().newTotalCountMetric("memory", "size");
+        compressionsMetric = LiebreContext.userMetrics().newTotalCountMetric("comp", "count");
+        compressionRatio = LiebreContext.userMetrics().newAverageTimeMetric("ratio", "percent");
+        decompressionMetric = LiebreContext.userMetrics().newTotalCountMetric("dec", "count");
+        maxEventTimeMetric = LiebreContext.userMetrics().newTotalMaxMetric("eventtime", "max");
+
+
     }
 
 }

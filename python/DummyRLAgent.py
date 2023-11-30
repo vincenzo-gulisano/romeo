@@ -6,7 +6,7 @@ import sys
 
 
 class KafkaActionsProducer:
-    def __init__(self, bootstrap_servers='michelangelo.cse.chalmers.se:9092', actions_topic='actions'):
+    def __init__(self, bootstrap_servers='michelangelo.cse.chalmers.se:9092', actions_topic='dchanges'):
         self.bootstrap_servers = bootstrap_servers
         self.actions_topic = actions_topic
         self.producer = Producer({'bootstrap.servers': self.bootstrap_servers})
@@ -14,10 +14,11 @@ class KafkaActionsProducer:
     def produce_action(self):
         while True:
             # Produce a random action to the 'actions' topic
-            action = random.randint(0, sys.maxsize)
+            action = random.randint(0, 3000)
+            time.sleep(180)
+            print('Sending d update to ',action)
             self.producer.produce(self.actions_topic, key=str(time.time()), value=str(action))
             self.producer.flush()
-            time.sleep(180)
 
     def start_producer_thread(self):
         producer_thread = threading.Thread(target=self.produce_action)

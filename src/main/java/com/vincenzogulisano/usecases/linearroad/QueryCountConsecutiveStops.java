@@ -51,8 +51,6 @@ public class QueryCountConsecutiveStops {
         InjectorType type = InjectorType.valueOf(cmd.getOptionValue("t", String.valueOf(InjectorType.FIXEDRATE)));
         long nanoSleep = Long.valueOf(cmd.getOptionValue("n", String.valueOf(0)));
 
-        LiebreContext.setUserMetrics(Metrics.file(reportFolder));
-
         Source<TupleInput> s = q.addBaseSource("in", new SourceReadFromFile(inputFile, type, nanoSleep));
 
         WoostAggregateWithCompression<TupleInput, TupleCarStops> woostAgg = new WoostAggregateWithCompression<>("agg",

@@ -17,6 +17,8 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import com.vincenzogulisano.usecases.communicationtest.DummySPE;
 import com.vincenzogulisano.usecases.linearroad.QueryCountConsecutiveStops;
 
+import common.util.Util;
+
 public class JPComm implements StatReporter {
 
     private Actionable actionable;
@@ -40,7 +42,7 @@ public class JPComm implements StatReporter {
         producer = new KafkaProducer<>(properties);
         consumer = new KafkaConsumer<>(properties);
         // TODO topic should not be hardcoded!
-        consumer.subscribe(Collections.singletonList("actions"));
+        consumer.subscribe(Collections.singletonList("dchanges"));
 
     }
 
@@ -54,9 +56,12 @@ public class JPComm implements StatReporter {
         try {
 
             Thread reportingThread = new Thread(() -> {
+
                 while (true) {
-                    ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
+                    ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
+                    // System.out.println("Checking consumer records...");
                     records.forEach(record -> {
+                        System.out.println("... got " + record);
                         // Parse and process the received message
                         String[] parts = record.value().split(",");
                         if (parts.length == 1) {

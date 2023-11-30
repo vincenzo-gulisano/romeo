@@ -14,7 +14,7 @@ public class FileMonitor {
     private final String id;
     private StatReporter statReporter;
 
-    public FileMonitor(String fileName, String id) {
+    public FileMonitor(String id, String fileName) {
         this.fileName = fileName;
         this.id = id;
     }
@@ -26,6 +26,7 @@ public class FileMonitor {
     public void startMonitoring() {
         ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
 
+        System.out.println("start monitoring for file " + fileName);
         Path filePath = Paths.get(fileName);
         try {
             // Read the existing content of the file
@@ -33,7 +34,7 @@ public class FileMonitor {
 
             // Watch the file for changes
             WatchService watchService = FileSystems.getDefault().newWatchService();
-            filePath.getParent().register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
+            filePath.register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
 
             executorService.scheduleAtFixedRate(() -> checkForChanges(watchService), 0, 1, TimeUnit.SECONDS);
 
