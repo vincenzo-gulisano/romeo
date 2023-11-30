@@ -9,13 +9,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
-
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import org.xerial.snappy.Snappy;
+
+import com.vincenzogulisano.javapythoncommunicator.Actionable;
+import com.vincenzogulisano.javapythoncommunicator.StatReporter;
 
 import common.metrics.Metric;
 import common.metrics.TimeMetric;
@@ -25,7 +29,8 @@ import component.operator.in1.aggregate.TimeAggregate;
 import query.LiebreContext;
 
 @SuppressWarnings("unchecked")
-public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends RichTuple> extends TimeAggregate<IN, OUT> {
+public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends RichTuple> extends TimeAggregate<IN, OUT>
+        implements Actionable {
 
     private WoostTimeWindow<IN, OUT> aggregateWindow;
     private Map<String, WoostTimeWindow<IN, OUT>> uncompressedWins;
@@ -50,6 +55,10 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
     private ByteArrayOutputStream baos;
     private ObjectOutputStream oos;
 
+    // Used to retrieve D updated
+    private ConcurrentLinkedQueue<Long> dUpdates;
+    private List<FileMonitor> fileMonitors;
+
     public WoostAggregateWithCompression(
             String id,
             int instance,
@@ -57,7 +66,8 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
             long windowSize,
             long windowSlide,
             WoostTimeWindow<IN, OUT> aggregateWindow,
-            long compressionTimeThreshold) {
+            long compressionTimeThreshold,
+            String statsFolder) {
         super(id, instance, parallelismDegree, windowSize, windowSlide, aggregateWindow, new BaseKeyExtractor<IN>());
         uncompressedWins = new HashMap<>();
         compressedWins = new HashMap<>();
@@ -75,7 +85,16 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         tsKeys = new TreeMap<>();
         keyLatestTs = new HashMap<>();
 
-        // Compression variables
+        this.dUpdates = new ConcurrentLinkedQueue<>();
+        this.fileMonitors = new LinkedList<>();
+        // TODO this is not appropiate, changes in Liebre can break this code
+        this.fileMonitors.add(new FileMonitor("windows", statsFolder + File.separator + "windows.csv"));
+        this.fileMonitors.add(new FileMonitor("tuples", statsFolder + File.separator + "tuples.csv"));
+        this.fileMonitors.add(new FileMonitor("memory", statsFolder + File.separator + "memory.csv"));
+        this.fileMonitors.add(new FileMonitor("comp", statsFolder + File.separator + "comp.csv"));
+        this.fileMonitors.add(new FileMonitor("ratio", statsFolder + File.separator + "ratio.csv"));
+        this.fileMonitors.add(new FileMonitor("dec", statsFolder + File.separator + "dec.csv"));
+        this.fileMonitors.add(new FileMonitor("eventtime", statsFolder + File.separator + "eventtime.csv"));
 
     }
 
@@ -121,6 +140,14 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
     long windowsChange;
 
     public List<OUT> processTupleIn1(IN t) {
+
+        // Check for D updates
+        while (!dUpdates.isEmpty()) {
+            Long d = dUpdates.poll();
+            if (d != null) {
+                compressionTimeThreshold = d;
+            }
+        }
 
         // Prepare statistics vars
         memoryChange = 0;
@@ -339,6 +366,19 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
 
         }
         return result;
+    }
+
+    @Override
+    public void changeD(long v) {
+        dUpdates.add(v);
+    }
+
+    @Override
+    public void setStatReporter(StatReporter reporter) {
+        fileMonitors.forEach(m -> {
+            m.setStatReporter(reporter);
+            m.startMonitoring();
+        });
     }
 
 }

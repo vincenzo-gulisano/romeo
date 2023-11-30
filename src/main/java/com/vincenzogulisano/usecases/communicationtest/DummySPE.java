@@ -43,13 +43,8 @@ public class DummySPE implements Actionable {
     }
 
     @Override
-    public void actionA() {
-        System.out.println("Unimplemented method 'actionA'");
-    }
-
-    @Override
-    public void actionB() {
-        System.out.println("Unimplemented method 'actionB'");
+    public void changeD(long v) {
+        System.out.println("Changing D to " + v);
     }
 
 }

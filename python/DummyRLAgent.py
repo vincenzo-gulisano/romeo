@@ -2,6 +2,7 @@ import threading
 import time
 import random
 from confluent_kafka import Producer, Consumer, KafkaError
+import sys
 
 
 class KafkaActionsProducer:
@@ -13,10 +14,10 @@ class KafkaActionsProducer:
     def produce_action(self):
         while True:
             # Produce a random action to the 'actions' topic
-            action = random.choice(['actionA', 'actionB'])
-            self.producer.produce(self.actions_topic, key=str(time.time()), value=action)
+            action = random.randint(0, sys.maxsize)
+            self.producer.produce(self.actions_topic, key=str(time.time()), value=str(action))
             self.producer.flush()
-            time.sleep(1)
+            time.sleep(180)
 
     def start_producer_thread(self):
         producer_thread = threading.Thread(target=self.produce_action)

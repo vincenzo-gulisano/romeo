@@ -8,7 +8,7 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
-import com.vincenzogulisano.woost.WoostAggregate;
+import com.vincenzogulisano.javapythoncommunicator.Actionable;
 import com.vincenzogulisano.woost.WoostAggregateWithCompression;
 
 import common.metrics.Metrics;
@@ -22,13 +22,14 @@ import query.Query;
 
 public class QueryCountConsecutiveStops {
 
-    public static void main(String[] args) throws ParseException, IOException {
+    private Query q = new Query();
+    private long experimentLength;
+
+    public Actionable createQuery(String[] args) throws ParseException, IOException {
 
         Options options = new Options();
         options.addOption("i", "inputFile", true, "Input file path");
         options.addOption("s", "statsFolder", true, "Output folder for stats");
-        options.addOption("h", "help", false, "Print usage");
-        options.addOption("c", "compressionEnabled", true, "Defines whether compression should be enabled or not");
         options.addOption("d", "compressionThreshold", true, "Defines the compression threshold");
         options.addOption("l", "experimentLength", true, "Length of the experiment in milliseconds");
         options.addOption("wa", "windowAdvance", true, "Aggregate's window advance");
@@ -37,16 +38,12 @@ public class QueryCountConsecutiveStops {
         options.addOption("t", "injectorType", true, "Type of injector");
         options.addOption("n", "nanoSleep", true, "Sleeptime between sends in nanoseconds");
 
-        // long heapSize = Runtime.getRuntime().totalMemory();
-        // System.out.println("Heap Size = " + heapSize);
-
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
         String reportFolder = cmd.getOptionValue("s");
         String inputFile = cmd.getOptionValue("i");
-        boolean compressionEnabled = Boolean.parseBoolean(cmd.getOptionValue("c", "false"));
         long compressionThreshold = Long.parseLong(cmd.getOptionValue("d", String.valueOf(Long.MAX_VALUE)));
-        long experimentLength = Long.parseLong(cmd.getOptionValue("l"));
+        experimentLength = Long.parseLong(cmd.getOptionValue("l"));
         long wa = Long.parseLong(cmd.getOptionValue("wa"));
         long ws = Long.parseLong(cmd.getOptionValue("ws"));
         String outPath = cmd.getOptionValue("o", "");
@@ -56,19 +53,12 @@ public class QueryCountConsecutiveStops {
 
         LiebreContext.setUserMetrics(Metrics.file(reportFolder));
 
-        Query q = new Query();
-
         Source<TupleInput> s = q.addBaseSource("in", new SourceReadFromFile(inputFile, type, nanoSleep));
 
-        Operator<TupleInput, TupleCarStops> agg = null;
+        WoostAggregateWithCompression<TupleInput, TupleCarStops> woostAgg = new WoostAggregateWithCompression<>("agg",
+                0, 1, ws, wa, new WindowCountStops(), compressionThreshold, reportFolder);
 
-        if (compressionEnabled) {
-            agg = q.addOperator(new WoostAggregateWithCompression<TupleInput, TupleCarStops>("agg", 0, 1, ws, wa,
-                    new WindowCountStops(), compressionThreshold));
-        } else {
-            agg = q.addOperator(new WoostAggregate<TupleInput, TupleCarStops>("agg", 0, 1, ws, wa,
-                    new WindowCountStops()));
-        }
+        Operator<TupleInput, TupleCarStops> agg = q.addOperator(woostAgg);
 
         Sink<TupleCarStops> o1 = q.addSink(new SinkLogAndLatency("out", new SinkFunction<TupleCarStops>() {
 
@@ -79,6 +69,12 @@ public class QueryCountConsecutiveStops {
         }, writeOut, outPath));
 
         q.connect(s, agg).connect(agg, o1);
+
+        return woostAgg;
+
+    }
+
+    public void runQuery() {
 
         q.activate();
         Util.sleep(experimentLength);

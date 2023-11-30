@@ -1,9 +1,11 @@
 package com.vincenzogulisano.javapythoncommunicator;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Properties;
 
+import org.apache.commons.cli.ParseException;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -13,13 +15,14 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 
 import com.vincenzogulisano.usecases.communicationtest.DummySPE;
+import com.vincenzogulisano.usecases.linearroad.QueryCountConsecutiveStops;
 
 public class JPComm implements StatReporter {
 
-    private final Actionable actionable;
-    private final Properties properties;
-    private final Producer<String, String> producer;
-    private final Consumer<String, String> consumer;
+    private Actionable actionable;
+    private Properties properties;
+    private Producer<String, String> producer;
+    private Consumer<String, String> consumer;
 
     private JPComm(Actionable actionable) {
         this.actionable = actionable;
@@ -44,14 +47,13 @@ public class JPComm implements StatReporter {
     public static JPComm createInstance(Actionable actionable) {
         JPComm jpc = new JPComm(actionable);
         actionable.setStatReporter(jpc);
-        jpc.startInternalThread();
         return jpc;
     }
 
     public void startInternalThread() {
-        // try {
+        try {
 
-        //     Thread reportingThread = new Thread(() -> {
+            Thread reportingThread = new Thread(() -> {
                 while (true) {
                     ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
                     records.forEach(record -> {
@@ -60,31 +62,28 @@ public class JPComm implements StatReporter {
                         if (parts.length == 1) {
                             String action = parts[0];
 
-                            switch (action) {
-                                case "actionA":
-                                    actionable.actionA();
-                                    break;
-                                case "actionB":
-                                    actionable.actionB();
-                                    break;
-                                default:
-                                    throw new RuntimeException(
-                                            "Retrieved unknown action " + action + " from kafka topic actions!");
+                            try {
+                                Long change = Long.parseLong(action);
+                                actionable.changeD(change);
+                            } catch (Exception e) {
+                                throw new RuntimeException(
+                                        "Retrieved unknown action " + action + " from kafka topic actions!");
                             }
+
                         }
                     });
                 }
-        //     });
+            });
 
-        //     // Set the thread as a daemon so it doesn't prevent the program from exiting
-        //     reportingThread.setDaemon(true);
+            // Set the thread as a daemon so it doesn't prevent the program from exiting
+            reportingThread.setDaemon(true);
 
-        //     // Start the thread
-        //     reportingThread.start();
+            // Start the thread
+            reportingThread.start();
 
-        // } catch (Exception e) {
-        //     System.out.println(e);
-        // }
+        } catch (Exception e) {
+            System.out.println(e);
+        }
 
     }
 
@@ -96,12 +95,15 @@ public class JPComm implements StatReporter {
         producer.send(new ProducerRecord<>("stats", String.format("%d,%s,%.2f", ts, id, value)));
     }
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException, ParseException, IOException {
 
-        DummySPE dummySPE = new DummySPE(3);
-        JPComm jpc = JPComm.createInstance(dummySPE);
+        QueryCountConsecutiveStops q = new QueryCountConsecutiveStops();
+        Actionable agg = q.createQuery(args);
+        JPComm jpc = JPComm.createInstance(agg);
 
         jpc.startInternalThread();
+
+        q.runQuery();
     }
 
 }
