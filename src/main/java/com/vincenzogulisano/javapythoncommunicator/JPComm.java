@@ -94,7 +94,7 @@ public class JPComm implements StatReporter {
 
     @Override
     public void report(long ts, String id, double value) {
-        System.out.println("Received report for ts:" + ts + " id:" + id + " value:" + value);
+        // System.out.println("Received report for ts:" + ts + " id:" + id + " value:" + value);
         // Create a message and send it to the 'stats' topic
         // TODO topic should not be hardcoded!
         producer.send(new ProducerRecord<>("stats", String.format("%d,%s,%.2f", ts, id, value)));

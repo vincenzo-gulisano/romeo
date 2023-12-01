@@ -239,7 +239,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
                     tsKeys.get(keyLatestTs.get(e2.getKey())).remove(e2.getKey());
                     keyLatestTs.remove(e2.getKey());
 
-                    i1.remove();
+                    i2.remove();
                     windowsChange--;
                 } else {
                     memoryChange += e2.getValue().getSizeInBytes();

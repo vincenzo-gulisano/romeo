@@ -14,8 +14,8 @@ class KafkaActionsProducer:
     def produce_action(self):
         while True:
             # Produce a random action to the 'actions' topic
-            action = random.randint(0, 3000)
-            time.sleep(180)
+            action = random.randint(0, 900)
+            time.sleep(120)
             print('Sending d update to ',action)
             self.producer.produce(self.actions_topic, key=str(time.time()), value=str(action))
             self.producer.flush()
