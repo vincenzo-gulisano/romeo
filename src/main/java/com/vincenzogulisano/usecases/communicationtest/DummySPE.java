@@ -4,9 +4,10 @@ import java.util.LinkedList;
 import java.util.List;
 
 import com.vincenzogulisano.javapythoncommunicator.Actionable;
+import com.vincenzogulisano.javapythoncommunicator.EnvironmentMonitor;
 import com.vincenzogulisano.javapythoncommunicator.StatReporter;
 
-public class DummySPE implements Actionable {
+public class DummySPE implements Actionable, EnvironmentMonitor {
 
     private final int numReporters;
     private final List<DummyStatReporter> statReporters;

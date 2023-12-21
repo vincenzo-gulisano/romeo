@@ -16,9 +16,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+
 import org.xerial.snappy.Snappy;
 
 import com.vincenzogulisano.javapythoncommunicator.Actionable;
+import com.vincenzogulisano.javapythoncommunicator.EnvironmentMonitor;
 import com.vincenzogulisano.javapythoncommunicator.StatReporter;
 
 import common.metrics.Metric;
@@ -31,7 +33,7 @@ import query.LiebreContext;
 
 @SuppressWarnings("unchecked")
 public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends RichTuple> extends TimeAggregate<IN, OUT>
-        implements Actionable {
+        implements Actionable, EnvironmentMonitor {
 
     private WoostTimeWindow<IN, OUT> aggregateWindow;
     private Map<String, WoostTimeWindow<IN, OUT>> uncompressedWins;
@@ -41,6 +43,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
     private Metric windowsMetric;
     private Metric tuplesMetric;
     private Metric memoryMetric;
+    private Metric throughputMetric;
 
     private long compressionTimeThreshold;
     private Metric compressionsMetric;
@@ -61,6 +64,8 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
     // private List<FileMonitor> fileMonitors;
     private String statsFolder;
     private StatReporter statReporter;
+    private EnvironmentMonitor source;
+    private EnvironmentMonitor sink;
 
     public WoostAggregateWithCompression(
             String id,
@@ -70,7 +75,9 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
             long windowSlide,
             WoostTimeWindow<IN, OUT> aggregateWindow,
             long compressionTimeThreshold,
-            String statsFolder) {
+            String statsFolder,
+            EnvironmentMonitor source,
+            EnvironmentMonitor sink) {
         super(id, instance, parallelismDegree, windowSize, windowSlide, aggregateWindow, new BaseKeyExtractor<IN>());
         uncompressedWins = new HashMap<>();
         compressedWins = new HashMap<>();
@@ -85,6 +92,8 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         this.statsFolder = statsFolder;
         // this.fileMonitors.add(new FileMonitor("eventtime", statsFolder +
         // File.separator + "eventtime.max.csv"));
+        this.source = source;
+        this.sink = sink;
 
     }
 
@@ -101,6 +110,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         decompressionMetric.enable();
         maxEventTimeMetric.enable();
         compressionRatio.enable();
+        throughputMetric.enable();
 
     }
 
@@ -114,6 +124,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         decompressionMetric.disable();
         maxEventTimeMetric.disable();
         compressionRatio.disable();
+        throughputMetric.disable();
     }
 
     // Iterators and entries used by the processTupleIn1 function
@@ -323,6 +334,8 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         compressionRatio.record((long) (((double) uncompressedWins.size() * 100)
                 / ((double) compressedWins.size() + (double) uncompressedWins.size())));
 
+        throughputMetric.record(1);
+
         return result;
     }
 
@@ -383,9 +396,15 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         consumers.put("ratio", x -> reporter.report((long) x[0], "ratio", ((Long) x[1]).doubleValue()));
         consumers.put("dec", x -> reporter.report((long) x[0], "dec", ((Long) x[1]).doubleValue()));
         consumers.put("eventtime", x -> reporter.report((long) x[0], "eventtime", ((Long) x[1]).doubleValue()));
+        consumers.put("throughput", x -> reporter.report((long) x[0], "throughput", ((Long) x[1]).doubleValue()));
+
+        // This is not good, consumers should be registered in their own classes
+        consumers.put("injectionrate", x -> reporter.report((long) x[0], "injectionrate", ((Long) x[1]).doubleValue()));
+        consumers.put("outrate", x -> reporter.report((long) x[0], "outrate", ((Long) x[1]).doubleValue()));
+        consumers.put("latency", x -> reporter.report((long) x[0], "latency", ((Long) x[1]).doubleValue()));
 
         System.out.println("Setting metrics type in Liebre");
-        LiebreContext.setUserMetrics(Metrics.fileAndConsumer(statsFolder,consumers));
+        LiebreContext.setUserMetrics(Metrics.fileAndConsumer(statsFolder, consumers));
 
         System.out.println("Creating statistics");
         windowsMetric = LiebreContext.userMetrics().newTotalCountMetric("windows", "count");
@@ -395,7 +414,11 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         compressionRatio = LiebreContext.userMetrics().newAverageTimeMetric("ratio", "percent");
         decompressionMetric = LiebreContext.userMetrics().newTotalCountMetric("dec", "count");
         maxEventTimeMetric = LiebreContext.userMetrics().newTotalMaxMetric("eventtime", "max");
+        throughputMetric = LiebreContext.userMetrics().newCountPerSecondMetric("throughput", "count");
 
+        // Now set metric reporter to source and sink too
+        source.setStatReporter(reporter);
+        sink.setStatReporter(reporter);
 
     }
 

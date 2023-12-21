@@ -16,6 +16,9 @@ def plot_csv(folder,csv_file, output_folder, min_timestamp):
     df = pd.read_csv(os.path.join(folder,csv_file), header=None, names=['ts', 'value'])
     df['ts'] -= min_timestamp
 
+    # Filter out rows with NaN values in the 'value' column
+    df = df.dropna(subset=['value'])
+
     plt.plot(df['ts'], df['value'])
     plt.xlabel('Timestamp (adjusted)')
     plt.ylabel('Value')

@@ -4,6 +4,4 @@ public interface Actionable {
     
     void changeD(long v);
 
-    void setStatReporter(StatReporter reporter);
-
 }

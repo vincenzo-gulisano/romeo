@@ -1,6 +1,9 @@
 package com.vincenzogulisano.usecases.linearroad;
 
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
+import java.lang.management.ThreadMXBean;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -25,7 +28,8 @@ public class QueryCountConsecutiveStops {
     private Query q = new Query();
     private long experimentLength;
 
-    public Actionable createQuery(String[] args) throws ParseException, IOException {
+    public WoostAggregateWithCompression<TupleInput, TupleCarStops> createQuery(String[] args)
+            throws ParseException, IOException {
 
         Options options = new Options();
         options.addOption("i", "inputFile", true, "Input file path");
@@ -51,20 +55,24 @@ public class QueryCountConsecutiveStops {
         InjectorType type = InjectorType.valueOf(cmd.getOptionValue("t", String.valueOf(InjectorType.FIXEDRATE)));
         long nanoSleep = Long.valueOf(cmd.getOptionValue("n", String.valueOf(0)));
 
-        Source<TupleInput> s = q.addBaseSource("in", new SourceReadFromFile(inputFile, type, nanoSleep));
+        SourceReadFromFile sourceFunction = new SourceReadFromFile(inputFile, type, nanoSleep);
 
-        WoostAggregateWithCompression<TupleInput, TupleCarStops> woostAgg = new WoostAggregateWithCompression<>("agg",
-                0, 1, ws, wa, new WindowCountStops(), compressionThreshold, reportFolder);
-
-        Operator<TupleInput, TupleCarStops> agg = q.addOperator(woostAgg);
-
-        Sink<TupleCarStops> o1 = q.addSink(new SinkLogAndLatency("out", new SinkFunction<TupleCarStops>() {
+        SinkLogAndLatency sink = new SinkLogAndLatency("out", new SinkFunction<TupleCarStops>() {
 
             @Override
             public void accept(TupleCarStops arg0) {
             }
 
-        }, writeOut, outPath));
+        }, writeOut, outPath);
+
+        Source<TupleInput> s = q.addBaseSource("in", sourceFunction);
+
+        WoostAggregateWithCompression<TupleInput, TupleCarStops> woostAgg = new WoostAggregateWithCompression<>("agg",
+                0, 1, ws, wa, new WindowCountStops(), compressionThreshold, reportFolder, sourceFunction, sink);
+
+        Operator<TupleInput, TupleCarStops> agg = q.addOperator(woostAgg);
+
+        Sink<TupleCarStops> o1 = q.addSink(sink);
 
         q.connect(s, agg).connect(agg, o1);
 
@@ -75,6 +83,13 @@ public class QueryCountConsecutiveStops {
     public void runQuery() {
 
         q.activate();
+        ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+        long[] threadIds = threadMXBean.getAllThreadIds();
+        
+        for (long threadId : threadIds) {
+            ThreadInfo threadInfo = threadMXBean.getThreadInfo(threadId);
+            System.out.println("Thread Name: " + threadInfo.getThreadName() + ", ID: " + threadId);
+        }
         Util.sleep(experimentLength);
         q.deActivate();
     }

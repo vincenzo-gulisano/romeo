@@ -4,11 +4,18 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.function.Consumer;
+
 import org.apache.commons.lang3.Validate;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.vincenzogulisano.javapythoncommunicator.EnvironmentMonitor;
+import com.vincenzogulisano.javapythoncommunicator.StatReporter;
+
 import common.metrics.Metric;
+import common.metrics.Metrics;
 import common.util.Util;
 import component.source.SourceFunction;
 import query.LiebreContext;
@@ -17,7 +24,7 @@ enum InjectorType {
     FIXEDRATE, REALRATE;
 }
 
-public class SourceReadFromFile implements SourceFunction<TupleInput> {
+public class SourceReadFromFile implements SourceFunction<TupleInput>, EnvironmentMonitor {
 
     private static final Logger LOGGER = LogManager.getLogger();
     private static final long IDLE_SLEEP = 1000;
@@ -25,7 +32,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
     private BufferedReader reader;
     private volatile boolean done = false;
     private boolean enabled;
-    private Metric throughputMetric;
+    private Metric injectionRateMetric;
 
     // private Random r;
     private InjectorType type;
@@ -34,10 +41,13 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
     private long lastSendNano = 0;
     private long nanoSleep;
 
+    // private StatReporter statReporter;
+
     public SourceReadFromFile(String path, InjectorType type, long nanoSleep) {
         Validate.notBlank(path, "path");
         this.path = path;
-        throughputMetric = LiebreContext.userMetrics().newCountPerSecondMetric("throughput", "rate");
+        // throughputMetric =
+        // LiebreContext.userMetrics().newCountPerSecondMetric("throughput", "rate");
         // r = new Random();
         this.type = type;
         this.nanoSleep = nanoSleep;
@@ -71,14 +81,21 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
                 lastSendNano = System.nanoTime();
                 break;
             case REALRATE:
-                while ((System.currentTimeMillis() - firstInvocationTs) < (result.getTimestamp()-firstTupleTs)*1000) {
+                while ((System.currentTimeMillis() - firstInvocationTs) < (result.getTimestamp() - firstTupleTs)
+                        * 1000) {
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
                 break;
             default:
                 break;
         }
-        throughputMetric.record(1);
+        injectionRateMetric.record(1);
 
+        result.setStimulus(System.currentTimeMillis());
         return result;
     }
 
@@ -106,7 +123,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
             throw new IllegalArgumentException(String.format("File not found: %s", path));
         }
         this.enabled = true;
-        throughputMetric.enable();
+        injectionRateMetric.enable();
     }
 
     @Override
@@ -122,12 +139,27 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         } catch (IOException e) {
             LOGGER.warn("Problem closing file {}: {}", path, e);
         }
-        throughputMetric.disable();
+        injectionRateMetric.disable();
     }
 
     @Override
     public boolean canRun() {
         return !done;
+    }
+
+    @Override
+    public void setStatReporter(StatReporter reporter) {
+        System.out.println("Setting stat reporter");
+        // this.statReporter = reporter;
+
+        // System.out.println("Registering consumers");
+        // HashMap<String, Consumer<Object[]>> consumers = new HashMap<>();
+        // consumers.put("injectionrate", x -> reporter.report((long) x[0],
+        // "injectionrate", ((Long) x[1]).doubleValue()));
+
+        System.out.println("Creating statistics");
+        injectionRateMetric = LiebreContext.userMetrics().newCountPerSecondMetric("injectionrate", "rate");
+
     }
 
 }

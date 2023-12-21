@@ -185,4 +185,8 @@ public class TupleInput implements RichTuple, Serializable {
     return this.stimulus;
   }
 
+  public void setStimulus(long stimulus) {
+    this.stimulus = stimulus;
+  }
+
 }

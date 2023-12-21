@@ -16,6 +16,9 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 
 import com.vincenzogulisano.usecases.communicationtest.DummySPE;
 import com.vincenzogulisano.usecases.linearroad.QueryCountConsecutiveStops;
+import com.vincenzogulisano.usecases.linearroad.TupleCarStops;
+import com.vincenzogulisano.usecases.linearroad.TupleInput;
+import com.vincenzogulisano.woost.WoostAggregateWithCompression;
 
 import common.util.Util;
 
@@ -46,9 +49,9 @@ public class JPComm implements StatReporter {
 
     }
 
-    public static JPComm createInstance(Actionable actionable) {
+    public static JPComm createInstance(Actionable actionable, EnvironmentMonitor monitor) {
         JPComm jpc = new JPComm(actionable);
-        actionable.setStatReporter(jpc);
+        monitor.setStatReporter(jpc);
         return jpc;
     }
 
@@ -94,7 +97,8 @@ public class JPComm implements StatReporter {
 
     @Override
     public void report(long ts, String id, double value) {
-        // System.out.println("Received report for ts:" + ts + " id:" + id + " value:" + value);
+        // System.out.println("Received report for ts:" + ts + " id:" + id + " value:" +
+        // value);
         // Create a message and send it to the 'stats' topic
         // TODO topic should not be hardcoded!
         producer.send(new ProducerRecord<>("stats", String.format("%d,%s,%.2f", ts, id, value)));
@@ -103,8 +107,8 @@ public class JPComm implements StatReporter {
     public static void main(String[] args) throws InterruptedException, ParseException, IOException {
 
         QueryCountConsecutiveStops q = new QueryCountConsecutiveStops();
-        Actionable agg = q.createQuery(args);
-        JPComm jpc = JPComm.createInstance(agg);
+        WoostAggregateWithCompression<TupleInput, TupleCarStops> agg = q.createQuery(args);
+        JPComm jpc = JPComm.createInstance(agg, agg);
 
         jpc.startInternalThread();
 
