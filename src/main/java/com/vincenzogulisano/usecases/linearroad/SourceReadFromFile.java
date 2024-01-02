@@ -20,30 +20,28 @@ enum InjectorType {
 
 public class SourceReadFromFile implements SourceFunction<TupleInput> {
 
-    private static final long IDLE_SLEEP = 1000;
+    private final long IDLE_SLEEP;
     private final String path;
     private BufferedReader reader;
-    private volatile boolean done = false;
+    private volatile boolean done;
     private boolean enabled;
     private Metric injectionRateMetric;
 
     private InjectorType type;
-    private long firstInvocationTs = -1;
-    private long firstTupleTs = -1;
-    private long lastSendNano = 0;
+    private long firstInvocationTs;
+    private long firstTupleTs;
+    private long lastSendNano;
     private long nanoSleep;
 
     private long startingTS;
     private long WS;
-    private long sleepBeforeRealRate = 5000;
-    private boolean firstTupleAtRealRate = true;
-    private boolean firstTuplesSkipped = false;
+    private long sleepBeforeRealRate;
+    private boolean firstTupleAtRealRate;
+    private boolean firstTuplesSkipped;
 
-    private volatile boolean reset = false;
-
-    public SourceReadFromFile(String path, InjectorType type, long nanoSleep) {
-        this(path, type, nanoSleep, 0, 0);
-    }
+    private volatile boolean resetRequest;
+    private volatile boolean resetAck;
+    private volatile boolean reset;
 
     public SourceReadFromFile(String path, InjectorType type, long nanoSleep, long startingTS, long WS) {
         Validate.notBlank(path, "path");
@@ -52,6 +50,21 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         this.nanoSleep = nanoSleep;
         this.startingTS = startingTS;
         this.WS = WS;
+        IDLE_SLEEP = 1000;
+        done = false;
+        firstInvocationTs = -1;
+        firstTupleTs = -1;
+        lastSendNano = 0;
+        sleepBeforeRealRate = 5000;
+        firstTupleAtRealRate = true;
+        firstTuplesSkipped = false;
+        resetRequest = false;
+        resetAck = false;
+        reset = false;
+    }
+
+    public SourceReadFromFile(String path, InjectorType type, long nanoSleep) {
+        this(path, type, nanoSleep, 0, 0);
     }
 
     private void initializeReader() {
@@ -72,6 +85,14 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
 
         if (done) {
             System.out.println("Finished processing input. Sleeping...");
+            Util.sleep(IDLE_SLEEP);
+            return null;
+        }
+
+        if (resetRequest) {
+            // If resetRequest is true, the SPE wants to initiate a reset. The Source will
+            // not send tuples until the rest is completed
+            resetAck = true;
             Util.sleep(IDLE_SLEEP);
             return null;
         }
@@ -219,7 +240,17 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         injectionRateMetric = LiebreContext.userMetrics().newCountPerSecondMetric("injectionrate", "rate");
     }
 
+    public void registerResetRequest() {
+        resetRequest = true;
+    }
+
+    public boolean getResetAck() {
+        return resetAck;
+    }
+
     public void reset() {
+        resetRequest = false;
+        resetAck = false;
         reset = true;
     }
 }
