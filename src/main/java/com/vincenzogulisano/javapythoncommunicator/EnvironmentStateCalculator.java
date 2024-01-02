@@ -59,7 +59,7 @@ public class EnvironmentStateCalculator implements StatReporter {
         // Check if there's something older than the monitoring period. If that is the
         // case, remove old stuff, report, and empty
         boolean beforeMonitoringPeriod = false;
-        while (!measurements.isEmpty()) {
+        if (!measurements.isEmpty()) {
             for (String id_ : measurements.keySet()) {
                 while (!measurements.get(id_).isEmpty()
                         && measurements.get(id_).peek().getTimestamp() <= ts - monitoringPeriod) {
@@ -72,6 +72,7 @@ public class EnvironmentStateCalculator implements StatReporter {
             }
         }
         if (beforeMonitoringPeriod) {
+            String.format(String.format("reporting at time %d statistics:", ts));
             for (String id_ : measurements.keySet()) {
                 double avg = 0.0;
                 for (Pair<Long, Double> v : measurements.get(id_)) {
@@ -79,8 +80,8 @@ public class EnvironmentStateCalculator implements StatReporter {
                 }
                 avg /= measurements.get(id_).size();
                 System.out.println(
-                        String.format("reporting at time %d statistic %s whose average is %.2f, computed from %s", ts,
-                                id_, avg, measurements.get(id_)));
+                        String.format("...%s whose average is %.2f, computed from %d values",
+                                id_, avg, measurements.get(id_).size()));
                 producer.send(new ProducerRecord<>("stats", String.format("%d,%s,%.2f", ts, id_, avg)));
             }
             measurements.clear();
@@ -91,6 +92,8 @@ public class EnvironmentStateCalculator implements StatReporter {
                 measurements.put(id, new LinkedList<>());
             }
             measurements.get(id).add(new Pair<Long, Double>(ts, value));
+            // System.out.println(String.format("EnvironmentStateCalculator registering
+            // (%d,%s,%.2f)", ts, id, value));
         }
     }
 

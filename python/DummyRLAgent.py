@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 class MeasurementTracker:
     def __init__(self):
         self.last_time = None
+        self.previous_values = {}
         # self.reset()
         # self.period = 20
         # self.nanvalue = -1
@@ -36,6 +37,8 @@ class MeasurementTracker:
                     'previous_value': value,
                     'timestamp': timestamp
                 }
+        
+        print('registered',timestamp,id,value)
         
         self.last_time = timestamp
         # # current_time = datetime.utcfromtimestamp(timestamp)

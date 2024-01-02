@@ -2,6 +2,7 @@ package com.vincenzogulisano.usecases.linearroad;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.function.Consumer;
 
 import org.apache.commons.cli.CommandLine;
@@ -13,6 +14,7 @@ import org.apache.commons.cli.ParseException;
 import com.vincenzogulisano.javapythoncommunicator.Actionable;
 import com.vincenzogulisano.javapythoncommunicator.EnvironmentMonitor;
 import com.vincenzogulisano.javapythoncommunicator.StatReporter;
+import com.vincenzogulisano.util.ThreadCPUMonitor;
 import com.vincenzogulisano.woost.WoostAggregateWithCompression;
 
 import common.metrics.Metrics;
@@ -31,9 +33,10 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
     private WoostAggregateWithCompression<TupleInput, TupleCarStops> woostAgg;
     private SourceReadFromFile sourceFunction;
     private SinkLogAndLatency sink;
+    private ThreadCPUMonitor threadCPUMonitor;
     private String statsFolder;
 
-    public WoostAggregateWithCompression<TupleInput, TupleCarStops> createQuery(String[] args)
+    public void createQuery(String[] args)
             throws ParseException, IOException {
 
         Options options = new Options();
@@ -83,15 +86,17 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
 
         q.connect(s, agg).connect(agg, o1);
 
-        return woostAgg;
+        threadCPUMonitor = new ThreadCPUMonitor(List.of("in", "agg", "out"));
 
     }
 
     public void activateQuery() {
 
         q.activate();
+        threadCPUMonitor.startMonitoring();
         Util.sleep(experimentLength);
         q.deActivate();
+        threadCPUMonitor.stopMonitoring();
     }
 
     @Override
@@ -103,6 +108,8 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         consumers.putAll(sourceFunction.setStatReporter(reporter));
         consumers.putAll(woostAgg.setStatReporter(reporter));
         consumers.putAll(sink.setStatReporter(reporter));
+        consumers.putAll(threadCPUMonitor.setStatReporter(reporter));
+
         System.out.println("SPE - Setting metrics type in Liebre");
         LiebreContext.setUserMetrics(Metrics.fileAndConsumer(statsFolder, consumers));
 
@@ -110,6 +117,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         sourceFunction.createStatistics();
         woostAgg.createStatistics();
         sink.createStatistics();
+        threadCPUMonitor.createStatistics();
 
     }
 
