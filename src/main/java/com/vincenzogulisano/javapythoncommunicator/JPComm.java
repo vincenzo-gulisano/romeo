@@ -22,12 +22,13 @@ import com.vincenzogulisano.woost.WoostAggregateWithCompression;
 
 import common.util.Util;
 
-public class JPComm implements StatReporter {
+public class JPComm {
 
     private Actionable actionable;
     private Properties properties;
     private Producer<String, String> producer;
     private Consumer<String, String> consumer;
+    private EnvironmentStateCalculator esc;
 
     private JPComm(Actionable actionable) {
         this.actionable = actionable;
@@ -46,12 +47,13 @@ public class JPComm implements StatReporter {
         consumer = new KafkaConsumer<>(properties);
         // TODO topic should not be hardcoded!
         consumer.subscribe(Collections.singletonList("dchanges"));
+        esc = new EnvironmentStateCalculator(20, producer);
 
     }
 
     public static JPComm createInstance(Actionable actionable, EnvironmentMonitor monitor) {
         JPComm jpc = new JPComm(actionable);
-        monitor.setStatReporter(jpc);
+        monitor.setStatReporter(jpc.esc);
         return jpc;
     }
 
@@ -92,14 +94,14 @@ public class JPComm implements StatReporter {
 
     }
 
-    @Override
-    public void report(long ts, String id, double value) {
-        // System.out.println("Received report for ts:" + ts + " id:" + id + " value:" +
-        // value);
-        // Create a message and send it to the 'stats' topic
-        // TODO topic should not be hardcoded!
-        producer.send(new ProducerRecord<>("stats", String.format("%d,%s,%.2f", ts, id, value)));
-    }
+    // @Override
+    // public void report(long ts, String id, double value) {
+    //     // System.out.println("Received report for ts:" + ts + " id:" + id + " value:" +
+    //     // value);
+    //     // Create a message and send it to the 'stats' topic
+    //     // TODO topic should not be hardcoded!
+    //     producer.send(new ProducerRecord<>("stats", String.format("%d,%s,%.2f", ts, id, value)));
+    // }
 
     public static void main(String[] args) throws InterruptedException, ParseException, IOException {
 
