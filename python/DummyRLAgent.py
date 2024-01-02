@@ -8,21 +8,22 @@ from datetime import datetime, timedelta
 
 class MeasurementTracker:
     def __init__(self):
-        self.reset()
-        self.period = 20
-        self.nanvalue = -1
-
-    def reset(self):
-        self.measurements = defaultdict(list)
         self.last_time = None
-        self.previous_values = {}
+        # self.reset()
+        # self.period = 20
+        # self.nanvalue = -1
 
-    def should_value_be_registered(self,timestamp,id,value):
-        if id=='outrate' and value==0:
-            return False
-        if id=='latency' and value==-1:
-            return False
-        return True
+    # def reset(self):
+    #     # self.measurements = defaultdict(list)
+    #     # self.last_time = None
+    #     self.previous_values = {}
+
+    # def should_value_be_registered(self,timestamp,id,value):
+    #     if id=='outrate' and value==0:
+    #         return False
+    #     if id=='latency' and value==-1:
+    #         return False
+    #     return True
 
     def process_input(self, input_str):
 
@@ -31,41 +32,47 @@ class MeasurementTracker:
         timestamp = int(timestamp)
         value = float(value)
 
-        # current_time = datetime.utcfromtimestamp(timestamp)
-        # print('current_time:',timestamp)
-
-        # Check if it's time to empty and calculate averages
-        if self.last_time is None or timestamp - self.last_time > self.period:
-            self.aggregate_and_clean(timestamp)
-
-        if self.should_value_be_registered(timestamp,id,float(value)):
-            # print('storing in measurements')
-            self.measurements[id].append((timestamp, float(value)))
-
-    def aggregate_and_clean(self, current_time):
-
-        # print('aggregate_and_clean!')
-        for id, values in self.measurements.items():
-            # print(id,values)
-            if values:
-                average_value = sum([v[1] for v in values]) / len(values)
-                self.previous_values[id] = {
-                    'previous_value': average_value,
-                    'timestamp': values[-1][0],
-                    'current_timestamp': current_time
+        self.previous_values[id] = {
+                    'previous_value': value,
+                    'timestamp': timestamp
                 }
-                print(current_time,id,average_value,[round(v[1], 2) for v in values])
-            else:
-                self.previous_values[id] = {
-                    'previous_value': None,
-                    'timestamp': None,
-                    'current_timestamp': current_time
-                }
-                print(current_time,id,'-',[round(v[1], 2) for v in values])
+        
+        self.last_time = timestamp
+        # # current_time = datetime.utcfromtimestamp(timestamp)
+        # # print('current_time:',timestamp)
 
-        for id, values in list(self.measurements.items()):
-            self.measurements[id] = [(t, v) for t, v in values if current_time - t <= self.period]
-        self.last_time = current_time
+        # # Check if it's time to empty and calculate averages
+        # if self.last_time is None or timestamp - self.last_time > self.period:
+        #     self.aggregate_and_clean(timestamp)
+
+        # if self.should_value_be_registered(timestamp,id,float(value)):
+        #     # print('storing in measurements')
+        #     self.measurements[id].append((timestamp, float(value)))
+
+    # def aggregate_and_clean(self, current_time):
+
+    #     # print('aggregate_and_clean!')
+    #     for id, values in self.measurements.items():
+    #         # print(id,values)
+    #         if values:
+    #             average_value = sum([v[1] for v in values]) / len(values)
+    #             self.previous_values[id] = {
+    #                 'previous_value': average_value,
+    #                 'timestamp': values[-1][0],
+    #                 'current_timestamp': current_time
+    #             }
+    #             print(current_time,id,average_value,[round(v[1], 2) for v in values])
+    #         else:
+    #             self.previous_values[id] = {
+    #                 'previous_value': None,
+    #                 'timestamp': None,
+    #                 'current_timestamp': current_time
+    #             }
+    #             print(current_time,id,'-',[round(v[1], 2) for v in values])
+
+    #     for id, values in list(self.measurements.items()):
+    #         self.measurements[id] = [(t, v) for t, v in values if current_time - t <= self.period]
+    #     self.last_time = current_time
 
 class KafkaActionsProducer:
     def __init__(self, statsConsumer, bootstrap_servers='michelangelo.cse.chalmers.se:9092', actions_topic='dchanges'):
