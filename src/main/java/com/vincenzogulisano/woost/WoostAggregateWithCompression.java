@@ -32,8 +32,7 @@ import component.operator.in1.aggregate.TimeAggregate;
 import query.LiebreContext;
 
 @SuppressWarnings("unchecked")
-public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends RichTuple> extends TimeAggregate<IN, OUT>
-        implements Actionable, EnvironmentMonitor {
+public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends RichTuple> extends TimeAggregate<IN, OUT> {
 
     private WoostTimeWindow<IN, OUT> aggregateWindow;
     private Map<String, WoostTimeWindow<IN, OUT>> uncompressedWins;
@@ -62,10 +61,8 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
     // Used to retrieve D updated
     private ConcurrentLinkedQueue<Long> dUpdates;
     // private List<FileMonitor> fileMonitors;
-    private String statsFolder;
-    private StatReporter statReporter;
-    private EnvironmentMonitor source;
-    private EnvironmentMonitor sink;
+    // private String statsFolder;
+    // private StatReporter statReporter;
 
     public WoostAggregateWithCompression(
             String id,
@@ -75,9 +72,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
             long windowSlide,
             WoostTimeWindow<IN, OUT> aggregateWindow,
             long compressionTimeThreshold,
-            String statsFolder,
-            EnvironmentMonitor source,
-            EnvironmentMonitor sink) {
+            String statsFolder) {
         super(id, instance, parallelismDegree, windowSize, windowSlide, aggregateWindow, new BaseKeyExtractor<IN>());
         uncompressedWins = new HashMap<>();
         compressedWins = new HashMap<>();
@@ -89,11 +84,11 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
 
         this.dUpdates = new ConcurrentLinkedQueue<>();
         // this.fileMonitors = new LinkedList<>();
-        this.statsFolder = statsFolder;
+        // this.statsFolder = statsFolder;
         // this.fileMonitors.add(new FileMonitor("eventtime", statsFolder +
         // File.separator + "eventtime.max.csv"));
-        this.source = source;
-        this.sink = sink;
+        // this.source = source;
+        // this.sink = sink;
 
     }
 
@@ -376,18 +371,13 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         return result;
     }
 
-    @Override
     public void changeD(long v) {
         System.out.println("Storing change request to d:" + v);
         dUpdates.add(v);
     }
 
-    @Override
-    public void setStatReporter(StatReporter reporter) {
-        System.out.println("Setting stat reporter");
-        this.statReporter = reporter;
-
-        System.out.println("Registering consumers");
+    public HashMap<String, Consumer<Object[]>> setStatReporter(StatReporter reporter) {
+        System.out.println("Agg - Registering consumers");
         HashMap<String, Consumer<Object[]>> consumers = new HashMap<>();
         consumers.put("windows", x -> reporter.report((long) x[0], "windows", ((Long) x[1]).doubleValue()));
         consumers.put("tuples", x -> reporter.report((long) x[0], "tuples", ((Long) x[1]).doubleValue()));
@@ -398,15 +388,12 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         consumers.put("eventtime", x -> reporter.report((long) x[0], "eventtime", ((Long) x[1]).doubleValue()));
         consumers.put("throughput", x -> reporter.report((long) x[0], "throughput", ((Long) x[1]).doubleValue()));
 
-        // This is not good, consumers should be registered in their own classes
-        consumers.put("injectionrate", x -> reporter.report((long) x[0], "injectionrate", ((Long) x[1]).doubleValue()));
-        consumers.put("outrate", x -> reporter.report((long) x[0], "outrate", ((Long) x[1]).doubleValue()));
-        consumers.put("latency", x -> reporter.report((long) x[0], "latency", ((Long) x[1]).doubleValue()));
+        return consumers;
 
-        System.out.println("Setting metrics type in Liebre");
-        LiebreContext.setUserMetrics(Metrics.fileAndConsumer(statsFolder, consumers));
+    }
 
-        System.out.println("Creating statistics");
+    public void createStatistics() {
+        System.out.println("Agg - Creating statistics");
         windowsMetric = LiebreContext.userMetrics().newTotalCountMetric("windows", "count");
         tuplesMetric = LiebreContext.userMetrics().newTotalCountMetric("tuples", "count");
         memoryMetric = LiebreContext.userMetrics().newTotalCountMetric("memory", "size");
@@ -415,11 +402,42 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         decompressionMetric = LiebreContext.userMetrics().newTotalCountMetric("dec", "count");
         maxEventTimeMetric = LiebreContext.userMetrics().newTotalMaxMetric("eventtime", "max");
         throughputMetric = LiebreContext.userMetrics().newCountPerSecondMetric("throughput", "count");
-
-        // Now set metric reporter to source and sink too
-        source.setStatReporter(reporter);
-        sink.setStatReporter(reporter);
-
     }
+
+    // // This is not good, consumers should be registered in their own classes
+    // consumers.put("injectionrate", x -> reporter.report((long) x[0],
+    // "injectionrate", ((Long) x[1]).doubleValue()));
+    // consumers.put("outrate", x -> reporter.report((long) x[0], "outrate", ((Long)
+    // x[1]).doubleValue()));
+    // consumers.put("latency", x -> reporter.report((long) x[0], "latency", ((Long)
+    // x[1]).doubleValue()));
+
+    // System.out.println("Setting metrics type in Liebre");
+    // LiebreContext.setUserMetrics(Metrics.fileAndConsumer(statsFolder,
+    // consumers));
+
+    // System.out.println("Creating statistics");
+    // windowsMetric = LiebreContext.userMetrics().newTotalCountMetric("windows",
+    // "count");
+    // tuplesMetric = LiebreContext.userMetrics().newTotalCountMetric("tuples",
+    // "count");
+    // memoryMetric = LiebreContext.userMetrics().newTotalCountMetric("memory",
+    // "size");
+    // compressionsMetric = LiebreContext.userMetrics().newTotalCountMetric("comp",
+    // "count");
+    // compressionRatio = LiebreContext.userMetrics().newAverageTimeMetric("ratio",
+    // "percent");
+    // decompressionMetric = LiebreContext.userMetrics().newTotalCountMetric("dec",
+    // "count");
+    // maxEventTimeMetric =
+    // LiebreContext.userMetrics().newTotalMaxMetric("eventtime", "max");
+    // throughputMetric =
+    // LiebreContext.userMetrics().newCountPerSecondMetric("throughput", "count");
+
+    // // Now set metric reporter to source and sink too
+    // source.setStatReporter(reporter);
+    // sink.setStatReporter(reporter);
+
+    // }
 
 }

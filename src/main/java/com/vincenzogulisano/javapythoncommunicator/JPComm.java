@@ -72,6 +72,7 @@ public class JPComm implements StatReporter {
 
                             try {
                                 Long change = Long.parseLong(action);
+                                System.out.println("Going to change D to " + action);
                                 actionable.changeD(change);
                             } catch (Exception e) {
                                 throw new RuntimeException(
@@ -107,12 +108,14 @@ public class JPComm implements StatReporter {
     public static void main(String[] args) throws InterruptedException, ParseException, IOException {
 
         QueryCountConsecutiveStops q = new QueryCountConsecutiveStops();
-        WoostAggregateWithCompression<TupleInput, TupleCarStops> agg = q.createQuery(args);
-        JPComm jpc = JPComm.createInstance(agg, agg);
+        q.createQuery(args);
+        JPComm jpc = JPComm.createInstance(q, q);
 
         jpc.startInternalThread();
 
-        q.runQuery();
+        q.activateQuery();
+        // Util.sleep(q.getQueryDuration());
+        // q.deactivateQuery();
     }
 
 }
