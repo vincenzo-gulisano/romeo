@@ -20,6 +20,29 @@ id="${wa}/${ws}/${duration}/${repetition}/${rate}"
 exp_folder=${base_folder}/${id}/${d}
 mkdir -p "${exp_folder}"
 
+echo "Cleaning stats folder"
+rm -rf ${exp_folder}/*.csv
+rm -rf ${exp_folder}/*.log
+
+echo "Killing any past JVM instance that should have been killed before"
+# Get PIDs using pgrep
+PIDS=$(pgrep -f "com.vincenzogulisano.javapythoncommunicator.JPComm")
+
+# Check if PIDS is not empty
+if [ -n "$PIDS" ]; then
+    # Iterate over each PID and send kill command
+    for PID in $PIDS; do
+        kill "$PID"
+        echo "JVM with PID $PID killed."
+    done
+fi
+
+echo "killing previous python processes and stopping Kafka"
+pkill -9 python
+./scripts/stop_kafka.sh
+
+sleep 3
+
 echo "Starting Kafka"
 ./scripts/start_kafka.sh ${exp_folder}
 

@@ -152,9 +152,6 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         // Create result
         List<OUT> result = new LinkedList<OUT>();
 
-        // Check timestamps are not decreasing
-        checkIncreasingTimestamps(t);
-
         // Extract tuple info
         latestTimestamp = t.getTimestamp();
         long tL = getEarliestWinStartTS(latestTimestamp);

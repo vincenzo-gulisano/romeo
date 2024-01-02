@@ -8,11 +8,14 @@ from datetime import datetime, timedelta
 
 class MeasurementTracker:
     def __init__(self):
+        self.reset()
+        self.period = 20
+        self.nanvalue = -1
+
+    def reset(self):
         self.measurements = defaultdict(list)
         self.last_time = None
         self.previous_values = {}
-        self.period = 20
-        self.nanvalue = -1
 
     def should_value_be_registered(self,timestamp,id,value):
         if id=='outrate' and value==0:
@@ -86,10 +89,17 @@ class KafkaActionsProducer:
         return 1
 
     def produce_action(self):
+        actionsBeforeReset=3
         while True:
             # Produce a random action to the 'actions' topic
             time.sleep(1)
-            if len(self.statsConsumer.tracker.previous_values)>0 and (self.prev_stat_time is None or self.statsConsumer.tracker.last_time > self.prev_stat_time):
+            if actionsBeforeReset==0:
+                actionsBeforeReset=3
+                print('Sending reset command')
+                self.producer.produce(self.actions_topic, key=str(time.time()), value="reset")
+                self.producer.flush()
+                self.statsConsumer.tracker.reset()
+            elif len(self.statsConsumer.tracker.previous_values)>0 and (self.prev_stat_time is None or self.statsConsumer.tracker.last_time > self.prev_stat_time):
                 print('Got a new measurement from the environment for time',self.statsConsumer.tracker.last_time)
                 self.measurements.append(self.statsConsumer.tracker.previous_values)
                 if len(self.measurements) == 2:
@@ -100,11 +110,13 @@ class KafkaActionsProducer:
                         self.producer.produce(self.actions_topic, key=str(time.time()), value="changeD,"+str(self.action_D))
                         self.producer.flush()
                         print('D updated to ',self.action_D)
+                        actionsBeforeReset-=1
                     if reward > 0 and self.action_D > 0:
                         self.action_D = max (self.action_D-20,0)
                         self.producer.produce(self.actions_topic, key=str(time.time()), value="changeD,"+str(self.action_D))
                         self.producer.flush()
                         print('D updated to ',self.action_D)
+                        actionsBeforeReset-=1
                     self.measurements.pop(0)
                 self.prev_stat_time = self.statsConsumer.tracker.last_time
 

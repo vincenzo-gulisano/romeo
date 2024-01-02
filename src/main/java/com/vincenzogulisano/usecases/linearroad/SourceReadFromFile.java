@@ -160,7 +160,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
                         try {
                             Thread.sleep(sleepBeforeRealRate);
                         } catch (InterruptedException e) {
-                            e.printStackTrace();
+                            System.out.println("Thread sleep Interrupted Exception");
                         }
                         firstInvocationTs = System.currentTimeMillis();
                     }
