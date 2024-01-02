@@ -76,7 +76,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
 
     }
 
-    private void reset() {
+    public void reset() {
         uncompressedWins = new HashMap<>();
         compressedWins = new HashMap<>();
         tsKeys = new TreeMap<>();

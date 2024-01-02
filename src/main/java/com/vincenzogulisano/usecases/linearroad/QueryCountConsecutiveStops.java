@@ -1,9 +1,6 @@
 package com.vincenzogulisano.usecases.linearroad;
 
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import java.lang.management.ThreadInfo;
-import java.lang.management.ThreadMXBean;
 import java.util.HashMap;
 import java.util.function.Consumer;
 
@@ -93,36 +90,9 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
     public void activateQuery() {
 
         q.activate();
-        // ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
-        // long[] threadIds = threadMXBean.getAllThreadIds();
-
-        // for (long threadId : threadIds) {
-        // ThreadInfo threadInfo = threadMXBean.getThreadInfo(threadId);
-        // System.out.println("Thread Name: " + threadInfo.getThreadName() + ", ID: " +
-        // threadId);
-        // }
         Util.sleep(experimentLength);
         q.deActivate();
     }
-
-    // public void deactivateQuery() {
-
-    //     // q.activate();
-    //     // // ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
-    //     // // long[] threadIds = threadMXBean.getAllThreadIds();
-
-    //     // // for (long threadId : threadIds) {
-    //     // // ThreadInfo threadInfo = threadMXBean.getThreadInfo(threadId);
-    //     // // System.out.println("Thread Name: " + threadInfo.getThreadName() + ", ID: "
-    //     // + threadId);
-    //     // // }
-    //     // Util.sleep(experimentLength);
-    //     q.deActivate();
-    // }
-
-    // public long getQueryDuration() {
-    //     return experimentLength;
-    // }
 
     @Override
     public void setStatReporter(StatReporter reporter) {
@@ -147,6 +117,19 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
     public void changeD(long v) {
         System.out.println("SPE - changeD invoked");
         woostAgg.changeD(v);
+    }
+
+    @Override
+    public void reset() {
+        System.out.println("SPE - Got a RESET request");
+        System.out.println("SPE - Synchronizing with Source to initiate the procedure");
+        sourceFunction.registerResetRequest();
+        while (!sourceFunction.getResetAck()) {
+            Util.sleep(50);
+        }
+        System.out.println("SPE - The source is no longer injecting tuples, resetting Agg and Source");
+        woostAgg.reset();
+        sourceFunction.reset();
     }
 
 }

@@ -67,18 +67,14 @@ public class JPComm implements StatReporter {
                         System.out.println("... got " + record);
                         // Parse and process the received message
                         String[] parts = record.value().split(",");
-                        if (parts.length == 1) {
-                            String action = parts[0];
-
-                            try {
-                                Long change = Long.parseLong(action);
-                                System.out.println("Going to change D to " + action);
-                                actionable.changeD(change);
-                            } catch (Exception e) {
-                                throw new RuntimeException(
-                                        "Retrieved unknown action " + action + " from kafka topic actions!");
-                            }
-
+                        if (parts[0].equals("changeD")) {
+                            String action = parts[1];
+                            Long change = Long.parseLong(action);
+                            actionable.changeD(change);
+                        } else if (parts[0].equals("reset")) {
+                            actionable.reset();
+                        } else {
+                            throw new RuntimeException("Unknown command " + record.value());
                         }
                     });
                 }

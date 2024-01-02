@@ -48,4 +48,10 @@ public class DummySPE implements Actionable, EnvironmentMonitor {
         System.out.println("Changing D to " + v);
     }
 
+	@Override
+	public void reset() {
+		// TODO Auto-generated method stub
+		throw new UnsupportedOperationException("Unimplemented method 'reset'");
+	}
+
 }

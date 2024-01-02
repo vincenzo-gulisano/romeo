@@ -97,12 +97,12 @@ class KafkaActionsProducer:
                     print('computed reward:',reward)
                     if reward < 0 and self.action_D < self.max_D:
                         self.action_D = min (self.action_D+20,self.max_D)
-                        self.producer.produce(self.actions_topic, key=str(time.time()), value=str(self.action_D))
+                        self.producer.produce(self.actions_topic, key=str(time.time()), value="changeD,"+str(self.action_D))
                         self.producer.flush()
                         print('D updated to ',self.action_D)
                     if reward > 0 and self.action_D > 0:
                         self.action_D = max (self.action_D-20,0)
-                        self.producer.produce(self.actions_topic, key=str(time.time()), value=str(self.action_D))
+                        self.producer.produce(self.actions_topic, key=str(time.time()), value="changeD,"+str(self.action_D))
                         self.producer.flush()
                         print('D updated to ',self.action_D)
                     self.measurements.pop(0)
