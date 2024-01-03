@@ -7,11 +7,12 @@ input_file="/home/vincenzo/woost/data/input/input.txt"
 # Define lists of values
 wa=5
 ws=600
-duration=600000
+duration=7200000
 d=100000000
 rate=25000
 repetition=0
-starting_time=900
+starting_time_min=900
+starting_time_max=9900
 
 # Define id variable with concatenation of values
 id="${wa}/${ws}/${duration}/${repetition}/${rate}"
@@ -53,7 +54,7 @@ echo "The PID of the python agent is ${python_pid}"
 echo "Starting SPE"
 
 echo "Starting experiment for ${id} (compression)"
-args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -n ${rate} -d ${d} -st ${starting_time}"
+args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -n ${rate} -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max}"
 
 mvn clean compile package exec:java -Dexec.mainClass="com.vincenzogulisano.javapythoncommunicator.JPComm" -Dexec.args="${args}" > ${exp_folder}/spe.log 2>&1 &
 

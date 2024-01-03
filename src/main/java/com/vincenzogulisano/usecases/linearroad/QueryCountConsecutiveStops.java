@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 import java.util.function.Consumer;
 
 import org.apache.commons.cli.CommandLine;
@@ -40,6 +41,8 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
     private StatReporter reporter;
     private EpisodesLogger episodesLogger;
     private boolean firstEpisodeStarted;
+    private long startingTimeMinimum;
+    private long startingTimeMaximum;
 
     public void createQuery(String[] args)
             throws ParseException, IOException {
@@ -54,7 +57,8 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         options.addOption("o", "outputFile", true, "File to output tuples");
         options.addOption("t", "injectorType", true, "Type of injector");
         options.addOption("n", "nanoSleep", true, "Sleeptime between sends in nanoseconds");
-        options.addOption("st", "startingTime", true, "starting time for RL");
+        options.addOption("stmin", "startingTimeMinimum", true, "minimum starting time for RL");
+        options.addOption("stmax", "startingTimeMaximum", true, "maximum starting time for RL");
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
@@ -68,12 +72,13 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         boolean writeOut = outPath.equals("") ? false : true;
         InjectorType type = InjectorType.valueOf(cmd.getOptionValue("t", String.valueOf(InjectorType.FIXEDRATE)));
         long nanoSleep = Long.valueOf(cmd.getOptionValue("n", String.valueOf(0)));
-        long startingTime = Long.valueOf(cmd.getOptionValue("st", String.valueOf(0)));
+        startingTimeMinimum = Long.valueOf(cmd.getOptionValue("stmin", String.valueOf(0)));
+        startingTimeMaximum = Long.valueOf(cmd.getOptionValue("stmax", String.valueOf(0)));
 
         episodesLogger = new EpisodesLogger(statsFolder + File.separator + "episodes.csv");
         firstEpisodeStarted = false;
 
-        sourceFunction = new SourceReadFromFile(inputFile, type, nanoSleep, startingTime, ws);
+        sourceFunction = new SourceReadFromFile(inputFile, type, nanoSleep, startingTimeMinimum, ws);
 
         sink = new SinkLogAndLatency("out", new SinkFunction<TupleCarStops>() {
 
@@ -166,6 +171,11 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         if (firstEpisodeStarted) {
             episodesLogger.writeEndEvent();
         }
+
+        Random r = new Random(System.currentTimeMillis());
+        long startingTS = r.nextLong(startingTimeMinimum, startingTimeMaximum);
+        System.out.println("SPE - Updating source starting time to " + startingTS);
+        sourceFunction.setStartingTS(startingTS);
 
         while (!sourceFunction.getResetAck()) {
             Util.sleep(50);

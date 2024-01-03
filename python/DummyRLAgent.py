@@ -118,7 +118,7 @@ class KafkaActionsProducer:
         return 1
 
     def produce_action(self):
-        actionsBeforeReset=3
+        actionsBeforeReset=10
         while True:
             # Produce a random action to the 'actions' topic
             time.sleep(1)

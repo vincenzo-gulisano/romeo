@@ -73,6 +73,10 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         ackFromSPEGreenlightToStartSendingRealRateTuples = false;
     }
 
+    public void setStartingTS(long startingTS) {
+        this.startingTS = startingTS;
+    }
+
     public SourceReadFromFile(String path, InjectorType type, long nanoSleep) {
         this(path, type, nanoSleep, 0, 0);
     }
@@ -180,7 +184,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
                     // The very first time, actually sleep for a while and then reset
                     // firstInvocationTs and firstTupleTs
                     if (firstTupleAtRealRate) {
-                        
+
                         allStateFillingTuplesSent = true;
 
                         if (waitingForSPEGreenlightToStartSendingRealRateTuples) {
@@ -279,7 +283,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
     }
 
     public void registerResetRequest() {
-        resetAck = false; 
+        resetAck = false;
         resetRequest = true;
     }
 
