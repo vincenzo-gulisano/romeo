@@ -1,5 +1,6 @@
 package com.vincenzogulisano.usecases.linearroad;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -14,6 +15,7 @@ import org.apache.commons.cli.ParseException;
 import com.vincenzogulisano.javapythoncommunicator.Actionable;
 import com.vincenzogulisano.javapythoncommunicator.EnvironmentMonitor;
 import com.vincenzogulisano.javapythoncommunicator.StatReporter;
+import com.vincenzogulisano.util.EpisodesLogger;
 import com.vincenzogulisano.util.ThreadCPUMonitor;
 import com.vincenzogulisano.woost.WoostAggregateWithCompression;
 
@@ -35,6 +37,9 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
     private SinkLogAndLatency sink;
     private ThreadCPUMonitor threadCPUMonitor;
     private String statsFolder;
+    private StatReporter reporter;
+    private EpisodesLogger episodesLogger;
+    private boolean firstEpisodeStarted;
 
     public void createQuery(String[] args)
             throws ParseException, IOException {
@@ -65,6 +70,9 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         long nanoSleep = Long.valueOf(cmd.getOptionValue("n", String.valueOf(0)));
         long startingTime = Long.valueOf(cmd.getOptionValue("st", String.valueOf(0)));
 
+        episodesLogger = new EpisodesLogger(statsFolder + File.separator + "episodes.csv");
+        firstEpisodeStarted = false;
+
         sourceFunction = new SourceReadFromFile(inputFile, type, nanoSleep, startingTime, ws);
 
         sink = new SinkLogAndLatency("out", new SinkFunction<TupleCarStops>() {
@@ -94,13 +102,26 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
 
         q.activate();
         threadCPUMonitor.startMonitoring();
+
+        // Forcing a "reset" here to make sure we wait for the injector from the very
+        // first episode
+        reset();
+
         Util.sleep(experimentLength);
+
+        // Log the end of the final episode
+        episodesLogger.writeEndEvent();
+        episodesLogger.close();
+
         q.deActivate();
         threadCPUMonitor.stopMonitoring();
     }
 
     @Override
     public void setStatReporter(StatReporter reporter) {
+
+        this.reporter = reporter;
+
         System.out.println("SPE - setStatReporter invoked");
         HashMap<String, Consumer<Object[]>> consumers = new HashMap<>();
 
@@ -129,15 +150,41 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
 
     @Override
     public void reset() {
+
         System.out.println("SPE - Got a RESET request");
+
+        System.out.println("Stopping the EnvironmentStateCalculator");
+        reporter.setResetRequest();
+        while (reporter.getResetAcknowledged()) {
+            Util.sleep(10);
+        }
+        System.out.println("EnvironmentStateCalculator is now stopped");
+
         System.out.println("SPE - Synchronizing with Source to initiate the procedure");
         sourceFunction.registerResetRequest();
+
+        if (firstEpisodeStarted) {
+            episodesLogger.writeEndEvent();
+        }
+
         while (!sourceFunction.getResetAck()) {
             Util.sleep(50);
         }
         System.out.println("SPE - The source is no longer injecting tuples, resetting Agg and Source");
         woostAgg.reset();
-        sourceFunction.reset();
+        sourceFunction.giveGreenlightToStartSendingStateFillingTuples();
+
+        while (!sourceFunction.areAllStateFillingTuplesSent()) {
+            Util.sleep(50);
+        }
+        System.out.println("SPE - the source has sent all the state filling tuples too");
+
+        reporter.setResetCompleted();
+        sourceFunction.giveGreenlightToStartSendingRealRateTuples();
+
+        firstEpisodeStarted = true;
+        episodesLogger.writeStartEvent();
+
     }
 
 }

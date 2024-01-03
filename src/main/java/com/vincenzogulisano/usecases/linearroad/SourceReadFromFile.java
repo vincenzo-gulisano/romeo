@@ -41,7 +41,12 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
 
     private volatile boolean resetRequest;
     private volatile boolean resetAck;
-    private volatile boolean reset;
+    private volatile boolean resetReader;
+    private volatile boolean waitingForSPEGreenlightToStartSendingStateFillingTuples;
+    private volatile boolean ackFromSPEGreenlightToStartSendingStateFillingTuples;
+    private volatile boolean allStateFillingTuplesSent;
+    private volatile boolean waitingForSPEGreenlightToStartSendingRealRateTuples;
+    private volatile boolean ackFromSPEGreenlightToStartSendingRealRateTuples;
 
     public SourceReadFromFile(String path, InjectorType type, long nanoSleep, long startingTS, long WS) {
         Validate.notBlank(path, "path");
@@ -60,7 +65,12 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         firstTuplesSkipped = false;
         resetRequest = false;
         resetAck = false;
-        reset = false;
+        resetReader = false;
+        waitingForSPEGreenlightToStartSendingStateFillingTuples = false;
+        ackFromSPEGreenlightToStartSendingStateFillingTuples = false;
+        allStateFillingTuplesSent = false;
+        waitingForSPEGreenlightToStartSendingRealRateTuples = false;
+        ackFromSPEGreenlightToStartSendingRealRateTuples = false;
     }
 
     public SourceReadFromFile(String path, InjectorType type, long nanoSleep) {
@@ -90,20 +100,26 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         }
 
         if (resetRequest) {
-            // If resetRequest is true, the SPE wants to initiate a reset. The Source will
-            // not send tuples until the rest is completed
-            resetAck = true;
-            Util.sleep(IDLE_SLEEP);
+            resetRequest = false; // Clear the request
+            resetAck = true; // Tell SPE I have stopped
+            resetReader = true; // Make sure next call I reset the reader
+            waitingForSPEGreenlightToStartSendingStateFillingTuples = true; // Wait for ack from SPE to start sending
+                                                                            // state filling tuples
+            ackFromSPEGreenlightToStartSendingStateFillingTuples = false; // Register the ack has not been received yet
+            allStateFillingTuplesSent = false; // Register we still have to complete this, since the SPE needs to know
+            waitingForSPEGreenlightToStartSendingRealRateTuples = true; // Wait for ack from SPE to start sending
+                                                                        // real rate tuples
+            ackFromSPEGreenlightToStartSendingRealRateTuples = false; // Register the ack has not been received yet
             return null;
         }
 
         // If the reader has not been created yet or if a reset was requested and, thus,
         // the reader should be recreated, create a new reader
-        if (reader == null || reset) {
+        if (reader == null || resetReader) {
             initializeReader();
-            if (reset) {
+            if (resetReader) {
                 System.out.println("Source - re-initialized reader because of a reset");
-                reset = false;
+                resetReader = false;
             }
         }
 
@@ -133,6 +149,15 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
             firstTuplesSkipped = true;
         }
 
+        if (waitingForSPEGreenlightToStartSendingStateFillingTuples) {
+            System.out.println("Source - checking if we got greenlight from SPE to send state filling tuples");
+            while (!ackFromSPEGreenlightToStartSendingStateFillingTuples) {
+                Util.sleep(50);
+            }
+            System.out.println("Source - got greenlight from SPE to send state filling tuples");
+            waitingForSPEGreenlightToStartSendingStateFillingTuples = false;
+        }
+
         switch (type) {
             case FIXEDRATE:
                 while (System.nanoTime() - lastSendNano < nanoSleep) {
@@ -155,6 +180,19 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
                     // The very first time, actually sleep for a while and then reset
                     // firstInvocationTs and firstTupleTs
                     if (firstTupleAtRealRate) {
+                        
+                        allStateFillingTuplesSent = true;
+
+                        if (waitingForSPEGreenlightToStartSendingRealRateTuples) {
+                            System.out.println(
+                                    "Source - ready to send real tuples, but waiting for the ack from the SPE");
+                            while (!ackFromSPEGreenlightToStartSendingRealRateTuples) {
+                                Util.sleep(50);
+                            }
+                            System.out.println(
+                                    "Source - ack received");
+                            waitingForSPEGreenlightToStartSendingRealRateTuples = false;
+                        }
                         System.out.println("Sleeping " + sleepBeforeRealRate + " ms before starting for real");
                         firstTupleAtRealRate = false;
                         try {
@@ -241,6 +279,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
     }
 
     public void registerResetRequest() {
+        resetAck = false; 
         resetRequest = true;
     }
 
@@ -248,9 +287,21 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         return resetAck;
     }
 
-    public void reset() {
-        resetRequest = false;
-        resetAck = false;
-        reset = true;
+    public void giveGreenlightToStartSendingStateFillingTuples() {
+        ackFromSPEGreenlightToStartSendingStateFillingTuples = true;
     }
+
+    public void giveGreenlightToStartSendingRealRateTuples() {
+        ackFromSPEGreenlightToStartSendingRealRateTuples = true;
+    }
+
+    public boolean areAllStateFillingTuplesSent() {
+        return allStateFillingTuplesSent;
+    }
+
+    // public void reset() {
+    // // resetRequest = false;
+    // // resetAck = false;
+    // // reset = true;
+    // }
 }

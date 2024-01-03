@@ -37,10 +37,29 @@ public class EnvironmentStateCalculator implements StatReporter {
 
     private Map<String, Queue<Pair<Long, Double>>> measurements;
 
+    private volatile boolean resetRequest;
+    private volatile boolean resetAcknowledged;
+    private volatile boolean resetCompleted;
+
     public EnvironmentStateCalculator(long monitoringPeriod, Producer<String, String> producer) {
         this.monitoringPeriod = monitoringPeriod;
         this.producer = producer;
         this.measurements = new HashMap<>();
+        this.resetRequest = false;
+        this.resetAcknowledged = false;
+        this.resetCompleted = true;
+    }
+
+    public void setResetRequest() {
+        this.resetRequest = true;
+    }
+
+    public boolean getResetAcknowledged() {
+        return resetAcknowledged;
+    }
+
+    public void setResetCompleted() {
+        this.resetCompleted = true;
     }
 
     private boolean valueIsToBeRegistered(String id, double value) {
@@ -55,6 +74,28 @@ public class EnvironmentStateCalculator implements StatReporter {
 
     @Override
     public void report(long ts, String id, double value) {
+
+        if (resetRequest) {
+            // System.out.println("EnvironmentStateCalculator - got a reset request, stop storing stats for now");
+            resetRequest = false;
+            resetAcknowledged = true;
+            resetCompleted = false;
+            measurements.clear();
+            return;
+        }
+
+        if (resetAcknowledged && !resetCompleted) {
+            // System.out.println("EnvironmentStateCalculator - reset acknowledge, but not completed. Not storing stats");
+            return;
+        }
+
+        if (resetAcknowledged && resetCompleted) {
+            // System.out.println("EnvironmentStateCalculator - reset acknowledge and completed. Storing stats");
+            resetAcknowledged = false;
+            resetCompleted = false;
+        }
+
+        // System.out.println(String.format("Storing %d,%s,%.2f", ts, id, value));
 
         // Check if there's something older than the monitoring period. If that is the
         // case, remove old stuff, report, and empty
@@ -83,10 +124,10 @@ public class EnvironmentStateCalculator implements StatReporter {
                 System.out.println(
                         String.format("...%s whose average is %.2f, computed from %d values",
                                 id_, avg, measurements.get(id_).size()));
-                msg += String.format(msg, "%s,%.2f", id_, avg);
+                msg += String.format(",%s,%.2f", id_, avg);
             }
             measurements.clear();
-            System.out.println(String.format("Sending message %s", msg));
+            // System.out.println(String.format("Sending message %s", msg));
             producer.send(new ProducerRecord<>("stats", msg));
 
         }

@@ -59,7 +59,7 @@ def monitor_cpu(proc,kafka_actions_producer,thread_dict, output_folder):
 
             # Print the CPU usage for the thread
             # print(f"Thread ID {thread_id}, StringID {string_id}: {cpu_percent}% CPU usage")
-            kafka_actions_producer.send_stat(f"{timestamp_ms},{string_id}-cpu,{cpu_percent}")
+            # kafka_actions_producer.send_stat(f"{timestamp_ms},{string_id}-cpu,{cpu_percent}")
 
             # Create a CSV file for each thread_name
             csv_file_path = os.path.join(output_folder, f"{string_id}_cpu_data.csv")

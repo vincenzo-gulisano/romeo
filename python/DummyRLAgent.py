@@ -55,6 +55,9 @@ class MeasurementTracker:
                 
             self.last_time = timestamp
 
+
+        print('previous_values',self.previous_values)
+                
         # # current_time = datetime.utcfromtimestamp(timestamp)
         # # print('current_time:',timestamp)
 
@@ -103,9 +106,11 @@ class KafkaActionsProducer:
         self.measurements = []
 
     def compute_reward(self):
-        # print('self.measurements[0]['latency']',self.measurements[0]['latency'])
-        # print('self.measurements[1]['latency']',self.measurements[1]['latency'])
-        print('Latency',self.measurements[1]['latency']['previous_value'],'delta comp:',(self.measurements[1]['ratio']['previous_value']-self.measurements[0]['ratio']['previous_value']))
+        print('self.measurements[0][latency][previous_value]',self.measurements[0]['latency']['previous_value'], flush=True)
+        print('self.measurements[1][latency][previous_value]',self.measurements[1]['latency']['previous_value'], flush=True)
+        print('self.measurements[0][ratio][previous_value]',self.measurements[0]['ratio']['previous_value'], flush=True)
+        print('self.measurements[1][ratio][previous_value]',self.measurements[1]['ratio']['previous_value'], flush=True)
+        print('Latency',self.measurements[1]['latency']['previous_value'],'delta comp:',(self.measurements[1]['ratio']['previous_value']-self.measurements[0]['ratio']['previous_value']), flush=True)
         if (self.measurements[1]['latency']['previous_value']>1000):
             return -100
         if (self.measurements[1]['ratio']['previous_value']<self.measurements[0]['ratio']['previous_value']):
@@ -123,20 +128,27 @@ class KafkaActionsProducer:
                     print('Sending reset command')
                     self.producer.produce(self.actions_topic, key=str(time.time()), value="reset")
                     self.producer.flush()
-                    self.statsConsumer.tracker.reset()
+                    # self.statsConsumer.tracker.reset()
                 elif len(self.statsConsumer.tracker.previous_values)>0 and (self.prev_stat_time is None or self.statsConsumer.tracker.last_time > self.prev_stat_time):
                     print('Got a new measurement from the environment for time',self.statsConsumer.tracker.last_time)
-                    self.measurements.append(self.statsConsumer.tracker.previous_values)
+                    self.measurements.append(self.statsConsumer.tracker.previous_values.copy())
+                    # print(self.measurements)
                     if len(self.measurements) == 2:
                         reward = self.compute_reward()
                         print('computed reward:',reward)
                         if reward < 0 and self.action_D < self.max_D:
-                            self.action_D = min (self.action_D+20,self.max_D)
+                            self.action_D = min (self.action_D+50,self.max_D)
                             self.producer.produce(self.actions_topic, key=str(time.time()), value="changeD,"+str(self.action_D))
                             self.producer.flush()
                             print('D updated to ',self.action_D)
                             actionsBeforeReset-=1
-                        if reward > 0 and self.action_D > 0:
+                        if reward == 10 and self.action_D > 0:
+                            self.action_D = max (self.action_D-40,0)
+                            self.producer.produce(self.actions_topic, key=str(time.time()), value="changeD,"+str(self.action_D))
+                            self.producer.flush()
+                            print('D updated to ',self.action_D)
+                            actionsBeforeReset-=1
+                        if reward == 1 and self.action_D > 0:
                             self.action_D = max (self.action_D-20,0)
                             self.producer.produce(self.actions_topic, key=str(time.time()), value="changeD,"+str(self.action_D))
                             self.producer.flush()
