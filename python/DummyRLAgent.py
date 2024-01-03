@@ -9,7 +9,9 @@ from datetime import datetime, timedelta
 class MeasurementTracker:
     def __init__(self):
         self.last_time = None
-        self.previous_values = {}
+        self.previous_values = {}   
+        self.data_lock = threading.Lock()
+
         # self.reset()
         # self.period = 20
         # self.nanvalue = -1
@@ -28,19 +30,31 @@ class MeasurementTracker:
 
     def process_input(self, input_str):
 
-        # Tokenize input string
-        timestamp, id, value = input_str.strip().split(',')
-        timestamp = int(timestamp)
-        value = float(value)
+        print('Received:',input_str)
 
-        self.previous_values[id] = {
-                    'previous_value': value,
-                    'timestamp': timestamp
-                }
-        
-        print('registered',timestamp,id,value)
-        
-        self.last_time = timestamp
+        # Split the string into parts using ","
+        parts = input_str.split(",")
+
+        # Extract timestamp as an integer
+        timestamp = int(parts[0])
+
+        with self.data_lock:
+
+            # Iterate over id, value pairs
+            for i in range(1, len(parts), 2):
+                # Assuming id and value are strings
+                id = parts[i]
+                value = float(parts[i + 1])
+
+                self.previous_values[id] = {
+                            'previous_value': value,
+                            'timestamp': timestamp
+                        }
+                
+                print('registered',timestamp,id,value)
+                
+            self.last_time = timestamp
+
         # # current_time = datetime.utcfromtimestamp(timestamp)
         # # print('current_time:',timestamp)
 
@@ -103,32 +117,33 @@ class KafkaActionsProducer:
         while True:
             # Produce a random action to the 'actions' topic
             time.sleep(1)
-            if actionsBeforeReset==0:
-                actionsBeforeReset=3
-                print('Sending reset command')
-                self.producer.produce(self.actions_topic, key=str(time.time()), value="reset")
-                self.producer.flush()
-                self.statsConsumer.tracker.reset()
-            elif len(self.statsConsumer.tracker.previous_values)>0 and (self.prev_stat_time is None or self.statsConsumer.tracker.last_time > self.prev_stat_time):
-                print('Got a new measurement from the environment for time',self.statsConsumer.tracker.last_time)
-                self.measurements.append(self.statsConsumer.tracker.previous_values)
-                if len(self.measurements) == 2:
-                    reward = self.compute_reward()
-                    print('computed reward:',reward)
-                    if reward < 0 and self.action_D < self.max_D:
-                        self.action_D = min (self.action_D+20,self.max_D)
-                        self.producer.produce(self.actions_topic, key=str(time.time()), value="changeD,"+str(self.action_D))
-                        self.producer.flush()
-                        print('D updated to ',self.action_D)
-                        actionsBeforeReset-=1
-                    if reward > 0 and self.action_D > 0:
-                        self.action_D = max (self.action_D-20,0)
-                        self.producer.produce(self.actions_topic, key=str(time.time()), value="changeD,"+str(self.action_D))
-                        self.producer.flush()
-                        print('D updated to ',self.action_D)
-                        actionsBeforeReset-=1
-                    self.measurements.pop(0)
-                self.prev_stat_time = self.statsConsumer.tracker.last_time
+            with self.statsConsumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by the other thread
+                if actionsBeforeReset==0:
+                    actionsBeforeReset=3
+                    print('Sending reset command')
+                    self.producer.produce(self.actions_topic, key=str(time.time()), value="reset")
+                    self.producer.flush()
+                    self.statsConsumer.tracker.reset()
+                elif len(self.statsConsumer.tracker.previous_values)>0 and (self.prev_stat_time is None or self.statsConsumer.tracker.last_time > self.prev_stat_time):
+                    print('Got a new measurement from the environment for time',self.statsConsumer.tracker.last_time)
+                    self.measurements.append(self.statsConsumer.tracker.previous_values)
+                    if len(self.measurements) == 2:
+                        reward = self.compute_reward()
+                        print('computed reward:',reward)
+                        if reward < 0 and self.action_D < self.max_D:
+                            self.action_D = min (self.action_D+20,self.max_D)
+                            self.producer.produce(self.actions_topic, key=str(time.time()), value="changeD,"+str(self.action_D))
+                            self.producer.flush()
+                            print('D updated to ',self.action_D)
+                            actionsBeforeReset-=1
+                        if reward > 0 and self.action_D > 0:
+                            self.action_D = max (self.action_D-20,0)
+                            self.producer.produce(self.actions_topic, key=str(time.time()), value="changeD,"+str(self.action_D))
+                            self.producer.flush()
+                            print('D updated to ',self.action_D)
+                            actionsBeforeReset-=1
+                        self.measurements.pop(0)
+                    self.prev_stat_time = self.statsConsumer.tracker.last_time
 
     def start_producer_thread(self):
         producer_thread = threading.Thread(target=self.produce_action)
