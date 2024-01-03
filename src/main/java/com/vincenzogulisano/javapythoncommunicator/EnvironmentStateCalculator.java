@@ -58,12 +58,12 @@ public class EnvironmentStateCalculator implements StatReporter {
 
         // Check if there's something older than the monitoring period. If that is the
         // case, remove old stuff, report, and empty
-        boolean beforeMonitoringPeriod = false;
+        boolean dataSpansAtLeastTheMonitoringPeriod = false;
         if (!measurements.isEmpty()) {
             for (String id_ : measurements.keySet()) {
                 while (!measurements.get(id_).isEmpty()
                         && measurements.get(id_).peek().getTimestamp() <= ts - monitoringPeriod) {
-                    beforeMonitoringPeriod = true;
+                    dataSpansAtLeastTheMonitoringPeriod = true;
                     measurements.get(id_).poll();
                 }
                 if (measurements.get(id_).isEmpty()) {
@@ -71,8 +71,9 @@ public class EnvironmentStateCalculator implements StatReporter {
                 }
             }
         }
-        if (beforeMonitoringPeriod) {
-            String.format(String.format("reporting at time %d statistics:", ts));
+        if (dataSpansAtLeastTheMonitoringPeriod) {
+            System.out.println(String.format("reporting at time %d statistics:", ts));
+            String msg = String.format("%d", ts);
             for (String id_ : measurements.keySet()) {
                 double avg = 0.0;
                 for (Pair<Long, Double> v : measurements.get(id_)) {
@@ -82,9 +83,12 @@ public class EnvironmentStateCalculator implements StatReporter {
                 System.out.println(
                         String.format("...%s whose average is %.2f, computed from %d values",
                                 id_, avg, measurements.get(id_).size()));
-                producer.send(new ProducerRecord<>("stats", String.format("%d,%s,%.2f", ts, id_, avg)));
+                msg += String.format(msg, "%s,%.2f", id_, avg);
             }
             measurements.clear();
+            System.out.println(String.format("Sending message %s", msg));
+            producer.send(new ProducerRecord<>("stats", msg));
+
         }
 
         if (valueIsToBeRegistered(id, value)) {

@@ -22,7 +22,6 @@ public class ThreadCPUMonitor {
     private ThreadMXBean threadMXBean;
 
     private Map<String, Long> lastThreadCPUTime;
-    private long lastMeasurementTime;
     private long lastTotalUptime;
     private boolean firstRetrieval;
 
@@ -75,19 +74,13 @@ public class ThreadCPUMonitor {
             if (firstRetrieval) {
                 firstRetrieval = false;
 
-                // System.out.println("First CPU retrieval");
-
                 lastTotalUptime = ManagementFactory.getRuntimeMXBean().getUptime() * 1000000;
-
-                // System.out.println("lastTotalUptime: " + lastTotalUptime);
 
                 for (Map.Entry<Long, String> entry : threadNames.entrySet()) {
 
                     long threadId = entry.getKey();
                     String threadName = entry.getValue();
                     lastThreadCPUTime.put(threadName, threadMXBean.getThreadCpuTime(threadId));
-                    // System.out
-                    //         .println("lastThreadCPUTime for " + threadName + ": " + lastThreadCPUTime.get(threadName));
 
                 }
 
@@ -97,9 +90,6 @@ public class ThreadCPUMonitor {
                 long totalUptimeDelta = currentTotalUptime - lastTotalUptime;
                 lastTotalUptime = currentTotalUptime;
 
-                // System.out.println("lastTotalUptime: " + lastTotalUptime);
-                // System.out.println("totalUptimeDelta: " + totalUptimeDelta);
-
                 for (Map.Entry<Long, String> entry : threadNames.entrySet()) {
 
                     long threadId = entry.getKey();
@@ -107,9 +97,6 @@ public class ThreadCPUMonitor {
                     long currentThreadCPUTime = threadMXBean.getThreadCpuTime(threadId);
                     long threadCPUDelta = currentThreadCPUTime - lastThreadCPUTime.get(threadName);
                     lastThreadCPUTime.put(threadName, currentThreadCPUTime);
-                    // System.out
-                    //         .println("lastThreadCPUTime for " + threadName + ": " + lastThreadCPUTime.get(threadName));
-                    // System.out.println("delta ThreadCPUTime for " + threadName + ": " + threadCPUDelta);
 
                     double cpuUsage = (double) threadCPUDelta / (double) totalUptimeDelta * 100.0;
                     System.out.println(
@@ -118,38 +105,6 @@ public class ThreadCPUMonitor {
                 }
 
             }
-
-            // long upTime = ManagementFactory.getRuntimeMXBean().getUptime() * 1000000;
-            // long temp = upTime - lastTotalUptime;
-            // lastTotalUptime = upTime;
-            // upTime = temp;
-
-            // long measuringPeriod = System.currentTimeMillis();
-            // temp = measuringPeriod - lastMeasurementTime;
-            // lastMeasurementTime = measuringPeriod;
-            // measuringPeriod = temp;
-
-            // for (Map.Entry<Long, String> entry : threadNames.entrySet()) {
-
-            // long threadId = entry.getKey();
-            // String threadName = entry.getValue();
-            // // ThreadInfo threadInfo = threadMXBean.getThreadInfo(threadId);
-            // long cpuTime = threadMXBean.getThreadCpuTime(threadId);
-            // long cpuTimeDelta = 0;
-
-            // if (!firstRetrieval) {
-            // cpuTimeDelta = cpuTime - lastThreadCPUTime.get(threadName);
-            // double cpuUsage = cpuTimeDelta / upTime * 100;
-            // System.out.println("Thread ID " + threadId + ", Thread Name " +
-            // threadName + ": " + cpuUsage + "% CPU usage");
-            // this.threadStats.get(threadName).record((long) cpuUsage);
-            // }
-
-            // lastThreadCPUTime.put(threadName, cpuTime);
-
-            // double cpuUsage = getThreadCpuUsage(threadId, firstRetrieval);
-
-            // }
 
             // Sleep for 1 second (adjust as needed)
             try {
@@ -160,22 +115,6 @@ public class ThreadCPUMonitor {
         }
 
     }
-
-    // private double getThreadCpuUsage(long threadId) {
-
-    // ThreadInfo threadInfo = threadMXBean.getThreadInfo(threadId);
-    // long cpuTime = threadMXBean.getThreadCpuTime(threadId);
-
-    // threadMXBean.getThreadUserTime(threadId);
-
-    // if (cpuTime != -1 && threadInfo != null) {
-    // long upTime = ManagementFactory.getRuntimeMXBean().getUptime() * 1000000;
-    // double cpuUsage = (double) cpuTime / upTime;
-    // return cpuUsage * 100.0; // Convert from fraction to percentage
-    // }
-
-    // return 0.0;
-    // }
 
     public HashMap<String, Consumer<Object[]>> setStatReporter(StatReporter reporter) {
         System.out.println("CPU Monitor - Registering consumers");
