@@ -13,22 +13,22 @@
         </Root>
         
         <!-- Log debug messages for a specific class -->
-        <Logger name="com.vincenzogulisano.usecases.linearroad.QueryCountConsecutiveStops" level="debug" additivity="false">
+        <Logger name="com.vincenzogulisano.usecases.linearroad.QueryCountConsecutiveStops" level="debug" additivity="false" includeLocation="true">
             <AppenderRef ref="Console" />
         </Logger>
-        <Logger name="com.vincenzogulisano.usecases.linearroad.SinkLogAndLatency" level="debug" additivity="false">
+        <Logger name="com.vincenzogulisano.usecases.linearroad.SinkLogAndLatency" level="debug" additivity="false" includeLocation="true">
             <AppenderRef ref="Console" />
         </Logger>
-        <Logger name="com.vincenzogulisano.usecases.linearroad.SourceReadFromFile" level="debug" additivity="false">
+        <Logger name="com.vincenzogulisano.usecases.linearroad.SourceReadFromFile" level="debug" additivity="false" includeLocation="true">
             <AppenderRef ref="Console" />
         </Logger>
-        <Logger name="com.vincenzogulisano.util.ThreadCPUMonitor" level="debug" additivity="false">
+        <Logger name="com.vincenzogulisano.util.ThreadCPUMonitor" level="debug" additivity="false" includeLocation="true">
             <AppenderRef ref="Console" />
         </Logger>
-        <Logger name="com.vincenzogulisano.javapythoncommunicator.EnvironmentStateCalculator" level="debug" additivity="false">
+        <Logger name="com.vincenzogulisano.javapythoncommunicator.EnvironmentStateCalculator" level="debug" additivity="false" includeLocation="true">
             <AppenderRef ref="Console" />
         </Logger>
-        <Logger name="com.vincenzogulisano.woost.WoostAggregateWithCompression" level="debug" additivity="false">
+        <Logger name="com.vincenzogulisano.woost.WoostAggregateWithCompression" level="debug" additivity="false" includeLocation="true">
             <AppenderRef ref="Console" />
         </Logger>
     </Loggers>

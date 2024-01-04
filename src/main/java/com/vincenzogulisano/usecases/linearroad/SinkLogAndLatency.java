@@ -4,6 +4,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.function.Consumer;
 
 import org.apache.logging.log4j.LogManager;
@@ -27,10 +28,27 @@ public class SinkLogAndLatency extends BaseSink<TupleCarStops> {
 
     public Logger logger = LogManager.getLogger();
 
+    private volatile boolean resetRequest;
+    private volatile boolean resetAck;
+
     public SinkLogAndLatency(String id, SinkFunction<TupleCarStops> function, boolean writeOut, String outPath) {
         super(id, function);
         this.writeOut = writeOut;
         this.outPath = outPath;
+
+        this.resetRequest = false;
+        this.resetAck = false;
+
+    }
+
+    public void reset() {
+        logger.debug("Registering reset request");
+        resetAck = false;
+        resetRequest = true;
+    }
+
+    public boolean getResetAck() {
+        return resetAck;
     }
 
     @Override
@@ -60,6 +78,15 @@ public class SinkLogAndLatency extends BaseSink<TupleCarStops> {
 
     @Override
     public void processTuple(TupleCarStops t) {
+
+        if (resetRequest) {
+            logger.debug("Processing reset request");
+            logger.debug("Clearing {} tuples in input stream", getInput().size());
+            getInput().clear();
+            logger.debug("Acking back to SPE");
+            resetAck = true;
+        }
+
         super.processTuple(t);
         outrateMetric.record(1);
         latencyMetric.record(System.currentTimeMillis() - t.getStimulus());

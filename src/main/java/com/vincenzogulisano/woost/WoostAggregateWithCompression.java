@@ -61,6 +61,9 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
 
     public Logger logger = LogManager.getLogger();
 
+    private volatile boolean resetRequest;
+    private volatile boolean resetAck;
+
     public WoostAggregateWithCompression(
             String id,
             int instance,
@@ -76,16 +79,21 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         this.compressionTimeThreshold = compressionTimeThreshold;
         this.dUpdates = new ConcurrentLinkedQueue<>();
 
+        this.resetRequest = false;
+        this.resetAck = false;
+
         reset();
 
     }
 
     public void reset() {
-        uncompressedWins = new HashMap<>();
-        compressedWins = new HashMap<>();
-        tsKeys = new TreeMap<>();
-        keyLatestTs = new HashMap<>();
-        earliestWinLeftBoundary = -1;
+        logger.debug("Registering reset request");
+        resetAck = false;
+        resetRequest = true;
+    }
+
+    public boolean getResetAck() {
+        return resetAck;
     }
 
     @Override
@@ -136,6 +144,20 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
     long windowsChange;
 
     public List<OUT> processTupleIn1(IN t) {
+
+        if (resetRequest) {
+            logger.debug("Processing reset request");
+            logger.debug("Clearing {} tuples in input stream", getInput().size());
+            getInput().clear();
+            logger.debug("Resetting windows");
+            uncompressedWins = new HashMap<>();
+            compressedWins = new HashMap<>();
+            tsKeys = new TreeMap<>();
+            keyLatestTs = new HashMap<>();
+            earliestWinLeftBoundary = -1;
+            logger.debug("Acking back to SPE");
+            resetAck = true;
+        }
 
         // Check for D updates
         while (!dUpdates.isEmpty()) {

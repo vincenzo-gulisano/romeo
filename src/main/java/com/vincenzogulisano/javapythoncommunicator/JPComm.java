@@ -12,6 +12,8 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.vincenzogulisano.usecases.linearroad.QueryCountConsecutiveStops;
 
@@ -22,6 +24,8 @@ public class JPComm {
     private Producer<String, String> producer;
     private Consumer<String, String> consumer;
     private EnvironmentStateCalculator esc;
+
+    public Logger logger = LogManager.getLogger();
 
     private JPComm(Actionable actionable) {
         this.actionable = actionable;
@@ -61,6 +65,7 @@ public class JPComm {
                     records.forEach(record -> {
                         // System.out.println("... got " + record);
                         // Parse and process the received message
+                        logger.debug("Received record " + record);
                         String[] parts = record.value().split(",");
                         if (parts[0].equals("changeD")) {
                             String action = parts[1];
@@ -89,11 +94,13 @@ public class JPComm {
 
     // @Override
     // public void report(long ts, String id, double value) {
-    //     // System.out.println("Received report for ts:" + ts + " id:" + id + " value:" +
-    //     // value);
-    //     // Create a message and send it to the 'stats' topic
-    //     // TODO topic should not be hardcoded!
-    //     producer.send(new ProducerRecord<>("stats", String.format("%d,%s,%.2f", ts, id, value)));
+    // // System.out.println("Received report for ts:" + ts + " id:" + id + "
+    // value:" +
+    // // value);
+    // // Create a message and send it to the 'stats' topic
+    // // TODO topic should not be hardcoded!
+    // producer.send(new ProducerRecord<>("stats", String.format("%d,%s,%.2f", ts,
+    // id, value)));
     // }
 
     public static void main(String[] args) throws InterruptedException, ParseException, IOException {
