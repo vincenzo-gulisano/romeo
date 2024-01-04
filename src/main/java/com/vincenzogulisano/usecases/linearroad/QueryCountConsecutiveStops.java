@@ -181,6 +181,12 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         logger.debug("SPE - Synchronizing with Source to initiate the procedure");
         sourceFunction.registerResetRequest();
 
+        if (!firstEpisodeStarted) {
+            logger.debug(
+                    "This is the first episode, and the source has not been authorized to start sending tuples. Authorizing it before continuing with the reset");
+            sourceFunction.notifyFirstEpisodeCanStart();
+        }
+
         if (firstEpisodeStarted) {
             episodesLogger.writeEndEvent();
         }

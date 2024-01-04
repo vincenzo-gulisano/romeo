@@ -50,6 +50,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
     private volatile boolean allStateFillingTuplesSent;
     private volatile boolean waitingForSPEGreenlightToStartSendingRealRateTuples;
     private volatile boolean ackFromSPEGreenlightToStartSendingRealRateTuples;
+    private volatile boolean firstEpisodeCanStart;
 
     // The name of this Logger will be "org.apache.logging.Child"
     public Logger logger = LogManager.getLogger();
@@ -77,6 +78,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         allStateFillingTuplesSent = false;
         waitingForSPEGreenlightToStartSendingRealRateTuples = false;
         ackFromSPEGreenlightToStartSendingRealRateTuples = false;
+        firstEpisodeCanStart = false;
     }
 
     public void setStartingTS(long startingTS) {
@@ -103,8 +105,8 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
     @Override
     public TupleInput get() {
 
-        if (done) {
-            logger.debug("Finished processing input. Sleeping...");
+        if (done || !firstEpisodeCanStart) {
+            logger.debug("Either done processing or not authorized from SPE to start the first episode. Returning null");
             Util.sleep(IDLE_SLEEP);
             return null;
         }
@@ -307,6 +309,10 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
 
     public boolean areAllStateFillingTuplesSent() {
         return allStateFillingTuplesSent;
+    }
+
+    public void notifyFirstEpisodeCanStart() {
+        firstEpisodeCanStart = true;
     }
 
     // public void reset() {
