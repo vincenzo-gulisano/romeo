@@ -24,6 +24,7 @@ mkdir -p "${exp_folder}"
 echo "Cleaning stats folder"
 rm -rf ${exp_folder}/*.csv
 rm -rf ${exp_folder}/*.log
+rm -rf ${exp_folder}/*.pdf
 
 echo "Killing any past JVM instance that should have been killed before"
 # Get PIDs using pgrep

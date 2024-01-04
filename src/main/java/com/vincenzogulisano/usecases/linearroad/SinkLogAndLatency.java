@@ -6,6 +6,9 @@ import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.function.Consumer;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.vincenzogulisano.javapythoncommunicator.StatReporter;
 
 import common.metrics.Metric;
@@ -21,6 +24,8 @@ public class SinkLogAndLatency extends BaseSink<TupleCarStops> {
     private PrintWriter writer;
     private boolean writeOut;
     private String outPath;
+
+    public Logger logger = LogManager.getLogger();
 
     public SinkLogAndLatency(String id, SinkFunction<TupleCarStops> function, boolean writeOut, String outPath) {
         super(id, function);
@@ -64,7 +69,7 @@ public class SinkLogAndLatency extends BaseSink<TupleCarStops> {
     }
 
     public HashMap<String, Consumer<Object[]>> setStatReporter(StatReporter reporter) {
-        System.out.println("Sink - Registering consumers");
+        logger.debug("Sink - Registering consumers");
         HashMap<String, Consumer<Object[]>> consumers = new HashMap<>();
         consumers.put("outrate", x -> reporter.report((long) x[0], "outrate", ((Long) x[1]).doubleValue()));
         consumers.put("latency", x -> reporter.report((long) x[0], "latency", ((Long) x[1]).doubleValue()));
@@ -73,7 +78,7 @@ public class SinkLogAndLatency extends BaseSink<TupleCarStops> {
     }
 
     public void createStatistics() {
-        System.out.println("Sink - Creating statistics");
+        logger.debug("Sink - Creating statistics");
         outrateMetric = LiebreContext.userMetrics().newCountPerSecondMetric("outrate", "rate");
         latencyMetric = LiebreContext.userMetrics().newAverageTimeMetric("latency", "average");
     }

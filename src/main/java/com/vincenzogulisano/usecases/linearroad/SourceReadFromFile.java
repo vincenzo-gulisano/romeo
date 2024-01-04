@@ -8,6 +8,9 @@ import java.util.HashMap;
 import java.util.function.Consumer;
 
 import org.apache.commons.lang3.Validate;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.vincenzogulisano.javapythoncommunicator.StatReporter;
 import common.metrics.Metric;
 import common.util.Util;
@@ -47,6 +50,9 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
     private volatile boolean allStateFillingTuplesSent;
     private volatile boolean waitingForSPEGreenlightToStartSendingRealRateTuples;
     private volatile boolean ackFromSPEGreenlightToStartSendingRealRateTuples;
+
+    // The name of this Logger will be "org.apache.logging.Child"
+    public Logger logger = LogManager.getLogger();
 
     public SourceReadFromFile(String path, InjectorType type, long nanoSleep, long startingTS, long WS) {
         Validate.notBlank(path, "path");
@@ -98,7 +104,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
     public TupleInput get() {
 
         if (done) {
-            System.out.println("Finished processing input. Sleeping...");
+            logger.debug("Finished processing input. Sleeping...");
             Util.sleep(IDLE_SLEEP);
             return null;
         }
@@ -122,7 +128,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         if (reader == null || resetReader) {
             initializeReader();
             if (resetReader) {
-                System.out.println("Source - re-initialized reader because of a reset");
+                logger.debug("Source - re-initialized reader because of a reset");
                 resetReader = false;
             }
         }
@@ -141,7 +147,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         }
 
         if (!firstTuplesSkipped && type == InjectorType.RL) {
-            System.out.println(
+            logger.debug(
                     "This is a RL injector, skipping all tuples with timestamp lower than " + (startingTS - WS));
             while (result.getTimestamp() - firstTupleTs < startingTS - WS) {
                 t = readNextLine();
@@ -154,11 +160,11 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         }
 
         if (waitingForSPEGreenlightToStartSendingStateFillingTuples) {
-            System.out.println("Source - checking if we got greenlight from SPE to send state filling tuples");
+            logger.debug("Source - checking if we got greenlight from SPE to send state filling tuples");
             while (!ackFromSPEGreenlightToStartSendingStateFillingTuples) {
                 Util.sleep(50);
             }
-            System.out.println("Source - got greenlight from SPE to send state filling tuples");
+            logger.debug("Source - got greenlight from SPE to send state filling tuples");
             waitingForSPEGreenlightToStartSendingStateFillingTuples = false;
         }
 
@@ -188,21 +194,21 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
                         allStateFillingTuplesSent = true;
 
                         if (waitingForSPEGreenlightToStartSendingRealRateTuples) {
-                            System.out.println(
+                            logger.debug(
                                     "Source - ready to send real tuples, but waiting for the ack from the SPE");
                             while (!ackFromSPEGreenlightToStartSendingRealRateTuples) {
                                 Util.sleep(50);
                             }
-                            System.out.println(
+                            logger.debug(
                                     "Source - ack received");
                             waitingForSPEGreenlightToStartSendingRealRateTuples = false;
                         }
-                        System.out.println("Sleeping " + sleepBeforeRealRate + " ms before starting for real");
+                        logger.debug("Sleeping " + sleepBeforeRealRate + " ms before starting for real");
                         firstTupleAtRealRate = false;
                         try {
                             Thread.sleep(sleepBeforeRealRate);
                         } catch (InterruptedException e) {
-                            System.out.println("Thread sleep Interrupted Exception");
+                            logger.warn("Thread sleep Interrupted Exception");
                         }
                         firstInvocationTs = System.currentTimeMillis();
                     }
@@ -231,7 +237,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         try {
             nextLine = reader.readLine();
         } catch (IOException e) {
-            System.out.println("Text Source failed to read " + e);
+            logger.warn("Text Source failed to read " + e);
         }
         done = (nextLine == null);
         return nextLine;
@@ -259,7 +265,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         try {
             this.reader.close();
         } catch (IOException e) {
-            System.out.println(String.format("Problem closing file %s: %s", path, e));
+            logger.warn(String.format("Problem closing file %s: %s", path, e));
         }
         injectionRateMetric.disable();
     }
@@ -270,7 +276,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
     }
 
     public HashMap<String, Consumer<Object[]>> setStatReporter(StatReporter reporter) {
-        System.out.println("Source - Registering consumers");
+        logger.debug("Source - Registering consumers");
         HashMap<String, Consumer<Object[]>> consumers = new HashMap<>();
         consumers.put("injectionrate", x -> reporter.report((long) x[0], "injectionrate", ((Long) x[1]).doubleValue()));
 
@@ -278,7 +284,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
     }
 
     public void createStatistics() {
-        System.out.println("Source - Creating statistics");
+        logger.debug("Source - Creating statistics");
         injectionRateMetric = LiebreContext.userMetrics().newCountPerSecondMetric("injectionrate", "rate");
     }
 

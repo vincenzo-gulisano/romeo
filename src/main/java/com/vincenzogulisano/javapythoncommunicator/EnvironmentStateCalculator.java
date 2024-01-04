@@ -7,6 +7,8 @@ import java.util.Queue;
 
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class EnvironmentStateCalculator implements StatReporter {
 
@@ -40,6 +42,8 @@ public class EnvironmentStateCalculator implements StatReporter {
     private volatile boolean resetRequest;
     private volatile boolean resetAcknowledged;
     private volatile boolean resetCompleted;
+
+    public Logger logger = LogManager.getLogger();
 
     public EnvironmentStateCalculator(long monitoringPeriod, Producer<String, String> producer) {
         this.monitoringPeriod = monitoringPeriod;
@@ -113,7 +117,7 @@ public class EnvironmentStateCalculator implements StatReporter {
             }
         }
         if (dataSpansAtLeastTheMonitoringPeriod) {
-            System.out.println(String.format("reporting at time %d statistics:", ts));
+            String logMsg = String.format("\nreporting at time %d statistics:\n", ts);
             String msg = String.format("%d", ts);
             for (String id_ : measurements.keySet()) {
                 double avg = 0.0;
@@ -121,13 +125,14 @@ public class EnvironmentStateCalculator implements StatReporter {
                     avg += v.getValue();
                 }
                 avg /= measurements.get(id_).size();
-                System.out.println(
-                        String.format("...%s whose average is %.2f, computed from %d values",
-                                id_, avg, measurements.get(id_).size()));
+                logMsg += 
+                        String.format("...%s whose average is %.2f, computed from %d values\n",
+                                id_, avg, measurements.get(id_).size());
                 msg += String.format(",%s,%.2f", id_, avg);
             }
             measurements.clear();
             // System.out.println(String.format("Sending message %s", msg));
+            logger.debug(logMsg);
             producer.send(new ProducerRecord<>("stats", msg));
 
         }

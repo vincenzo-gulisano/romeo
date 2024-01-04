@@ -8,6 +8,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.vincenzogulisano.javapythoncommunicator.StatReporter;
 
 import common.metrics.TimeMetric;
@@ -24,6 +27,8 @@ public class ThreadCPUMonitor {
     private Map<String, Long> lastThreadCPUTime;
     private long lastTotalUptime;
     private boolean firstRetrieval;
+
+    public Logger logger = LogManager.getLogger();
 
     public ThreadCPUMonitor(List<String> threadsToMonitor) {
         this.threadNames = new HashMap<>();
@@ -117,7 +122,7 @@ public class ThreadCPUMonitor {
     }
 
     public HashMap<String, Consumer<Object[]>> setStatReporter(StatReporter reporter) {
-        System.out.println("CPU Monitor - Registering consumers");
+        logger.debug("CPU Monitor - Registering consumers");
         HashMap<String, Consumer<Object[]>> consumers = new HashMap<>();
         for (String threadName : threadsToMonitor) {
             consumers.put("CPU-" + threadName,
@@ -127,7 +132,7 @@ public class ThreadCPUMonitor {
     }
 
     public void createStatistics() {
-        System.out.println("CPU Monitor - Creating statistics");
+        logger.debug("CPU Monitor - Creating statistics");
         for (String threadName : threadsToMonitor) {
             threadStats.put(threadName,
                     LiebreContext.userMetrics().newAverageTimeMetric("CPU-" + threadName, "average"));

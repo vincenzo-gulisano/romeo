@@ -124,8 +124,11 @@ class KafkaActionsProducer:
             time.sleep(1)
             with self.statsConsumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by the other thread
                 if actionsBeforeReset==0:
-                    actionsBeforeReset=3
+                    actionsBeforeReset=10
                     print('Sending reset command')
+                    self.action_D = self.max_D
+                    self.prev_stat_time = None
+                    self.measurements = []
                     self.producer.produce(self.actions_topic, key=str(time.time()), value="reset")
                     self.producer.flush()
                     # self.statsConsumer.tracker.reset()

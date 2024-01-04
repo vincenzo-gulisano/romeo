@@ -17,6 +17,8 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.xerial.snappy.Snappy;
 
 import com.vincenzogulisano.javapythoncommunicator.StatReporter;
@@ -57,6 +59,8 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
 
     private ConcurrentLinkedQueue<Long> dUpdates;
 
+    public Logger logger = LogManager.getLogger();
+
     public WoostAggregateWithCompression(
             String id,
             int instance,
@@ -87,7 +91,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
     @Override
     public void enable() {
 
-        System.out.println("Enabling statistiscs");
+        logger.debug("Enabling statistiscs");
 
         super.enable();
         windowsMetric.enable();
@@ -138,7 +142,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
             Long d = dUpdates.poll();
             if (d != null) {
                 compressionTimeThreshold = d;
-                System.out.println("Compression threshold updated to " + compressionTimeThreshold);
+                logger.debug("Compression threshold updated to " + compressionTimeThreshold);
             }
         }
 
@@ -361,12 +365,12 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
     }
 
     public void changeD(long v) {
-        System.out.println("Storing change request to d:" + v);
+        logger.debug("Storing change request to d:" + v);
         dUpdates.add(v);
     }
 
     public HashMap<String, Consumer<Object[]>> setStatReporter(StatReporter reporter) {
-        System.out.println("Agg - Registering consumers");
+        logger.debug("Agg - Registering consumers");
         HashMap<String, Consumer<Object[]>> consumers = new HashMap<>();
         consumers.put("windows", x -> reporter.report((long) x[0], "windows", ((Long) x[1]).doubleValue()));
         consumers.put("tuples", x -> reporter.report((long) x[0], "tuples", ((Long) x[1]).doubleValue()));
@@ -382,7 +386,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
     }
 
     public void createStatistics() {
-        System.out.println("Agg - Creating statistics");
+        logger.debug("Agg - Creating statistics");
         windowsMetric = LiebreContext.userMetrics().newTotalCountMetric("windows", "count");
         tuplesMetric = LiebreContext.userMetrics().newTotalCountMetric("tuples", "count");
         memoryMetric = LiebreContext.userMetrics().newTotalCountMetric("memory", "size");

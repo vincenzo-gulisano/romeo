@@ -35,7 +35,7 @@ public class EpisodesLogger {
     }
 
     private void writeEvent(String event) {
-        String line = String.format("%d,%d,%s\n", System.currentTimeMillis(), counter, event);
+        String line = String.format("%d,%d,%s\n", System.currentTimeMillis()/1000, counter, event);
 
         try {
             writer.write(line);

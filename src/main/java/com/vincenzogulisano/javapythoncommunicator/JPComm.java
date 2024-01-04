@@ -59,7 +59,7 @@ public class JPComm {
                     ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
                     // System.out.println("Checking consumer records...");
                     records.forEach(record -> {
-                        System.out.println("... got " + record);
+                        // System.out.println("... got " + record);
                         // Parse and process the received message
                         String[] parts = record.value().split(",");
                         if (parts[0].equals("changeD")) {

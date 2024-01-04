@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
 import org.apache.commons.cli.CommandLine;
@@ -12,6 +13,8 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.vincenzogulisano.javapythoncommunicator.Actionable;
 import com.vincenzogulisano.javapythoncommunicator.EnvironmentMonitor;
@@ -37,12 +40,16 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
     private SourceReadFromFile sourceFunction;
     private SinkLogAndLatency sink;
     private ThreadCPUMonitor threadCPUMonitor;
+    private long compressionThreshold;
     private String statsFolder;
     private StatReporter reporter;
     private EpisodesLogger episodesLogger;
     private boolean firstEpisodeStarted;
     private long startingTimeMinimum;
     private long startingTimeMaximum;
+
+    // The name of this Logger will be "org.apache.logging.Child"
+    public Logger logger = LogManager.getLogger();
 
     public void createQuery(String[] args)
             throws ParseException, IOException {
@@ -59,12 +66,14 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         options.addOption("n", "nanoSleep", true, "Sleeptime between sends in nanoseconds");
         options.addOption("stmin", "startingTimeMinimum", true, "minimum starting time for RL");
         options.addOption("stmax", "startingTimeMaximum", true, "maximum starting time for RL");
+        options.addOption("log4j", "log4jConfigFile", true, "log4j config file");
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
+
         statsFolder = cmd.getOptionValue("s");
         String inputFile = cmd.getOptionValue("i");
-        long compressionThreshold = Long.parseLong(cmd.getOptionValue("d", String.valueOf(Long.MAX_VALUE)));
+        compressionThreshold = Long.parseLong(cmd.getOptionValue("d", String.valueOf(Long.MAX_VALUE)));
         experimentLength = Long.parseLong(cmd.getOptionValue("l"));
         long wa = Long.parseLong(cmd.getOptionValue("wa"));
         long ws = Long.parseLong(cmd.getOptionValue("ws"));
@@ -127,19 +136,19 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
 
         this.reporter = reporter;
 
-        System.out.println("SPE - setStatReporter invoked");
+        logger.debug("SPE - setStatReporter invoked");
         HashMap<String, Consumer<Object[]>> consumers = new HashMap<>();
 
-        System.out.println("SPE - preparing consumers");
+        logger.debug("SPE - preparing consumers");
         consumers.putAll(sourceFunction.setStatReporter(reporter));
         consumers.putAll(woostAgg.setStatReporter(reporter));
         consumers.putAll(sink.setStatReporter(reporter));
         consumers.putAll(threadCPUMonitor.setStatReporter(reporter));
 
-        System.out.println("SPE - Setting metrics type in Liebre");
+        logger.debug("SPE - Setting metrics type in Liebre");
         LiebreContext.setUserMetrics(Metrics.fileAndConsumer(statsFolder, consumers));
 
-        System.out.println("SPE - Creating statistics");
+        logger.debug("SPE - Creating statistics");
         sourceFunction.createStatistics();
         woostAgg.createStatistics();
         sink.createStatistics();
@@ -149,45 +158,46 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
 
     @Override
     public void changeD(long v) {
-        System.out.println("SPE - changeD invoked");
+        logger.debug("SPE - changeD invoked");
         woostAgg.changeD(v);
     }
 
     @Override
     public void reset() {
 
-        System.out.println("SPE - Got a RESET request");
+        logger.debug("SPE - Got a RESET request");
 
-        System.out.println("Stopping the EnvironmentStateCalculator");
+        logger.debug("Stopping the EnvironmentStateCalculator");
         reporter.setResetRequest();
         while (reporter.getResetAcknowledged()) {
             Util.sleep(10);
         }
-        System.out.println("EnvironmentStateCalculator is now stopped");
+        logger.debug("EnvironmentStateCalculator is now stopped");
 
-        System.out.println("SPE - Synchronizing with Source to initiate the procedure");
+        long startingTS = ThreadLocalRandom.current().nextLong(startingTimeMinimum, startingTimeMaximum);
+        logger.debug("SPE - Updating source starting time to " + startingTS);
+        sourceFunction.setStartingTS(startingTS);
+
+        logger.debug("SPE - Synchronizing with Source to initiate the procedure");
         sourceFunction.registerResetRequest();
 
         if (firstEpisodeStarted) {
             episodesLogger.writeEndEvent();
         }
 
-        Random r = new Random(System.currentTimeMillis());
-        long startingTS = r.nextLong(startingTimeMinimum, startingTimeMaximum);
-        System.out.println("SPE - Updating source starting time to " + startingTS);
-        sourceFunction.setStartingTS(startingTS);
-
         while (!sourceFunction.getResetAck()) {
             Util.sleep(50);
         }
-        System.out.println("SPE - The source is no longer injecting tuples, resetting Agg and Source");
+        logger.debug("SPE - The source is no longer injecting tuples, resetting Agg and Source");
         woostAgg.reset();
+        logger.debug("Reset compression threshold of the Aggregate to " + compressionThreshold);
+        woostAgg.changeD(compressionThreshold);
         sourceFunction.giveGreenlightToStartSendingStateFillingTuples();
 
         while (!sourceFunction.areAllStateFillingTuplesSent()) {
             Util.sleep(50);
         }
-        System.out.println("SPE - the source has sent all the state filling tuples too");
+        logger.debug("SPE - the source has sent all the state filling tuples too");
 
         reporter.setResetCompleted();
         sourceFunction.giveGreenlightToStartSendingRealRateTuples();
