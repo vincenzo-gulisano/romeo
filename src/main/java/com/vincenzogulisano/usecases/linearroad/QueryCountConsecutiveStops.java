@@ -192,19 +192,19 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         }
 
         while (!sourceFunction.getResetAck()) {
-            Util.sleep(50);
+            Util.sleep(500);
         }
         logger.debug("SPE - The source is no longer injecting tuples, resetting Agg, Sink, and Source");
         woostAgg.reset();
         while(!woostAgg.getResetAck()) {
-            Util.sleep(50);
+            Util.sleep(500);
         }
         logger.debug("Got Ack from the Agg");
         sink.reset();
         while(!sink.getResetAck()) {
-            Util.sleep(50);
+            Util.sleep(500);
         }
-        logger.debug("Got Ack from the Agg");
+        logger.debug("Got Ack from the Sink");
 
         logger.debug("Reset compression threshold of the Aggregate to " + compressionThreshold);
         woostAgg.changeD(compressionThreshold);

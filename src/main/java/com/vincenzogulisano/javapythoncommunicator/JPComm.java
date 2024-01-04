@@ -39,6 +39,7 @@ public class JPComm {
         properties.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         properties.put("key.deserializer", StringDeserializer.class.getName());
         properties.put("value.deserializer", StringDeserializer.class.getName());
+        // properties.put("log4j.logger.kafka", "ERROR");
 
         producer = new KafkaProducer<>(properties);
         consumer = new KafkaConsumer<>(properties);

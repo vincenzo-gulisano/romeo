@@ -31,5 +31,6 @@
         <Logger name="com.vincenzogulisano.woost.WoostAggregateWithCompression" level="debug" additivity="false" includeLocation="true">
             <AppenderRef ref="Console" />
         </Logger>
+        <Logger name="org.apache.kafka" level="WARN"/>
     </Loggers>
 </Configuration>

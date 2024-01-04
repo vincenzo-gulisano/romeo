@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.TreeMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 import org.apache.logging.log4j.LogManager;
@@ -30,6 +32,7 @@ public class SinkLogAndLatency extends BaseSink<TupleCarStops> {
 
     private volatile boolean resetRequest;
     private volatile boolean resetAck;
+    private Lock resetLock;
 
     public SinkLogAndLatency(String id, SinkFunction<TupleCarStops> function, boolean writeOut, String outPath) {
         super(id, function);
@@ -38,6 +41,7 @@ public class SinkLogAndLatency extends BaseSink<TupleCarStops> {
 
         this.resetRequest = false;
         this.resetAck = false;
+        this.resetLock = new ReentrantLock();
 
     }
 
@@ -45,6 +49,23 @@ public class SinkLogAndLatency extends BaseSink<TupleCarStops> {
         logger.debug("Registering reset request");
         resetAck = false;
         resetRequest = true;
+        resetLock.lock();
+        logger.debug("Got the reset lock");
+        if (getInput().size() == 0) {
+            logger.debug("No tuples in the input stream, resetting immediately");
+            internalReset();
+        } else {
+            logger.debug("There exist tuples in the input stream, deferring the reset to main thread");
+        }
+        resetLock.unlock();
+    }
+
+    private void internalReset() {
+        logger.debug("Clearing {} tuples in input stream", getInput().size());
+        getInput().clear();
+        logger.debug("Acking back to SPE");
+        resetAck = true;
+        resetRequest = false;
     }
 
     public boolean getResetAck() {
@@ -81,10 +102,10 @@ public class SinkLogAndLatency extends BaseSink<TupleCarStops> {
 
         if (resetRequest) {
             logger.debug("Processing reset request");
-            logger.debug("Clearing {} tuples in input stream", getInput().size());
-            getInput().clear();
-            logger.debug("Acking back to SPE");
-            resetAck = true;
+            resetLock.lock();
+            logger.debug("Got the reset lock");
+            internalReset();
+            resetLock.unlock();
         }
 
         super.processTuple(t);

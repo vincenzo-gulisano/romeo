@@ -118,13 +118,13 @@ class KafkaActionsProducer:
         return 1
 
     def produce_action(self):
-        actionsBeforeReset=10
+        actionsBeforeReset=5
         while True:
             # Produce a random action to the 'actions' topic
             time.sleep(1)
             with self.statsConsumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by the other thread
                 if actionsBeforeReset==0:
-                    actionsBeforeReset=10
+                    actionsBeforeReset=5
                     print('Sending reset command')
                     self.action_D = self.max_D
                     self.prev_stat_time = None

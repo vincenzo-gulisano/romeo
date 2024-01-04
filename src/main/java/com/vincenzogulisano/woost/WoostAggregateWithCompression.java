@@ -10,6 +10,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -26,6 +28,7 @@ import com.vincenzogulisano.javapythoncommunicator.StatReporter;
 import common.metrics.Metric;
 import common.metrics.TimeMetric;
 import common.tuple.RichTuple;
+import common.util.Util;
 import component.operator.in1.aggregate.BaseKeyExtractor;
 import component.operator.in1.aggregate.TimeAggregate;
 import query.LiebreContext;
@@ -63,6 +66,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
 
     private volatile boolean resetRequest;
     private volatile boolean resetAck;
+    private Lock resetLock;
 
     public WoostAggregateWithCompression(
             String id,
@@ -81,8 +85,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
 
         this.resetRequest = false;
         this.resetAck = false;
-
-        reset();
+        this.resetLock = new ReentrantLock();
 
     }
 
@@ -90,6 +93,39 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         logger.debug("Registering reset request");
         resetAck = false;
         resetRequest = true;
+        resetLock.lock();
+        logger.debug("Got the reset lock");
+        if (getInput().size() == 0) {
+            logger.debug("No tuples in the input stream, resetting immediately");
+            if (inProcess) {
+                logger.debug("In process though... so we wait");
+                while(inProcess) {
+                    Util.sleep(50);
+                }
+                logger.debug("Process complete");
+            } else {
+                logger.debug("and not processing tuples");
+            }
+            internalReset();
+        } else {
+            logger.debug("There exist tuples in the input stream, deferring the reset to main thread");
+        }
+        resetLock.unlock();
+
+    }
+
+    private void internalReset() {
+        logger.debug("Clearing {} tuples in input stream", getInput().size());
+        getInput().clear();
+        logger.debug("Resetting windows");
+        uncompressedWins = new HashMap<>();
+        compressedWins = new HashMap<>();
+        tsKeys = new TreeMap<>();
+        keyLatestTs = new HashMap<>();
+        earliestWinLeftBoundary = -1;
+        logger.debug("Acking back to SPE");
+        resetAck = true;
+        resetRequest = false;
     }
 
     public boolean getResetAck() {
@@ -143,21 +179,19 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
     long tuplesChange;
     long windowsChange;
 
+    private volatile boolean inProcess = false;
+
     public List<OUT> processTupleIn1(IN t) {
 
         if (resetRequest) {
             logger.debug("Processing reset request");
-            logger.debug("Clearing {} tuples in input stream", getInput().size());
-            getInput().clear();
-            logger.debug("Resetting windows");
-            uncompressedWins = new HashMap<>();
-            compressedWins = new HashMap<>();
-            tsKeys = new TreeMap<>();
-            keyLatestTs = new HashMap<>();
-            earliestWinLeftBoundary = -1;
-            logger.debug("Acking back to SPE");
-            resetAck = true;
+            resetLock.lock();
+            logger.debug("Got the reset lock");
+            internalReset();
+            resetLock.unlock();
         }
+
+        inProcess = true;
 
         // Check for D updates
         while (!dUpdates.isEmpty()) {
@@ -345,6 +379,8 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
                 / ((double) compressedWins.size() + (double) uncompressedWins.size())));
 
         throughputMetric.record(1);
+
+        inProcess = false;
 
         return result;
     }

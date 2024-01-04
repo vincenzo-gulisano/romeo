@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
 
 import org.apache.commons.lang3.Validate;
@@ -37,6 +38,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
     private long nanoSleep;
 
     private long startingTS;
+    private ConcurrentLinkedQueue<Long> startingTSUpdates;
     private long WS;
     private long sleepBeforeRealRate;
     private boolean firstTupleAtRealRate;
@@ -44,7 +46,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
 
     private volatile boolean resetRequest;
     private volatile boolean resetAck;
-    private volatile boolean resetReader;
+    // private volatile boolean resetReader;
     private volatile boolean waitingForSPEGreenlightToStartSendingStateFillingTuples;
     private volatile boolean ackFromSPEGreenlightToStartSendingStateFillingTuples;
     private volatile boolean allStateFillingTuplesSent;
@@ -61,6 +63,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         this.type = type;
         this.nanoSleep = nanoSleep;
         this.startingTS = startingTS;
+        this.startingTSUpdates = new ConcurrentLinkedQueue<>();
         this.WS = WS;
         IDLE_SLEEP = 1000;
         done = false;
@@ -72,7 +75,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         firstTuplesSkipped = false;
         resetRequest = false;
         resetAck = false;
-        resetReader = false;
+        // resetReader = false;
         waitingForSPEGreenlightToStartSendingStateFillingTuples = false;
         ackFromSPEGreenlightToStartSendingStateFillingTuples = false;
         allStateFillingTuplesSent = false;
@@ -82,7 +85,8 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
     }
 
     public void setStartingTS(long startingTS) {
-        this.startingTS = startingTS;
+        logger.debug("Storing new value for startingTS ({}) in startingTSUpdates", startingTS);
+        startingTSUpdates.add(startingTS);
     }
 
     public SourceReadFromFile(String path, InjectorType type, long nanoSleep) {
@@ -102,19 +106,32 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         firstTuplesSkipped = false;
     }
 
+    // Temp for debugging, remove later
+    private volatile long position = 0;
+
     @Override
     public TupleInput get() {
 
+        position = 0;
+
         if (done || !firstEpisodeCanStart) {
-            logger.debug("Either done processing or not authorized from SPE to start the first episode. Returning null");
+            logger.debug(
+                    "Either done processing or not authorized from SPE to start the first episode. Returning null");
             Util.sleep(IDLE_SLEEP);
             return null;
         }
 
         if (resetRequest) {
+            logger.debug("Got a reset request, Resetting the source!");
+
+            logger.debug("Retrieving the next startingTS");
+            assert (!startingTSUpdates.isEmpty());
+            startingTS = startingTSUpdates.poll();
+            logger.debug("Next startingTS is {}", startingTS);
+
             resetRequest = false; // Clear the request
             resetAck = true; // Tell SPE I have stopped
-            resetReader = true; // Make sure next call I reset the reader
+            // resetReader = true; // Make sure next call I reset the reader
             waitingForSPEGreenlightToStartSendingStateFillingTuples = true; // Wait for ack from SPE to start sending
                                                                             // state filling tuples
             ackFromSPEGreenlightToStartSendingStateFillingTuples = false; // Register the ack has not been received yet
@@ -122,17 +139,14 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
             waitingForSPEGreenlightToStartSendingRealRateTuples = true; // Wait for ack from SPE to start sending
                                                                         // real rate tuples
             ackFromSPEGreenlightToStartSendingRealRateTuples = false; // Register the ack has not been received yet
+            initializeReader();
             return null;
         }
 
         // If the reader has not been created yet or if a reset was requested and, thus,
         // the reader should be recreated, create a new reader
-        if (reader == null || resetReader) {
+        if (reader == null) {
             initializeReader();
-            if (resetReader) {
-                logger.debug("Source - re-initialized reader because of a reset");
-                resetReader = false;
-            }
         }
 
         String t = readNextLine();
@@ -152,6 +166,9 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
             logger.debug(
                     "This is a RL injector, skipping all tuples with timestamp lower than " + (startingTS - WS));
             while (result.getTimestamp() - firstTupleTs < startingTS - WS) {
+
+                position = 1;
+
                 t = readNextLine();
                 if (t == null) {
                     return null;
@@ -164,6 +181,9 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         if (waitingForSPEGreenlightToStartSendingStateFillingTuples) {
             logger.debug("Source - checking if we got greenlight from SPE to send state filling tuples");
             while (!ackFromSPEGreenlightToStartSendingStateFillingTuples) {
+
+                position = 2;
+
                 Util.sleep(50);
             }
             logger.debug("Source - got greenlight from SPE to send state filling tuples");
@@ -199,6 +219,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
                             logger.debug(
                                     "Source - ready to send real tuples, but waiting for the ack from the SPE");
                             while (!ackFromSPEGreenlightToStartSendingRealRateTuples) {
+                                position = 3;
                                 Util.sleep(50);
                             }
                             logger.debug(
@@ -217,6 +238,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
                     while ((System.currentTimeMillis()
                             - firstInvocationTs) < (result.getTimestamp() - (firstTupleTs + startingTS))
                                     * 1000) {
+                        position = 4;
                         try {
                             Thread.sleep(1);
                         } catch (InterruptedException e) {
@@ -291,11 +313,13 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
     }
 
     public void registerResetRequest() {
+        logger.debug("Registering reset request");
         resetAck = false;
         resetRequest = true;
     }
 
     public boolean getResetAck() {
+        logger.debug("The SPE is checking the resetAck, injector is at position {}", position);
         return resetAck;
     }
 
