@@ -35,7 +35,7 @@ class MeasurementTracker:
         print('Received:',input_str)
 
         # Split the string into parts using ","
-        parts = input_str.split("-")
+        parts = input_str.split("/")
 
         with self.data_lock:
 
@@ -130,7 +130,7 @@ class KafkaActionsProducer:
             with self.statsConsumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by the other thread
                 if actionsBeforeReset==0:
                     actionsBeforeReset=self.actionsPerEpisode
-                    print('Sending reset command')
+                    print('Sending reset command',flush=True)
                     self.action_D = self.max_D
                     self.prev_stat_time = time.time()
                     # self.measurements = []
@@ -139,7 +139,7 @@ class KafkaActionsProducer:
                     # self.statsConsumer.tracker.reset()
                 # elif len(self.statsConsumer.tracker.previous_values)>0 and (self.prev_stat_time is None or self.statsConsumer.tracker.last_time > self.prev_stat_time):
                 elif self.statsConsumer.tracker.state is not None and (self.prev_stat_time is None or self.statsConsumer.tracker.last_time > self.prev_stat_time):
-                    print('Got a new state/reward pair:',self.statsConsumer.tracker.last_time,self.statsConsumer.tracker.state,self.statsConsumer.tracker.reward)
+                    print('Got a new state/reward pair:',self.statsConsumer.tracker.last_time,self.statsConsumer.tracker.state,self.statsConsumer.tracker.reward,flush=True)
                     # self.measurements.append(self.statsConsumer.tracker.previous_values.copy())
                     # print(self.measurements)
                     # if len(self.measurements) == 2:

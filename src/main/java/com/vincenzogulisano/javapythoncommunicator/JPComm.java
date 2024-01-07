@@ -46,7 +46,8 @@ public class JPComm {
         consumer = new KafkaConsumer<>(properties);
         // TODO topic should not be hardcoded!
         consumer.subscribe(Collections.singletonList("dchanges"));
-        esc = new LatencyAndRatioDeltaESC(20, producer, "-");
+        esc = new LatencyAndRatioDeltaESC(20, producer, "/");
+        esc.addSendStateToken();
 
     }
 

@@ -137,17 +137,19 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
 
             logger.debug(
                     "Checking if state measurement is available and there is at least one token to send the state...");
-            if (sendStateTokens.get() > 0 && computeStateMeasurementAndReward()) {
-                logger.debug("...yes!");
-                sendStateTokens.set(0);
+            if (sendStateTokens.get() > 0) {
+                logger.debug("One token is available");
+                if (computeStateMeasurementAndReward()) {
+                    logger.debug("And state/reward too");
+                    sendStateTokens.set(0);
 
-                String msg = getStateMeasurementAsString() + separator + getRewardAsString();
-                logger.debug("Sending state/reward {}", msg);
-                producer.send(new ProducerRecord<>("stats", msg));
-                if (episodesLogger != null) {
-                    episodesLogger.writeMeasurementEvent();
+                    String msg = getStateMeasurementAsString() + separator + getRewardAsString();
+                    logger.debug("Sending state/reward {}", msg);
+                    producer.send(new ProducerRecord<>("stats", msg));
+                    if (episodesLogger != null) {
+                        episodesLogger.writeMeasurementEvent();
+                    }
                 }
-
             }
 
             measurements.clear();
