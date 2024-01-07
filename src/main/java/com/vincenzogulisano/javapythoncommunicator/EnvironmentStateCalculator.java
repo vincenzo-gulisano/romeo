@@ -4,15 +4,18 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class EnvironmentStateCalculator implements StatReporter {
+import com.vincenzogulisano.util.EpisodesLogger;
 
-    private class Pair<T, U> {
+public abstract class EnvironmentStateCalculator implements StatReporter {
+
+    protected class Pair<T, U> {
         private final T timestamp;
         private final U value;
 
@@ -37,21 +40,27 @@ public class EnvironmentStateCalculator implements StatReporter {
     private final long monitoringPeriod;
     private final Producer<String, String> producer;
 
-    private Map<String, Queue<Pair<Long, Double>>> measurements;
+    protected Map<String, Queue<Pair<Long, Double>>> measurements;
 
     private volatile boolean resetRequest;
     private volatile boolean resetAcknowledged;
     private volatile boolean resetCompleted;
 
     public Logger logger = LogManager.getLogger();
+    public EpisodesLogger episodesLogger;
 
-    public EnvironmentStateCalculator(long monitoringPeriod, Producer<String, String> producer) {
+    private AtomicInteger sendStateTokens;
+    private final String separator;
+
+    public EnvironmentStateCalculator(long monitoringPeriod, Producer<String, String> producer, String separator) {
         this.monitoringPeriod = monitoringPeriod;
         this.producer = producer;
         this.measurements = new HashMap<>();
         this.resetRequest = false;
         this.resetAcknowledged = false;
         this.resetCompleted = true;
+        this.separator = separator;
+        this.sendStateTokens = new AtomicInteger();
     }
 
     public void setResetRequest() {
@@ -66,6 +75,11 @@ public class EnvironmentStateCalculator implements StatReporter {
         this.resetCompleted = true;
     }
 
+    public void addSendStateToken() {
+        this.sendStateTokens.incrementAndGet();
+        logger.debug("added send state token, current value is {}", sendStateTokens.get());
+    }
+
     private boolean valueIsToBeRegistered(String id, double value) {
         if (id.equals("outrate") && value == 0) {
             return false;
@@ -77,10 +91,11 @@ public class EnvironmentStateCalculator implements StatReporter {
     }
 
     @Override
-    public void report(long ts, String id, double value) {
+    public synchronized void report(long ts, String id, double value) {
 
         if (resetRequest) {
-            // System.out.println("EnvironmentStateCalculator - got a reset request, stop storing stats for now");
+            // System.out.println("EnvironmentStateCalculator - got a reset request, stop
+            // storing stats for now");
             resetRequest = false;
             resetAcknowledged = true;
             resetCompleted = false;
@@ -89,12 +104,14 @@ public class EnvironmentStateCalculator implements StatReporter {
         }
 
         if (resetAcknowledged && !resetCompleted) {
-            // System.out.println("EnvironmentStateCalculator - reset acknowledge, but not completed. Not storing stats");
+            // System.out.println("EnvironmentStateCalculator - reset acknowledge, but not
+            // completed. Not storing stats");
             return;
         }
 
         if (resetAcknowledged && resetCompleted) {
-            // System.out.println("EnvironmentStateCalculator - reset acknowledge and completed. Storing stats");
+            // System.out.println("EnvironmentStateCalculator - reset acknowledge and
+            // completed. Storing stats");
             resetAcknowledged = false;
             resetCompleted = false;
         }
@@ -117,23 +134,25 @@ public class EnvironmentStateCalculator implements StatReporter {
             }
         }
         if (dataSpansAtLeastTheMonitoringPeriod) {
-            String logMsg = String.format("\nreporting at time %d statistics:\n", ts);
-            String msg = String.format("%d", ts);
-            for (String id_ : measurements.keySet()) {
-                double avg = 0.0;
-                for (Pair<Long, Double> v : measurements.get(id_)) {
-                    avg += v.getValue();
+
+            logger.debug(
+                    "Checking if state measurement is available and there is at least one token to send the state...");
+            if (sendStateTokens.get() > 0 && computeStateMeasurementAndReward()) {
+                logger.debug("...yes!");
+                sendStateTokens.set(0);
+
+                String msg = getStateMeasurementAsString() + separator + getRewardAsString();
+                logger.debug("Sending state/reward {}", msg);
+                producer.send(new ProducerRecord<>("stats", msg));
+                if (episodesLogger != null) {
+                    episodesLogger.writeMeasurementEvent();
                 }
-                avg /= measurements.get(id_).size();
-                logMsg += 
-                        String.format("...%s whose average is %.2f, computed from %d values\n",
-                                id_, avg, measurements.get(id_).size());
-                msg += String.format(",%s,%.2f", id_, avg);
+
             }
+
             measurements.clear();
             // System.out.println(String.format("Sending message %s", msg));
-            logger.debug(logMsg);
-            producer.send(new ProducerRecord<>("stats", msg));
+            // logger.debug(logMsg);
 
         }
 
@@ -146,5 +165,22 @@ public class EnvironmentStateCalculator implements StatReporter {
             // (%d,%s,%.2f)", ts, id, value));
         }
     }
+
+    @Override
+    public void registerLogger(EpisodesLogger logger) {
+        this.episodesLogger = logger;
+    }
+
+    public abstract String getStateMeasurementAsString();
+
+    /**
+     * Called when measurements over the specified monitoring period are avaible,
+     * for the specialized class to try to compute a state measurement a reward
+     * 
+     * @return True if a state measurement and a Reward are available
+     */
+    public abstract boolean computeStateMeasurementAndReward();
+
+    public abstract String getRewardAsString();
 
 }

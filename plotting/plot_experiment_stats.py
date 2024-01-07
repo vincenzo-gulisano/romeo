@@ -49,21 +49,74 @@ def plot_files_in_folder(folder):
         df.iloc[:, 0] -= min_value
 
         # Plotting
-        plt.plot(df.iloc[:, 0], df.iloc[:, 1], label=y_label)
-        plt.xlabel(x_label)
-        plt.ylabel(y_label)
-        plt.yscale('log')
+
+        # Set the size of the figure
+        fig, ax = plt.subplots(figsize=(40, 15))
+
+        ax.plot(df.iloc[:, 0], df.iloc[:, 1], label=y_label)
+        ax.set_xlabel(x_label)
+        ax.set_ylabel(y_label)
+        # plt.yscale('log')
         
-        # # Add vertical lines for each ts in episodes.csv
-        # for index, row in episodes_df.iterrows():
-        #     plt.axvline(row['ts'], linestyle='--', color='red')
-        #     plt.text(row['ts'], df.iloc[:, 1].max(), f"{row['episode']}: {row['event']}", rotation=90, color='red')
+        # Add vertical lines for each ts in episodes.csv
+        for index, row in episodes_df.iterrows():
+            ax.axvline(row['ts'], linestyle='--', color='red')
+            ax.text(row['ts'], df.iloc[:, 1].max(), f"{row['episode']}: {row['event']}", rotation=90, color='red')
 
-        plt.legend()
-        plt.title(f'Plot for {os.path.basename(file_path)}')
+        # ax.legend()
+        ax.set_title(f'Plot for {os.path.basename(file_path)}')
+
         plt.savefig(f"{os.path.splitext(file_path)[0]}.pdf")
-        plt.clf()
+        plt.close()
 
+    # Iterate through unique episode values in episodes_df
+    for episode_value in episodes_df['episode'].unique():
+        # Create a subfolder for each unique episode value
+        episode_folder = os.path.join(folder, str(episode_value))
+        os.makedirs(episode_folder, exist_ok=True)
+
+        # Filter episodes_df for the current episode value
+        episode_data = episodes_df[episodes_df['episode'] == episode_value]
+
+        # Plot each valid CSV file for the current episode value
+        for file_path in valid_csv_files:
+            df = pd.read_csv(file_path)
+            x_label = 'Time (s)'
+            y_label = os.path.splitext(os.path.basename(file_path))[0]
+            
+            # Adjust the values by subtracting the minimum value
+            df.iloc[:, 0] -= min_value
+
+            # Set the size of the figure
+            fig, ax = plt.subplots(figsize=(10, 5))
+
+            ax.set_xlabel(x_label)
+            ax.set_ylabel(y_label)
+            
+            # Filter data based on the 'start' and 'stop' columns in episode_data
+            for _, episode_entry in episode_data.iterrows():
+                start_time = episode_data[episode_data['event'] == 'start'].iloc[:, 0].values[0]
+                stop_time = episode_data[episode_data['event'] == 'end'].iloc[:, 0].values[0]
+                
+                # print('episode',episode_value,'start',start_time,'end',stop_time)
+                temp_df = df[(df.iloc[:, 0] >= start_time) & (df.iloc[:, 0] <= stop_time)]
+                # print('data',temp_df)
+                # Plot only the data between 'start' and 'stop'
+                ax.plot(temp_df.iloc[:, 0],
+                        temp_df.iloc[:, 1],
+                        label=f"{y_label} - Episode {episode_value}")
+
+            # Add vertical lines for each ts in episodes.csv
+            for _, row in episode_data.iterrows():
+                ax.axvline(row['ts'], linestyle='--', color='red')
+                ax.text(row['ts'], temp_df.iloc[:, 1].max(), f"{row['episode']}: {row['event']}", rotation=90, color='red')
+
+            # ax.legend()
+            ax.set_title(f'Plot for {os.path.basename(file_path)} - Episode {episode_value}')
+
+            plt.savefig(os.path.join(episode_folder, f"{os.path.basename(file_path)}_episode_{episode_value}.pdf"))
+            plt.close()
+            
     print("Plots saved successfully.")
 
 if __name__ == "__main__":

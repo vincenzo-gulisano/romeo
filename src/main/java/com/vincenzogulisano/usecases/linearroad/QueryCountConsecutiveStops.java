@@ -48,6 +48,8 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
     private long startingTimeMinimum;
     private long startingTimeMaximum;
 
+    public final static long sleepBeforeRealRate = 5000;
+
     // The name of this Logger will be "org.apache.logging.Child"
     public Logger logger = LogManager.getLogger();
 
@@ -135,6 +137,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
     public void setStatReporter(StatReporter reporter) {
 
         this.reporter = reporter;
+        this.reporter.registerLogger(episodesLogger);
 
         logger.debug("SPE - setStatReporter invoked");
         HashMap<String, Consumer<Object[]>> consumers = new HashMap<>();
@@ -159,6 +162,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
     @Override
     public void changeD(long v) {
         logger.debug("SPE - changeD invoked");
+        episodesLogger.writeActionEvent(Long.toString(v));
         woostAgg.changeD(v);
     }
 
@@ -196,12 +200,12 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         }
         logger.debug("SPE - The source is no longer injecting tuples, resetting Agg, Sink, and Source");
         woostAgg.reset();
-        while(!woostAgg.getResetAck()) {
+        while (!woostAgg.getResetAck()) {
             Util.sleep(500);
         }
         logger.debug("Got Ack from the Agg");
         sink.reset();
-        while(!sink.getResetAck()) {
+        while (!sink.getResetAck()) {
             Util.sleep(500);
         }
         logger.debug("Got Ack from the Sink");
@@ -219,6 +223,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         sourceFunction.giveGreenlightToStartSendingRealRateTuples();
 
         firstEpisodeStarted = true;
+        Util.sleep(sleepBeforeRealRate/2);
         episodesLogger.writeStartEvent();
 
     }

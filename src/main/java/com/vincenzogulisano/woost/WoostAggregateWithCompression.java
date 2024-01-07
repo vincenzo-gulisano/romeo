@@ -99,7 +99,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
             logger.debug("No tuples in the input stream, resetting immediately");
             if (inProcess) {
                 logger.debug("In process though... so we wait");
-                while(inProcess) {
+                while (inProcess) {
                     Util.sleep(50);
                 }
                 logger.debug("Process complete");
@@ -123,6 +123,14 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         tsKeys = new TreeMap<>();
         keyLatestTs = new HashMap<>();
         earliestWinLeftBoundary = -1;
+        windowsMetric.reset();
+        tuplesMetric.reset();
+        memoryMetric.reset();
+        compressionsMetric.reset();
+        decompressionMetric.reset();
+        maxEventTimeMetric.reset();
+        compressionRatio.reset();
+        throughputMetric.reset();
         logger.debug("Acking back to SPE");
         resetAck = true;
         resetRequest = false;

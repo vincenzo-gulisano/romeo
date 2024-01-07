@@ -29,13 +29,21 @@ public class EpisodesLogger {
         writeEvent("start");
     }
 
+    public void writeMeasurementEvent() {
+        writeEvent("state");
+    }
+
+    public void writeActionEvent(String action) {
+        writeEvent(String.format("action %s", action));
+    }
+
     public void writeEndEvent() {
         writeEvent("end");
         counter++;
     }
 
     private void writeEvent(String event) {
-        String line = String.format("%d,%d,%s\n", System.currentTimeMillis()/1000, counter, event);
+        String line = String.format("%d,%d,%s\n", System.currentTimeMillis() / 1000, counter, event);
 
         try {
             writer.write(line);

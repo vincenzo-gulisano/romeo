@@ -104,6 +104,7 @@ class KafkaActionsProducer:
         self.max_D = 600
         self.action_D = 600
         self.measurements = []
+        self.actionsPerEpisode = 15;
 
     def compute_reward(self):
         print('self.measurements[0][latency][previous_value]',self.measurements[0]['latency']['previous_value'], flush=True)
@@ -118,13 +119,13 @@ class KafkaActionsProducer:
         return 1
 
     def produce_action(self):
-        actionsBeforeReset=5
+        actionsBeforeReset=self.actionsPerEpisode
         while True:
             # Produce a random action to the 'actions' topic
             time.sleep(1)
             with self.statsConsumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by the other thread
                 if actionsBeforeReset==0:
-                    actionsBeforeReset=5
+                    actionsBeforeReset=self.actionsPerEpisode
                     print('Sending reset command')
                     self.action_D = self.max_D
                     self.prev_stat_time = None

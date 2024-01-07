@@ -63,6 +63,8 @@ public class SinkLogAndLatency extends BaseSink<TupleCarStops> {
     private void internalReset() {
         logger.debug("Clearing {} tuples in input stream", getInput().size());
         getInput().clear();
+        outrateMetric.reset();
+        latencyMetric.reset();
         logger.debug("Acking back to SPE");
         resetAck = true;
         resetRequest = false;

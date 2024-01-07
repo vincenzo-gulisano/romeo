@@ -40,7 +40,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
     private long startingTS;
     private ConcurrentLinkedQueue<Long> startingTSUpdates;
     private long WS;
-    private long sleepBeforeRealRate;
+    // private long sleepBeforeRealRate;
     private boolean firstTupleAtRealRate;
     private boolean firstTuplesSkipped;
 
@@ -70,7 +70,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         firstInvocationTs = -1;
         firstTupleTs = -1;
         lastSendNano = 0;
-        sleepBeforeRealRate = 5000;
+        // sleepBeforeRealRate = 5000;
         firstTupleAtRealRate = true;
         firstTuplesSkipped = false;
         resetRequest = false;
@@ -128,6 +128,8 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
             assert (!startingTSUpdates.isEmpty());
             startingTS = startingTSUpdates.poll();
             logger.debug("Next startingTS is {}", startingTS);
+
+            injectionRateMetric.reset();
 
             resetRequest = false; // Clear the request
             resetAck = true; // Tell SPE I have stopped
@@ -226,10 +228,10 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
                                     "Source - ack received");
                             waitingForSPEGreenlightToStartSendingRealRateTuples = false;
                         }
-                        logger.debug("Sleeping " + sleepBeforeRealRate + " ms before starting for real");
+                        logger.debug("Sleeping " + QueryCountConsecutiveStops.sleepBeforeRealRate + " ms before starting for real");
                         firstTupleAtRealRate = false;
                         try {
-                            Thread.sleep(sleepBeforeRealRate);
+                            Thread.sleep(QueryCountConsecutiveStops.sleepBeforeRealRate);
                         } catch (InterruptedException e) {
                             logger.warn("Thread sleep Interrupted Exception");
                         }

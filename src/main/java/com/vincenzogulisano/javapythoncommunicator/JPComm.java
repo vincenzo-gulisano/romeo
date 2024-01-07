@@ -15,6 +15,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.vincenzogulisano.usecases.linearroad.LatencyAndRatioDeltaESC;
 import com.vincenzogulisano.usecases.linearroad.QueryCountConsecutiveStops;
 
 public class JPComm {
@@ -45,7 +46,7 @@ public class JPComm {
         consumer = new KafkaConsumer<>(properties);
         // TODO topic should not be hardcoded!
         consumer.subscribe(Collections.singletonList("dchanges"));
-        esc = new EnvironmentStateCalculator(20, producer);
+        esc = new LatencyAndRatioDeltaESC(20, producer, "-");
 
     }
 
@@ -72,8 +73,10 @@ public class JPComm {
                             String action = parts[1];
                             Long change = Long.parseLong(action);
                             actionable.changeD(change);
+                            esc.addSendStateToken();
                         } else if (parts[0].equals("reset")) {
                             actionable.reset();
+                            esc.addSendStateToken();
                         } else {
                             throw new RuntimeException("Unknown command " + record.value());
                         }
