@@ -47,6 +47,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
     private boolean firstEpisodeStarted;
     private long startingTimeMinimum;
     private long startingTimeMaximum;
+    private long ws;
 
     public final static long sleepBeforeRealRate = 5000;
 
@@ -78,7 +79,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         compressionThreshold = Long.parseLong(cmd.getOptionValue("d", String.valueOf(Long.MAX_VALUE)));
         experimentLength = Long.parseLong(cmd.getOptionValue("l"));
         long wa = Long.parseLong(cmd.getOptionValue("wa"));
-        long ws = Long.parseLong(cmd.getOptionValue("ws"));
+        ws = Long.parseLong(cmd.getOptionValue("ws"));
         String outPath = cmd.getOptionValue("o", "");
         boolean writeOut = outPath.equals("") ? false : true;
         InjectorType type = InjectorType.valueOf(cmd.getOptionValue("t", String.valueOf(InjectorType.FIXEDRATE)));
@@ -163,7 +164,8 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
     public void changeD(long v) {
         logger.debug("SPE - changeD invoked");
         episodesLogger.writeActionEvent(Long.toString(v));
-        woostAgg.changeD(v);
+        long newCompression = ws - (long) ((double) ws * ((double) v / 10.0));
+        woostAgg.changeD(newCompression);
     }
 
     @Override
@@ -223,7 +225,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         sourceFunction.giveGreenlightToStartSendingRealRateTuples();
 
         firstEpisodeStarted = true;
-        Util.sleep(sleepBeforeRealRate/2);
+        Util.sleep(sleepBeforeRealRate / 2);
         episodesLogger.writeStartEvent();
 
     }
