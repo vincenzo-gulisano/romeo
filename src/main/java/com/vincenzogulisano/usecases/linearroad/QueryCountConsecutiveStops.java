@@ -164,7 +164,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
     public void changeD(long v) {
         logger.debug("SPE - changeD invoked");
         episodesLogger.writeActionEvent(Long.toString(v));
-        long newCompression = ws - (long) ((double) ws * ((double) v / 10.0));
+        long newCompression = (long) ((double) ws * ((double) v / 10.0));
         woostAgg.changeD(newCompression);
     }
 

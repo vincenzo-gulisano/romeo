@@ -27,7 +27,7 @@ class SPEEnvironment(Env):
         # 1 means set compression to 10%
         # ...
         # 10 means set compression to 100%
-        self.action_space = spaces.Discrete(4,)
+        self.action_space = spaces.Discrete(11,)
 
         self.consumer = KafkaStatsConsumer()
         self.producer = KafkaActionsProducer(self.consumer)
@@ -49,13 +49,16 @@ class SPEEnvironment(Env):
         self.producer.produce("reset")
 
         self.remaingSteps = self.stepsPerEpisode
+        print('self.remaingSteps set to',self.remaingSteps,'in reset')
 
         # Wait for the state and reward measurement
         self.prev_stat_time = time.time()
         state_measurement_available = False
+        print('Waiting for new observation')
         while not state_measurement_available:
             time.sleep(1)
             with self.consumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by other threads
+                print('self.consumer.tracker.state is not None',(self.consumer.tracker.state is not None),'self.consumer.tracker.last_time',self.consumer.tracker.last_time,'self.prev_stat_time',self.prev_stat_time)
                 if self.consumer.tracker.state is not None and self.consumer.tracker.last_time > self.prev_stat_time:
                     print('Got a new state/reward pair:',self.consumer.tracker.last_time,self.consumer.tracker.state,self.consumer.tracker.reward,flush=True)
                     state_measurement_available = True
@@ -73,14 +76,17 @@ class SPEEnvironment(Env):
         # Assert that it is a valid action 
         assert self.action_space.contains(action), "Invalid action"
 
+        print('Transmitting action',action)
         self.producer.produce("changeD,"+str(action))
 
         # Wait for the state and reward measurement
         self.prev_stat_time = time.time()
         state_measurement_available = False
+        print('Waiting for new observation')
         while not state_measurement_available:
             time.sleep(1)
             with self.consumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by other threads
+                print('self.consumer.tracker.state is not None',(self.consumer.tracker.state is not None),'self.consumer.tracker.last_time',self.consumer.tracker.last_time,'self.prev_stat_time',self.prev_stat_time)
                 if self.consumer.tracker.state is not None and self.consumer.tracker.last_time > self.prev_stat_time:
                     print('Got a new state/reward pair:',self.consumer.tracker.last_time,self.consumer.tracker.state,self.consumer.tracker.reward,flush=True)
                     state_measurement_available = True
@@ -100,7 +106,7 @@ class MeasurementTracker:
 
     def process_input(self, input_str):
 
-        print('Received:',input_str)
+        print('Received:',input_str,'at time',time.time(),flush=True)
 
         # Split the string into parts using ","
         parts = input_str.split("/")
@@ -109,7 +115,10 @@ class MeasurementTracker:
 
             # Extract timestamp as an integer
             self.last_time = time.time()
-            self.state = parts[0]
+            # Convert the string to a list of doubles
+            doubles_list = [float(x) for x in parts[0].split(',')]
+            # Convert the list to a NumPy array of float32
+            self.state =  np.array(doubles_list, dtype=np.float32)
             self.reward = int(parts[1])
 
 class KafkaActionsProducer:
@@ -223,19 +232,23 @@ if __name__ == "__main__":
     #         time.sleep(1)
     # except KeyboardInterrupt:
     #     pass
+    episodes = 20
     steps_per_episode = 15
     env = SPEEnvironment(steps_per_episode)
-    obs = env.reset()
 
-    while True:
-        # Take a random action
-        action = env.action_space.sample()
-        obs, reward, done, info = env.step(action)
-        
-        # Render the game
-        # env.render()
-        
-        if done == True:
-            break
+    for i in range(episodes):
+        print('starting episode',i+1)
+        obs = env.reset()
+
+        while True:
+            # Take a random action
+            action = env.action_space.sample()
+            obs, reward, done, info = env.step(action)
+            
+            # Render the game
+            # env.render()
+            
+            if done == True:
+                break
 
     env.close()

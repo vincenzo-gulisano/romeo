@@ -66,7 +66,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
 
     private volatile boolean resetRequest;
     private volatile boolean resetAck;
-    private Lock resetLock;
+    // private Lock resetLock;
 
     public WoostAggregateWithCompression(
             String id,
@@ -85,7 +85,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
 
         this.resetRequest = false;
         this.resetAck = false;
-        this.resetLock = new ReentrantLock();
+        // this.resetLock = new ReentrantLock();
 
     }
 
@@ -93,24 +93,30 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         logger.debug("Registering reset request");
         resetAck = false;
         resetRequest = true;
-        resetLock.lock();
+        // resetLock.lock();
         logger.debug("Got the reset lock");
-        if (getInput().size() == 0) {
-            logger.debug("No tuples in the input stream, resetting immediately");
-            if (inProcess) {
-                logger.debug("In process though... so we wait");
-                while (inProcess) {
-                    Util.sleep(50);
-                }
-                logger.debug("Process complete");
-            } else {
-                logger.debug("and not processing tuples");
-            }
-            internalReset();
-        } else {
-            logger.debug("There exist tuples in the input stream, deferring the reset to main thread");
+        logger.debug("{} tuples in input stream", getInput().size());
+        while (getInput().size() > 0 || inProcess) {
+            logger.debug("Tuples being processed ({})", getInput().size());
+            Util.sleep(500);
         }
-        resetLock.unlock();
+        // if (getInput().size() == 0) {
+        logger.debug("No tuples in the input stream, resetting immediately");
+        if (inProcess) {
+            logger.debug("In process though... so we wait");
+            while (inProcess) {
+                Util.sleep(50);
+            }
+            logger.debug("Process complete");
+        } else {
+            logger.debug("and not processing tuples");
+        }
+        internalReset();
+        // } else {
+        // logger.debug("There exist tuples in the input stream, deferring the reset to
+        // main thread");
+        // }
+        // resetLock.unlock();
 
     }
 
@@ -191,13 +197,13 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
 
     public List<OUT> processTupleIn1(IN t) {
 
-        if (resetRequest) {
-            logger.debug("Processing reset request");
-            resetLock.lock();
-            logger.debug("Got the reset lock");
-            internalReset();
-            resetLock.unlock();
-        }
+        // if (resetRequest) {
+        //     logger.debug("Processing reset request");
+        //     resetLock.lock();
+        //     logger.debug("Got the reset lock");
+        //     internalReset();
+        //     resetLock.unlock();
+        // }
 
         inProcess = true;
 

@@ -24,7 +24,7 @@ public class LatencyAndRatioDeltaESC extends EnvironmentStateCalculator {
     @Override
     public String getStateMeasurementAsString() {
         assert (latency != -1 && ratios.size() == 2);
-        return String.format("[%.2f,%.2f,%.2f]", latency, ratios.get(0), ratios.get(1));
+        return String.format("%.2f,%.2f,%.2f", latency, ratios.get(0), ratios.get(1));
     }
 
     @Override
