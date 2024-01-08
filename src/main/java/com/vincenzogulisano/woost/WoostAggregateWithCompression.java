@@ -94,14 +94,14 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         resetAck = false;
         resetRequest = true;
         // resetLock.lock();
-        logger.debug("Got the reset lock");
+        // logger.debug("Got the reset lock");
         logger.debug("{} tuples in input stream", getInput().size());
         while (getInput().size() > 0 || inProcess) {
             logger.debug("Tuples being processed ({})", getInput().size());
             Util.sleep(500);
         }
         // if (getInput().size() == 0) {
-        logger.debug("No tuples in the input stream, resetting immediately");
+        logger.debug("No tuples in the input stream, resetting");
         if (inProcess) {
             logger.debug("In process though... so we wait");
             while (inProcess) {
