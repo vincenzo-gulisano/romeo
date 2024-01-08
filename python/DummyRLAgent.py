@@ -29,8 +29,8 @@ class SPEEnvironment(Env):
         # 10 means set compression to 100%
         self.action_space = spaces.Discrete(4,)
 
-        self.kafka_stats_consumer = KafkaStatsConsumer()
-        self.kafka_actions_producer = KafkaActionsProducer(kafka_stats_consumer)
+        self.consumer = KafkaStatsConsumer()
+        self.producer = KafkaActionsProducer(self.consumer)
 
         self.stepsPerEpisode = stepsPerEpisode
         self.remaingSteps = self.stepsPerEpisode
@@ -41,13 +41,12 @@ class SPEEnvironment(Env):
         # kafka_actions_producer.start_producer()
 
         # Start the consumer thread
-        kafka_stats_consumer.start_consumer()
+        self.consumer.start_consumer()
 
     def reset(self):
 
         # Send the reset
-        self.producer.produce(self.actions_topic, key=str(time.time()), value="reset")
-        self.producer.flush()
+        self.producer.produce("reset")
 
         self.remaingSteps = self.stepsPerEpisode
 
@@ -56,16 +55,16 @@ class SPEEnvironment(Env):
         state_measurement_available = False
         while not state_measurement_available:
             time.sleep(1)
-            with self.kafka_stats_consumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by other threads
-                if self.kafka_stats_consumer.tracker.state is not None and self.kafka_stats_consumer.tracker.last_time > self.prev_stat_time:
-                    print('Got a new state/reward pair:',self.kafka_stats_consumer.tracker.last_time,self.kafka_stats_consumer.tracker.state,self.kafka_stats_consumer.tracker.reward,flush=True)
+            with self.consumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by other threads
+                if self.consumer.tracker.state is not None and self.consumer.tracker.last_time > self.prev_stat_time:
+                    print('Got a new state/reward pair:',self.consumer.tracker.last_time,self.consumer.tracker.state,self.consumer.tracker.reward,flush=True)
                     state_measurement_available = True
 
         # Reset the reward
-        self.ep_return  = self.kafka_stats_consumer.tracker.reward
+        self.ep_return  = self.consumer.tracker.reward
 
         # Return the observation
-        return self.kafka_stats_consumer.tracker.state.copy()
+        return self.consumer.tracker.state.copy()
     
     def step(self,action):
     
@@ -74,24 +73,23 @@ class SPEEnvironment(Env):
         # Assert that it is a valid action 
         assert self.action_space.contains(action), "Invalid action"
 
-        self.producer.produce(self.actions_topic, key=str(time.time()), value="changeD,"+str(action))
-        self.producer.flush()
+        self.producer.produce("changeD,"+str(action))
 
         # Wait for the state and reward measurement
         self.prev_stat_time = time.time()
         state_measurement_available = False
         while not state_measurement_available:
             time.sleep(1)
-            with self.kafka_stats_consumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by other threads
-                if self.kafka_stats_consumer.tracker.state is not None and self.kafka_stats_consumer.tracker.last_time > self.prev_stat_time:
-                    print('Got a new state/reward pair:',self.kafka_stats_consumer.tracker.last_time,self.kafka_stats_consumer.tracker.state,self.kafka_stats_consumer.tracker.reward,flush=True)
+            with self.consumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by other threads
+                if self.consumer.tracker.state is not None and self.consumer.tracker.last_time > self.prev_stat_time:
+                    print('Got a new state/reward pair:',self.consumer.tracker.last_time,self.consumer.tracker.state,self.consumer.tracker.reward,flush=True)
                     state_measurement_available = True
         
         # Increment the episodic return
         self.ep_return += 1
 
         # TODO There's something missing, the SPE itself could be done if it runs out of data. This is not being checked as of now...
-        return self.kafka_stats_consumer.tracker.state.copy(), self.kafka_stats_consumer.tracker.reward, self.remaingSteps==0, []
+        return self.consumer.tracker.state.copy(), self.consumer.tracker.reward, self.remaingSteps==0, []
     
 class MeasurementTracker:
     def __init__(self):
@@ -124,6 +122,10 @@ class KafkaActionsProducer:
         # self.max_D = 600
         # self.action_D = 600
         # self.actionsPerEpisode = 15;
+
+    def produce(self, action):
+        self.producer.produce(self.actions_topic, key=str(time.time()), value=action)
+        self.producer.flush()
 
     # def produce_action(self):
     #     actionsBeforeReset=self.actionsPerEpisode
