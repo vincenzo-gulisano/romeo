@@ -177,6 +177,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
                 }
                 result = TupleInput.fromReading(t);
             }
+            logger.debug("Skipping of initial tuples completed");
             firstTuplesSkipped = true;
         }
 
@@ -215,6 +216,8 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
                     // firstInvocationTs and firstTupleTs
                     if (firstTupleAtRealRate) {
 
+                        logger.debug("Sending the first tuple at a real rate");
+
                         allStateFillingTuplesSent = true;
 
                         if (waitingForSPEGreenlightToStartSendingRealRateTuples) {
@@ -228,7 +231,8 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
                                     "Source - ack received");
                             waitingForSPEGreenlightToStartSendingRealRateTuples = false;
                         }
-                        logger.debug("Sleeping " + QueryCountConsecutiveStops.sleepBeforeRealRate + " ms before starting for real");
+                        logger.debug("Sleeping " + QueryCountConsecutiveStops.sleepBeforeRealRate
+                                + " ms before starting for real");
                         firstTupleAtRealRate = false;
                         try {
                             Thread.sleep(QueryCountConsecutiveStops.sleepBeforeRealRate);
@@ -326,6 +330,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
     }
 
     public void giveGreenlightToStartSendingStateFillingTuples() {
+        logger.debug("The SPE is giving the green light to start injecting state tuples");
         ackFromSPEGreenlightToStartSendingStateFillingTuples = true;
     }
 

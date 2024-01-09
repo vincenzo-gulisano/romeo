@@ -7,8 +7,8 @@ input_file="/home/vincenzo/woost/data/input/input.txt"
 # Define lists of values
 wa=5
 ws=600
-duration=7200000
-d=100000000
+duration=10000000
+d=601
 rate=25000
 repetition=0
 starting_time_min=900
@@ -67,9 +67,9 @@ JVM_PID=$(pgrep -f "com.vincenzogulisano.javapythoncommunicator.JPComm")
 # Print the PID
 echo "JVM PID: $JVM_PID"
 
-args=($JVM_PID ${exp_folder}/)
-python python/cpu_monitor.py $JVM_PID ${exp_folder}/ &
-cpu_monitor_pid=$!
+# args=($JVM_PID ${exp_folder}/)
+# python python/cpu_monitor.py $JVM_PID ${exp_folder}/ &
+# cpu_monitor_pid=$!
 
 sleep $((duration / 1000))
 
