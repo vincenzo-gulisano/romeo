@@ -6,4 +6,6 @@ public interface Actionable {
 
     void reset();
 
+    void close();
+
 }

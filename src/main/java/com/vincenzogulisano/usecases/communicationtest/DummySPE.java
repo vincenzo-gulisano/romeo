@@ -54,4 +54,10 @@ public class DummySPE implements Actionable, EnvironmentMonitor {
 		throw new UnsupportedOperationException("Unimplemented method 'reset'");
 	}
 
+    @Override
+    public void close() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'close'");
+    }
+
 }

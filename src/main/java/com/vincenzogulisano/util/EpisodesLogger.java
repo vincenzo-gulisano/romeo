@@ -42,6 +42,11 @@ public class EpisodesLogger {
         counter++;
     }
 
+
+    public void writeCloseEvent() {
+        writeEvent("close");
+    }
+
     private void writeEvent(String event) {
         String line = String.format("%d,%d,%s\n", System.currentTimeMillis() / 1000, counter, event);
 

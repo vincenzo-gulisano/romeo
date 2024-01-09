@@ -78,6 +78,8 @@ public class JPComm {
                         } else if (parts[0].equals("reset")) {
                             actionable.reset();
                             esc.addSendStateToken();
+                        } else if (parts[0].equals("reset")) {
+                            actionable.close();
                         } else {
                             throw new RuntimeException("Unknown command " + record.value());
                         }
@@ -91,7 +93,9 @@ public class JPComm {
             // Start the thread
             reportingThread.start();
 
-        } catch (Exception e) {
+        } catch (
+
+        Exception e) {
             System.out.println(e);
         }
 

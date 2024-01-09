@@ -124,14 +124,8 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         // first episode
         reset();
 
-        Util.sleep(experimentLength);
+        // Util.sleep(experimentLength);
 
-        // Log the end of the final episode
-        episodesLogger.writeEndEvent();
-        episodesLogger.close();
-
-        q.deActivate();
-        threadCPUMonitor.stopMonitoring();
     }
 
     @Override
@@ -228,6 +222,19 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         Util.sleep(sleepBeforeRealRate / 2);
         episodesLogger.writeStartEvent();
 
+    }
+
+    @Override
+    public void close() {
+        logger.debug("Received close command");
+        episodesLogger.writeCloseEvent();
+
+        // Log the end of the final episode
+        episodesLogger.writeEndEvent();
+        episodesLogger.close();
+
+        q.deActivate();
+        threadCPUMonitor.stopMonitoring();
     }
 
 }
