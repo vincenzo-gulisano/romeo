@@ -63,6 +63,7 @@ public class JPComm {
             Thread reportingThread = new Thread(() -> {
 
                 while (true) {
+                    logger.debug("Polling consumer");
                     ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
                     // System.out.println("Checking consumer records...");
                     records.forEach(record -> {
@@ -78,8 +79,14 @@ public class JPComm {
                         } else if (parts[0].equals("reset")) {
                             actionable.reset();
                             esc.addSendStateToken();
-                        } else if (parts[0].equals("reset")) {
+                        } else if (parts[0].equals("close")) {
+                            logger.debug("Closing SPE");
                             actionable.close();
+                            logger.debug("Closing reporter (and producer)");
+                            esc.close();
+                            logger.debug("Closing consumer");
+                            consumer.close();
+                            System.exit(0);
                         } else {
                             throw new RuntimeException("Unknown command " + record.value());
                         }

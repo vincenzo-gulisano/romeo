@@ -227,14 +227,14 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
     @Override
     public void close() {
         logger.debug("Received close command");
-        episodesLogger.writeCloseEvent();
 
         // Log the end of the final episode
         episodesLogger.writeEndEvent();
+        episodesLogger.writeCloseEvent();
         episodesLogger.close();
 
-        q.deActivate();
         threadCPUMonitor.stopMonitoring();
+        // q.deActivate();
     }
 
 }

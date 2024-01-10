@@ -5,6 +5,7 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -52,6 +53,8 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
     private AtomicInteger sendStateTokens;
     private final String separator;
 
+    private ReentrantLock lock;
+
     public EnvironmentStateCalculator(long monitoringPeriod, Producer<String, String> producer, String separator) {
         this.monitoringPeriod = monitoringPeriod;
         this.producer = producer;
@@ -61,6 +64,13 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
         this.resetCompleted = true;
         this.separator = separator;
         this.sendStateTokens = new AtomicInteger();
+        this.lock = new ReentrantLock();
+    }
+
+    public void close() {
+        this.lock.lock();
+        this.producer.close();
+        this.lock.unlock();
     }
 
     public void setResetRequest() {
@@ -91,7 +101,9 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
     }
 
     @Override
-    public synchronized void report(long ts, String id, double value) {
+    public void report(long ts, String id, double value) {
+
+        this.lock.lock();
 
         if (resetRequest) {
             // System.out.println("EnvironmentStateCalculator - got a reset request, stop
@@ -100,12 +112,14 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
             resetAcknowledged = true;
             resetCompleted = false;
             measurements.clear();
+            this.lock.unlock();
             return;
         }
 
         if (resetAcknowledged && !resetCompleted) {
             // System.out.println("EnvironmentStateCalculator - reset acknowledge, but not
             // completed. Not storing stats");
+            this.lock.unlock();
             return;
         }
 
@@ -166,6 +180,8 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
             // System.out.println(String.format("EnvironmentStateCalculator registering
             // (%d,%s,%.2f)", ts, id, value));
         }
+
+        this.lock.unlock();
     }
 
     @Override

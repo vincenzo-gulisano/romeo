@@ -14,4 +14,6 @@ public interface StatReporter {
 
     public void registerLogger(EpisodesLogger logger);
 
+    public void close();
+
 }

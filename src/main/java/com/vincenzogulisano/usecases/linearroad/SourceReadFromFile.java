@@ -248,7 +248,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
                         try {
                             Thread.sleep(1);
                         } catch (InterruptedException e) {
-                            e.printStackTrace();
+                            logger.warn("InterruptedException!");
                         }
                     }
                 }

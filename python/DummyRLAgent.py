@@ -58,7 +58,7 @@ class SPEEnvironment(Env):
         while not state_measurement_available:
             time.sleep(1)
             with self.consumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by other threads
-                print('self.consumer.tracker.state is not None',(self.consumer.tracker.state is not None),'self.consumer.tracker.last_time',self.consumer.tracker.last_time,'self.prev_stat_time',self.prev_stat_time)
+                # print('self.consumer.tracker.state is not None',(self.consumer.tracker.state is not None),'self.consumer.tracker.last_time',self.consumer.tracker.last_time,'self.prev_stat_time',self.prev_stat_time)
                 if self.consumer.tracker.state is not None and self.consumer.tracker.last_time > self.prev_stat_time:
                     print('Got a new state/reward pair:',self.consumer.tracker.last_time,self.consumer.tracker.state,self.consumer.tracker.reward,flush=True)
                     state_measurement_available = True
@@ -86,7 +86,7 @@ class SPEEnvironment(Env):
         while not state_measurement_available:
             time.sleep(1)
             with self.consumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by other threads
-                print('self.consumer.tracker.state is not None',(self.consumer.tracker.state is not None),'self.consumer.tracker.last_time',self.consumer.tracker.last_time,'self.prev_stat_time',self.prev_stat_time)
+                # print('self.consumer.tracker.state is not None',(self.consumer.tracker.state is not None),'self.consumer.tracker.last_time',self.consumer.tracker.last_time,'self.prev_stat_time',self.prev_stat_time)
                 if self.consumer.tracker.state is not None and self.consumer.tracker.last_time > self.prev_stat_time:
                     print('Got a new state/reward pair:',self.consumer.tracker.last_time,self.consumer.tracker.state,self.consumer.tracker.reward,flush=True)
                     state_measurement_available = True
@@ -97,6 +97,11 @@ class SPEEnvironment(Env):
         # TODO There's something missing, the SPE itself could be done if it runs out of data. This is not being checked as of now...
         return self.consumer.tracker.state.copy(), self.consumer.tracker.reward, self.remaingSteps==0, []
     
+    def close(self):
+        super(SPEEnvironment, self).close()
+        self.producer.produce("close")
+
+
 class MeasurementTracker:
     def __init__(self):
         self.last_time = None
@@ -233,7 +238,7 @@ if __name__ == "__main__":
     # except KeyboardInterrupt:
     #     pass
     episodes = 20
-    steps_per_episode = 15
+    steps_per_episode = 20
     env = SPEEnvironment(steps_per_episode)
 
     for i in range(episodes):
@@ -251,4 +256,5 @@ if __name__ == "__main__":
             if done == True:
                 break
 
+    print('closing')
     env.close()

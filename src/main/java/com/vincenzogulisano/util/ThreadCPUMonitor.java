@@ -45,7 +45,8 @@ public class ThreadCPUMonitor {
             isMonitoring = true;
 
             for (Thread thread : Thread.getAllStackTraces().keySet()) {
-                // System.out.println("Found thread " + thread.getName() + " " + thread.getId());
+                // System.out.println("Found thread " + thread.getName() + " " +
+                // thread.getId());
                 if (threadsToMonitor.contains(thread.getName())) {
                     // System.out.println("... registered!");
                     threadNames.put(thread.getId(), thread.getName());
@@ -66,9 +67,6 @@ public class ThreadCPUMonitor {
 
     public void stopMonitoring() {
         isMonitoring = false;
-        for (TimeMetric stat : threadStats.values()) {
-            stat.disable();
-        }
     }
 
     private void monitorThreadCPU() {
@@ -105,7 +103,8 @@ public class ThreadCPUMonitor {
 
                     double cpuUsage = (double) threadCPUDelta / (double) totalUptimeDelta * 100.0;
                     // System.out.println(
-                    //         String.format("%d - Thread ID %d Name %s CPU: %.2f", ts, threadId, threadName, cpuUsage));
+                    // String.format("%d - Thread ID %d Name %s CPU: %.2f", ts, threadId,
+                    // threadName, cpuUsage));
                     this.threadStats.get(threadName).record(Math.round(cpuUsage));
                 }
 
@@ -117,6 +116,10 @@ public class ThreadCPUMonitor {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+        }
+
+        for (TimeMetric stat : threadStats.values()) {
+            stat.disable();
         }
 
     }

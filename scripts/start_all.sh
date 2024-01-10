@@ -1,5 +1,37 @@
 #!/bin/bash
 
+
+# Function to get the current time in seconds
+get_current_time() {
+    echo $(date +%s)
+}
+
+# Function to sleep until a certain time or until a PID is alive
+sleep_until_time_or_pid() {
+    local target_time=$1
+    local pid_to_check=$2
+
+    while true; do
+        current_time=$(get_current_time)
+        time_left=$((target_time - current_time))
+
+        # Check if the specified PID is alive
+        if ! kill -0 "$pid_to_check" 2>/dev/null; then
+            echo "Process with PID $pid_to_check is not alive."
+            break
+        fi
+
+        # Check if the time has elapsed
+        if [ "$time_left" -le 0 ]; then
+            echo "Time has elapsed."
+            break
+        fi
+
+        # Sleep for a short interval (adjust as needed)
+        sleep 1
+    done
+}
+
 # Define base folder and input file
 base_folder="/home/vincenzo/romeo/data/output"
 input_file="/home/vincenzo/woost/data/input/input.txt"
@@ -71,9 +103,13 @@ echo "JVM PID: $JVM_PID"
 # python python/cpu_monitor.py $JVM_PID ${exp_folder}/ &
 # cpu_monitor_pid=$!
 
-sleep $((duration / 1000))
 
-echo "Duration time elapsed, killing..."
+# Example: Sleep until 60 seconds from now or until process with PID 123 is alive
+duration_seconds=$((duration / 1000))
+target_time=$(( $(get_current_time) + duration_seconds ))
+
+echo "Sleeping until $target_time or until process with PID $JVM_PID is not alive."
+sleep_until_time_or_pid "$target_time" "$JVM_PID"
 
 kill -9 ${JVM_PID}
 kill -9 ${python_pid}
