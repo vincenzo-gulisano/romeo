@@ -49,6 +49,8 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
     private long startingTimeMaximum;
     private long ws;
 
+    private InjectorType injectorType;
+
     public final static long sleepBeforeRealRate = 5000;
 
     // The name of this Logger will be "org.apache.logging.Child"
@@ -82,7 +84,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         ws = Long.parseLong(cmd.getOptionValue("ws"));
         String outPath = cmd.getOptionValue("o", "");
         boolean writeOut = outPath.equals("") ? false : true;
-        InjectorType type = InjectorType.valueOf(cmd.getOptionValue("t", String.valueOf(InjectorType.FIXEDRATE)));
+        injectorType = InjectorType.valueOf(cmd.getOptionValue("t", String.valueOf(InjectorType.FIXEDRATE)));
         long nanoSleep = Long.valueOf(cmd.getOptionValue("n", String.valueOf(0)));
         startingTimeMinimum = Long.valueOf(cmd.getOptionValue("stmin", String.valueOf(0)));
         startingTimeMaximum = Long.valueOf(cmd.getOptionValue("stmax", String.valueOf(0)));
@@ -90,7 +92,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         episodesLogger = new EpisodesLogger(statsFolder + File.separator + "episodes.csv");
         firstEpisodeStarted = false;
 
-        sourceFunction = new SourceReadFromFile(inputFile, type, nanoSleep, startingTimeMinimum, ws);
+        sourceFunction = new SourceReadFromFile(inputFile, injectorType, nanoSleep, startingTimeMinimum, ws);
 
         sink = new SinkLogAndLatency("out", new SinkFunction<TupleCarStops>() {
 
@@ -235,6 +237,32 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
 
         threadCPUMonitor.stopMonitoring();
         // q.deActivate();
+    }
+
+    public static void main(String[] args) throws ParseException, IOException {
+
+        QueryCountConsecutiveStops q = new QueryCountConsecutiveStops();
+        q.createQuery(args);
+
+        q.logger.debug(
+                "Starting query from main method. Notice the injector type should be FIXEDRATE or REALRATE! Found type is {}",
+                q.injectorType);
+
+        q.logger.debug("Activating thread CPU monitor");
+        q.threadCPUMonitor.startMonitoring();
+        q.logger.debug("Activating query");
+        q.q.activate();
+
+        q.logger.debug("Sleeping {} ms", q.experimentLength);
+        Util.sleep(q.experimentLength);
+
+        q.logger.debug("Deactivating thread CPU monitor");
+        q.threadCPUMonitor.stopMonitoring();
+        q.logger.debug("Deactivating query");
+        q.q.deActivate();
+
+        q.logger.debug("Experiment completed");
+
     }
 
 }
