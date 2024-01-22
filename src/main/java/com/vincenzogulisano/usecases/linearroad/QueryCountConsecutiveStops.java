@@ -248,6 +248,15 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
                 "Starting query from main method. Notice the injector type should be FIXEDRATE or REALRATE! Found type is {}",
                 q.injectorType);
 
+        q.logger.debug("SPE - Setting metrics type in Liebre");
+        LiebreContext.setUserMetrics(Metrics.file(q.statsFolder, true));
+
+        q.logger.debug("SPE - Creating statistics");
+        q.sourceFunction.createStatistics();
+        q.woostAgg.createStatistics();
+        q.sink.createStatistics();
+        q.threadCPUMonitor.createStatistics();
+
         q.logger.debug("Activating thread CPU monitor");
         q.threadCPUMonitor.startMonitoring();
         q.logger.debug("Activating query");

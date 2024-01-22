@@ -83,6 +83,13 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         this.compressionTimeThreshold = compressionTimeThreshold;
         this.dUpdates = new ConcurrentLinkedQueue<>();
 
+        logger.debug("Creating internal DSs");
+        uncompressedWins = new HashMap<>();
+        compressedWins = new HashMap<>();
+        tsKeys = new TreeMap<>();
+        keyLatestTs = new HashMap<>();
+        earliestWinLeftBoundary = -1;
+
         this.resetRequest = false;
         this.resetAck = false;
         // this.resetLock = new ReentrantLock();
@@ -198,11 +205,11 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
     public List<OUT> processTupleIn1(IN t) {
 
         // if (resetRequest) {
-        //     logger.debug("Processing reset request");
-        //     resetLock.lock();
-        //     logger.debug("Got the reset lock");
-        //     internalReset();
-        //     resetLock.unlock();
+        // logger.debug("Processing reset request");
+        // resetLock.lock();
+        // logger.debug("Got the reset lock");
+        // internalReset();
+        // resetLock.unlock();
         // }
 
         inProcess = true;

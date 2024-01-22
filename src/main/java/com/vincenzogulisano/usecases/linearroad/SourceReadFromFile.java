@@ -81,7 +81,9 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         allStateFillingTuplesSent = false;
         waitingForSPEGreenlightToStartSendingRealRateTuples = false;
         ackFromSPEGreenlightToStartSendingRealRateTuples = false;
-        firstEpisodeCanStart = false;
+
+        // This depends on the type...
+        firstEpisodeCanStart = type == InjectorType.RL ? false : true;
     }
 
     public void setStartingTS(long startingTS) {

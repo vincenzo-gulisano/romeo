@@ -39,7 +39,7 @@ input_file="/home/vincenzo/woost/data/input/input.txt"
 # Define lists of values
 wa=1
 ws=300
-duration=600000
+duration=60000
 d=601 # Not used, in principle
 rate=25000 # Not used, in principle
 repetition=0 # Not used, in principle
