@@ -45,6 +45,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
     private Metric tuplesMetric;
     private Metric memoryMetric;
     private Metric throughputMetric;
+    private TimeMetric latencyMetric;
 
     private long compressionTimeThreshold;
     private Metric compressionsMetric;
@@ -144,6 +145,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         maxEventTimeMetric.reset();
         compressionRatio.reset();
         throughputMetric.reset();
+        latencyMetric.reset();
         logger.debug("Acking back to SPE");
         resetAck = true;
         resetRequest = false;
@@ -167,6 +169,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         maxEventTimeMetric.enable();
         compressionRatio.enable();
         throughputMetric.enable();
+        latencyMetric.enable();
 
     }
 
@@ -181,6 +184,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         maxEventTimeMetric.disable();
         compressionRatio.disable();
         throughputMetric.disable();
+        latencyMetric.disable();
     }
 
     // Iterators and entries used by the processTupleIn1 function
@@ -238,7 +242,14 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         long tL = getEarliestWinStartTS(latestTimestamp);
         String k = keyExtractor.getKey(t);
 
+        boolean latencyReported = false;
+
         while (earliestWinLeftBoundary != -1 && earliestWinLeftBoundary < tL) {
+
+            if (!latencyReported) {
+                latencyMetric.record(System.currentTimeMillis()-t.getStimulus());
+                latencyReported = true;
+            }
 
             // Produce results for compressed (if any)
             i1 = compressedWins.entrySet().iterator();
@@ -474,6 +485,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         decompressionMetric = LiebreContext.userMetrics().newTotalCountMetric("dec", "count");
         maxEventTimeMetric = LiebreContext.userMetrics().newTotalMaxMetric("eventtime", "max");
         throughputMetric = LiebreContext.userMetrics().newCountPerSecondMetric("throughput", "count");
+        latencyMetric = LiebreContext.userMetrics().newAverageTimeMetric("agg-latency", "average");
     }
 
 }
