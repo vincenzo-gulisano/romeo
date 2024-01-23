@@ -41,13 +41,15 @@ wa=1
 ws=300
 duration=3600000
 d=601 # Not used, in principle
-rate=25000 # Not used, in principle
+rate=20000 # Not used, in principle
 repetition=0 # Not used, in principle
 starting_time_min=900 # Not used, in principle
 starting_time_max=9900 # Not used, in principle
+duration=300000 #3600000
+ratetype=FIXEDRATE #REALRATE
 
 # Define id variable with concatenation of values
-id="${wa}/${ws}/${duration}/${repetition}/${rate}"
+id="${wa}/${ws}/${duration}/${repetition}/${ratetype}/${rate}"
 
 # Create folder with id in base folder
 exp_folder=${base_folder}/${id}/${d}
@@ -87,7 +89,9 @@ fi
 echo "Starting SPE"
 
 echo "Starting experiment for ${id} (compression)"
-args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t REALRATE -n ${rate} -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max}"
+nanosleep=$((1000000000 / rate))
+echo "For rate ${rate} the nano sleep is ${nanosleep}"
+args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t ${ratetype} -n ${nanosleep} -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max}"
 
 mvn clean compile package exec:java -Dexec.mainClass="com.vincenzogulisano.usecases.linearroad.QueryCountConsecutiveStops" -Dexec.args="${args}" > ${exp_folder}/spe.log 2>&1 &
 
