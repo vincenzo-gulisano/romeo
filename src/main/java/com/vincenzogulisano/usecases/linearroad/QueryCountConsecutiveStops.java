@@ -72,6 +72,8 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         options.addOption("stmin", "startingTimeMinimum", true, "minimum starting time for RL");
         options.addOption("stmax", "startingTimeMaximum", true, "maximum starting time for RL");
         options.addOption("log4j", "log4jConfigFile", true, "log4j config file");
+        options.addOption("lfa", "LatencyMeasuredfromtheAggregate", true,
+                "Set this to true if the latency should be measured starting from the aggregate");
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
@@ -88,6 +90,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         long nanoSleep = Long.valueOf(cmd.getOptionValue("n", String.valueOf(0)));
         startingTimeMinimum = Long.valueOf(cmd.getOptionValue("stmin", String.valueOf(0)));
         startingTimeMaximum = Long.valueOf(cmd.getOptionValue("stmax", String.valueOf(0)));
+        boolean lfa = Boolean.valueOf(cmd.getOptionValue("lfa", String.valueOf(false)));
 
         episodesLogger = new EpisodesLogger(statsFolder + File.separator + "episodes.csv");
         firstEpisodeStarted = false;
@@ -105,7 +108,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         Source<TupleInput> s = q.addBaseSource("in", sourceFunction);
 
         woostAgg = new WoostAggregateWithCompression<>("agg",
-                0, 1, ws, wa, new WindowCountStops(), compressionThreshold, statsFolder);
+                0, 1, ws, wa, new WindowCountStops(), compressionThreshold, statsFolder, lfa);
 
         Operator<TupleInput, TupleCarStops> agg = q.addOperator(woostAgg);
 

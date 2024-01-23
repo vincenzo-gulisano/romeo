@@ -47,6 +47,7 @@ starting_time_min=900 # Not used, in principle
 starting_time_max=9900 # Not used, in principle
 duration=300000 #3600000
 ratetype=FIXEDRATE #REALRATE
+lfa=true #false
 
 # Define id variable with concatenation of values
 id="${wa}/${ws}/${duration}/${repetition}/${ratetype}/${rate}"
@@ -91,7 +92,7 @@ echo "Starting SPE"
 echo "Starting experiment for ${id} (compression)"
 nanosleep=$((1000000000 / rate))
 echo "For rate ${rate} the nano sleep is ${nanosleep}"
-args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t ${ratetype} -n ${nanosleep} -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max}"
+args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t ${ratetype} -n ${nanosleep} -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max} -lfa ${lfa}"
 
 mvn clean compile package exec:java -Dexec.mainClass="com.vincenzogulisano.usecases.linearroad.QueryCountConsecutiveStops" -Dexec.args="${args}" > ${exp_folder}/spe.log 2>&1 &
 

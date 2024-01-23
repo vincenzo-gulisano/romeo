@@ -69,6 +69,8 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
     private volatile boolean resetAck;
     // private Lock resetLock;
 
+    private final boolean latencyMeasurementStartsHere;
+
     public WoostAggregateWithCompression(
             String id,
             int instance,
@@ -77,7 +79,8 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
             long windowSlide,
             WoostTimeWindow<IN, OUT> aggregateWindow,
             long compressionTimeThreshold,
-            String statsFolder) {
+            String statsFolder,
+            boolean latencyMeasurementStartsHere) {
         super(id, instance, parallelismDegree, windowSize, windowSlide, aggregateWindow, new BaseKeyExtractor<IN>());
 
         this.aggregateWindow = aggregateWindow;
@@ -95,6 +98,22 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         this.resetAck = false;
         // this.resetLock = new ReentrantLock();
 
+        logger.debug("Latency measurement starts with this Aggregate? {}", latencyMeasurementStartsHere);
+        this.latencyMeasurementStartsHere = latencyMeasurementStartsHere;
+
+    }
+
+    public WoostAggregateWithCompression(
+            String id,
+            int instance,
+            int parallelismDegree,
+            long windowSize,
+            long windowSlide,
+            WoostTimeWindow<IN, OUT> aggregateWindow,
+            long compressionTimeThreshold,
+            String statsFolder) {
+        this(id, instance, parallelismDegree, windowSize, windowSlide, aggregateWindow, compressionTimeThreshold,
+                statsFolder, false);
     }
 
     public void reset() {
@@ -243,11 +262,12 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         String k = keyExtractor.getKey(t);
 
         boolean latencyReported = false;
+        long stimulus = latencyMeasurementStartsHere ? System.currentTimeMillis() : t.getStimulus();
 
         while (earliestWinLeftBoundary != -1 && earliestWinLeftBoundary < tL) {
 
             if (!latencyReported) {
-                latencyMetric.record(System.currentTimeMillis()-t.getStimulus());
+                latencyMetric.record(System.currentTimeMillis() - t.getStimulus());
                 latencyReported = true;
             }
 
@@ -268,7 +288,8 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
                 }
 
                 // Get output
-                wToDecompress.setLatestStimulus(t.getStimulus());
+                // wToDecompress.setLatestStimulus(t.getStimulus());
+                wToDecompress.setLatestStimulus(stimulus);
                 OUT outT = wToDecompress.getAggregatedResult();
                 if (outT != null) {
                     result.add(outT);
@@ -309,7 +330,8 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
                 memoryChange -= e2.getValue().getSizeInBytes();
 
                 // Get output
-                e2.getValue().setLatestStimulus(t.getStimulus());
+                // e2.getValue().setLatestStimulus(t.getStimulus());
+                e2.getValue().setLatestStimulus(stimulus);
                 OUT outT = e2.getValue().getAggregatedResult();
                 if (outT != null) {
                     result.add(outT);
