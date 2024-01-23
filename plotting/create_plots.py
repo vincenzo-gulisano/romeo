@@ -25,6 +25,8 @@ def plot_csv(folder,csv_file, output_folder, min_timestamp):
     plt.title(f'CSV Plot: {os.path.basename(csv_file)}')
     plt.grid(True)
 
+    print('For file',csv_file,'sum is',df['value'].sum(),'and avg is',df['value'].mean())
+
     output_path = os.path.join(output_folder, os.path.basename(csv_file).replace('.csv', '_plot.pdf'))
     plt.savefig(output_path, format='pdf')
     plt.close()

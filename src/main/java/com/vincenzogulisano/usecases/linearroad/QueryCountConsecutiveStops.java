@@ -257,10 +257,10 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         q.sink.createStatistics();
         q.threadCPUMonitor.createStatistics();
 
-        q.logger.debug("Activating thread CPU monitor");
-        q.threadCPUMonitor.startMonitoring();
         q.logger.debug("Activating query");
         q.q.activate();
+        q.logger.debug("Activating thread CPU monitor");
+        q.threadCPUMonitor.startMonitoring();
 
         q.logger.debug("Sleeping {} ms", q.experimentLength);
         Util.sleep(q.experimentLength);

@@ -48,7 +48,8 @@ public class ThreadCPUMonitor {
                 // System.out.println("Found thread " + thread.getName() + " " +
                 // thread.getId());
                 if (threadsToMonitor.contains(thread.getName())) {
-                    // System.out.println("... registered!");
+                    logger.debug("storing id and name for thread {},{}", thread.getId(), thread.getName());// System.out.println("...
+                                                                                                           // registered!");
                     threadNames.put(thread.getId(), thread.getName());
                 }
             }
