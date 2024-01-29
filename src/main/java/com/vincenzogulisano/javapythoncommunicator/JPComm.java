@@ -63,7 +63,7 @@ public class JPComm {
             Thread reportingThread = new Thread(() -> {
 
                 while (true) {
-                    logger.debug("Polling consumer");
+                    // logger.debug("Polling consumer");
                     ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
                     // System.out.println("Checking consumer records...");
                     records.forEach(record -> {
