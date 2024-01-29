@@ -13,6 +13,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.vincenzogulisano.javapythoncommunicator.StatReporter;
+import com.vincenzogulisano.util.AvgStat;
 
 import common.metrics.Metric;
 import common.metrics.TimeMetric;
@@ -34,7 +35,16 @@ public class SinkLogAndLatency extends BaseSink<TupleCarStops> {
     private volatile boolean resetAck;
     private Lock resetLock;
 
-    public SinkLogAndLatency(String id, SinkFunction<TupleCarStops> function, boolean writeOut, String outPath) {
+    // Event based latency related
+    private AvgStat eventBasedLatency;
+    private final String eventBasedLatencyFile;
+    private boolean firstTupleReceived;
+    private long eventTimeOffset;
+    private long firstEventTime;
+    private final long eventTimeLatencyOffset;
+
+    public SinkLogAndLatency(String id, SinkFunction<TupleCarStops> function, boolean writeOut, String outPath,
+            String eventBasedLatencyFile, long eventTimeLatencyOffset) {
         super(id, function);
         this.writeOut = writeOut;
         this.outPath = outPath;
@@ -42,6 +52,11 @@ public class SinkLogAndLatency extends BaseSink<TupleCarStops> {
         this.resetRequest = false;
         this.resetAck = false;
         this.resetLock = new ReentrantLock();
+
+        this.eventBasedLatencyFile = eventBasedLatencyFile;
+        this.firstTupleReceived = false;
+        this.eventTimeOffset = 0;
+        this.eventTimeLatencyOffset = eventTimeLatencyOffset;
 
     }
 
@@ -68,6 +83,7 @@ public class SinkLogAndLatency extends BaseSink<TupleCarStops> {
         logger.debug("Acking back to SPE");
         resetAck = true;
         resetRequest = false;
+        logger.warn("Notice this sink defines a local AvgStat that is not reset here!");
     }
 
     public boolean getResetAck() {
@@ -110,9 +126,19 @@ public class SinkLogAndLatency extends BaseSink<TupleCarStops> {
             resetLock.unlock();
         }
 
+        if (!firstTupleReceived) {
+            firstTupleReceived = true;
+            eventTimeOffset = System.currentTimeMillis() / 1000;
+            firstEventTime = t.getTimestamp();
+        }
+
         super.processTuple(t);
         outrateMetric.record(1);
         latencyMetric.record(System.currentTimeMillis() - t.getStimulus());
+        eventBasedLatency.add(eventTimeOffset + (t.getTimestamp() - firstEventTime),
+                eventTimeLatencyOffset + System.currentTimeMillis() - t.getStimulus());
+        // logger.debug("{},{}", eventTimeOffset + (t.getTimestamp() - firstEventTime),
+        // System.currentTimeMillis() - t.getStimulus());
         if (writeOut) {
             writer.println(t);
         }
@@ -131,6 +157,7 @@ public class SinkLogAndLatency extends BaseSink<TupleCarStops> {
         logger.debug("Sink - Creating statistics");
         outrateMetric = LiebreContext.userMetrics().newCountPerSecondMetric("outrate", "rate");
         latencyMetric = LiebreContext.userMetrics().newAverageTimeMetric("latency", "average");
+        eventBasedLatency = new AvgStat(eventBasedLatencyFile, true);
     }
 
 }

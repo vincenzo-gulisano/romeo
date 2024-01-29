@@ -24,14 +24,17 @@ public class AvgStat {
         }
 
         prevSec = System.currentTimeMillis() / 1000;
+        System.out.println("prevSec=" + prevSec);
 
     }
 
-    public long add(long v, long thisSec) {
+    public long add(long thisSec, long v) {
+        // System.out.println("thisSec=" + prevSec + " write? " + (prevSec < thisSec));
 
         long highestLat = -1;
 
         while (prevSec < thisSec) {
+            // System.out.println("prevSec=" + prevSec);
             out.println(prevSec + "," + (count != 0 ? sum / count : -1));
             highestLat = (count != 0 && sum / count > highestLat) ? sum / count : highestLat;
             sum = 0;
@@ -47,7 +50,7 @@ public class AvgStat {
     }
 
     // public long add(long v) {
-    //     return add(v, System.currentTimeMillis() / 1000);
+    // return add(v, System.currentTimeMillis() / 1000);
     // }
 
     public void flush() {
@@ -57,9 +60,9 @@ public class AvgStat {
     public void close() {
         // long thisSec = System.currentTimeMillis() / 1000;
         // while (prevSec <= thisSec) {
-        //     out.println(prevSec + "," + (count != 0 ? sum / count : -1));
-        //     count = 0;
-        //     prevSec++;
+        // out.println(prevSec + "," + (count != 0 ? sum / count : -1));
+        // count = 0;
+        // prevSec++;
         // }
         out.flush();
         out.close();

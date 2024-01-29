@@ -74,6 +74,8 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         options.addOption("log4j", "log4jConfigFile", true, "log4j config file");
         options.addOption("lfa", "LatencyMeasuredfromtheAggregate", true,
                 "Set this to true if the latency should be measured starting from the aggregate");
+        options.addOption("etlo", "EventTimeLatencyOffset", true,
+                "Extra latency to be added to each tuple to account for source/aggregate transmission");
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
@@ -91,6 +93,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         startingTimeMinimum = Long.valueOf(cmd.getOptionValue("stmin", String.valueOf(0)));
         startingTimeMaximum = Long.valueOf(cmd.getOptionValue("stmax", String.valueOf(0)));
         boolean lfa = Boolean.valueOf(cmd.getOptionValue("lfa", String.valueOf(false)));
+        long etlo = Long.valueOf(cmd.getOptionValue("etlo", String.valueOf(0)));
 
         episodesLogger = new EpisodesLogger(statsFolder + File.separator + "episodes.csv");
         firstEpisodeStarted = false;
@@ -103,7 +106,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
             public void accept(TupleCarStops arg0) {
             }
 
-        }, writeOut, outPath);
+        }, writeOut, outPath, statsFolder + File.separator + "eventTimeBasedLatency.csv", etlo);
 
         Source<TupleInput> s = q.addBaseSource("in", sourceFunction);
 
