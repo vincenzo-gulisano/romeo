@@ -176,7 +176,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         }
         logger.debug("EnvironmentStateCalculator is now stopped");
 
-        long startingTS = startingTimeMinimum+r.nextLong(startingTimeMaximum-startingTimeMinimum+1);
+        long startingTS = startingTimeMinimum+r.nextInt((int)(startingTimeMaximum-startingTimeMinimum)+1);
         logger.debug("SPE - Updating source starting time to " + startingTS);
         sourceFunction.setStartingTS(startingTS);
 
