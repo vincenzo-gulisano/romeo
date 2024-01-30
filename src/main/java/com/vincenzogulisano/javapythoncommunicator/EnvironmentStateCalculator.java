@@ -1,6 +1,7 @@
 package com.vincenzogulisano.javapythoncommunicator;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
@@ -135,6 +136,7 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
         // Check if there's something older than the monitoring period. If that is the
         // case, remove old stuff, report, and empty
         boolean dataSpansAtLeastTheMonitoringPeriod = false;
+        HashSet<String> keysToRemove = new HashSet<>();
         if (!measurements.isEmpty()) {
             for (String id_ : measurements.keySet()) {
                 while (!measurements.get(id_).isEmpty()
@@ -143,10 +145,14 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
                     measurements.get(id_).poll();
                 }
                 if (measurements.get(id_).isEmpty()) {
-                    measurements.remove(id_);
+                    keysToRemove.add(id_);
                 }
             }
         }
+        for (String keyToRemove : keysToRemove) {
+            measurements.remove(keyToRemove);
+        }
+        
         if (dataSpansAtLeastTheMonitoringPeriod) {
 
             logger.debug(
