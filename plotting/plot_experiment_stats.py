@@ -84,7 +84,7 @@ def plot_files_in_folder(folder,episodes,print_global_events,print_episode_event
             # Filter episodes_df for the current episode value
             episode_data = episodes_df[episodes_df['episode'] == episode_value]
 
-            csv_files_to_process = ['injectionrate.rate.csv','throughput.count.csv','actions.csv','CPU-agg.average.csv','latency.average.csv','ratio.percent.csv','rewards.csv','cumulativereward.csv']
+            csv_files_to_process = ['injectionrate.rate.csv','throughput.count.csv','actions.csv','CPU-agg.average.csv','latency.average.csv','ratio.percent.csv','observedlatency.csv','observedcompression.csv','rewards.csv','cumulativereward.csv']
 
             # Set the size of the figure
             fig, axs = plt.subplots(len(csv_files_to_process), 1, figsize=(10, 3 * len(csv_files_to_process)))

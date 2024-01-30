@@ -167,6 +167,8 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
 
         logger.debug("SPE - Got a RESET request");
 
+        Random r = new Random(System.currentTimeMillis());
+
         logger.debug("Stopping the EnvironmentStateCalculator");
         reporter.setResetRequest();
         while (reporter.getResetAcknowledged()) {
@@ -174,7 +176,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         }
         logger.debug("EnvironmentStateCalculator is now stopped");
 
-        long startingTS = ThreadLocalRandom.current().nextLong(startingTimeMinimum, startingTimeMaximum);
+        long startingTS = r.nextLong(startingTimeMinimum, startingTimeMaximum);
         logger.debug("SPE - Updating source starting time to " + startingTS);
         sourceFunction.setStartingTS(startingTS);
 
