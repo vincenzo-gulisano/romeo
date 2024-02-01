@@ -95,7 +95,7 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
         if (id.equals("outrate") && value == 0) {
             return false;
         }
-        if (id.equals("latency") && value == -1) {
+        if ((id.equals("latency") || id.equals("ratio")) && value == -1) {
             return false;
         }
         return true;

@@ -133,6 +133,7 @@ for compression in "${compressions[@]}"; do
     # grep -Eo '[0-9]+,[0-9]+,action [0-9]+' ${exp_folder}/episodes.csv | sed -E 's/,action /,/' | cut -d, -f1,3 > ${exp_folder}/actions.csv
     # grep -oE 'Received: -?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?/-?[0-9]+ at time [0-9]+(\.[0-9]+)?' ${exp_folder}/python_agent.log | awk -F'[/ ]' '{print $6,$3}' | awk '{gsub(/\..*/, "", $1); print $1","$2}' > ${exp_folder}/rewards.csv
     # awk -F',' 'BEGIN {OFS=","; sum=0} {sum += $2; print $1, sum}' ${exp_folder}/rewards.csv > ${exp_folder}/cumulativereward.csv
+    # awk -F',' 'NR > 1 { print $1 "," ($2 < 1000 ? 0 : 1) }' ${exp_folder}/latency.average.csv > ${exp_folder}/latency.violations.csv
     # grep -oE 'Received: -?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?/-?[0-9]+ at time [0-9]+(\.[0-9]+)?' ${exp_folder}/python_agent.log | awk -F'[/ ,]' '{print $8,$2}' | awk '{gsub(/\..*/, "", $1); print $1","$2}' > ${exp_folder}/observedlatency.csv
     # grep -oE 'Received: -?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?/-?[0-9]+ at time [0-9]+(\.[0-9]+)?' ${exp_folder}/python_agent.log | awk -F'[/ ,]' '{print $8,$4}' | awk '{gsub(/\..*/, "", $1); print $1","$2}' > ${exp_folder}/observedcompression.csv
 
@@ -140,7 +141,13 @@ for compression in "${compressions[@]}"; do
     # episodes_as_list=$(seq -s, 0 $((episodes-1)))
     # python plotting/plot_experiment_stats.py ${exp_folder}/ ${episodes_as_list} ${exp_folder}/episodesstats.csv
 
-    echo "Appending episodes stats to global csv"
-    python plotting/append_episodesstatscsv_to_global_one.py ${exp_folder}/episodesstats.csv ${base_folder}/compressionandepisodesstats.csv ${compression}
+    # echo "Appending episodes stats to global csv"
+    # python plotting/append_episodesstatscsv_to_global_one.py ${exp_folder}/episodesstats.csv ${base_folder}/compressionandepisodesstats.csv ${compression}
 
+done
+
+boxplot_stats=("rewards" "latency.average" "observedcompression" "latency.violations")
+
+for boxplot_stat in "${boxplot_stats[@]}"; do
+    python plotting/create_stat_episodes_boxplot_for_compressions.py ${base_folder}/compressionandepisodesstats.csv ${base_folder} ${boxplot_stat}
 done

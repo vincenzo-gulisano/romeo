@@ -87,7 +87,7 @@ def plot_files_in_folder(folder,episodes,episodesstatsfile,print_global_events,p
             # Filter episodes_df for the current episode value
             episode_data = episodes_df[episodes_df['episode'] == episode_value]
 
-            csv_files_to_process = ['injectionrate.rate.csv','throughput.count.csv','actions.csv','CPU-agg.average.csv','latency.average.csv','ratio.percent.csv','observedlatency.csv','observedcompression.csv','rewards.csv','cumulativereward.csv']
+            csv_files_to_process = ['injectionrate.rate.csv','throughput.count.csv','actions.csv','CPU-agg.average.csv','latency.average.csv','ratio.percent.csv','observedlatency.csv','observedcompression.csv','rewards.csv','cumulativereward.csv','latency.violations.csv']
 
             # Set the size of the figure
             fig, axs = plt.subplots(len(csv_files_to_process), 1, figsize=(10, 3 * len(csv_files_to_process)))
@@ -124,7 +124,7 @@ def plot_files_in_folder(folder,episodes,episodesstatsfile,print_global_events,p
 
 
                 # Append episode statistics to the list
-                stats.append({'episode': episode_value, 'stat': os.path.splitext(os.path.basename(file_path))[0], 'mean': np.mean(temp_df.iloc[:, 1])})
+                stats.append({'episode': episode_value, 'stat': os.path.splitext(os.path.basename(file_path))[0], 'mean': np.mean(temp_df.iloc[:, 1]),  'sum': np.sum(temp_df.iloc[:, 1])})
 
 
                 # Add vertical lines for each ts in episodes.csv

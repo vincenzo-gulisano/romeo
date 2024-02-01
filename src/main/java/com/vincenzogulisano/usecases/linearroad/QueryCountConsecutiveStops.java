@@ -48,6 +48,8 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
     private long startingTimeMinimum;
     private long startingTimeMaximum;
     private long ws;
+    private Random r;
+    private boolean randomizeSeed;
 
     public final static long sleepBeforeRealRate = 5000;
 
@@ -70,6 +72,8 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         options.addOption("stmin", "startingTimeMinimum", true, "minimum starting time for RL");
         options.addOption("stmax", "startingTimeMaximum", true, "maximum starting time for RL");
         options.addOption("log4j", "log4jConfigFile", true, "log4j config file");
+        options.addOption("rer", "randomizeEpisodeRate", true,
+                "If true, each episode resets the random seed to the current time");
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
@@ -86,6 +90,9 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         long nanoSleep = Long.valueOf(cmd.getOptionValue("n", String.valueOf(0)));
         startingTimeMinimum = Long.valueOf(cmd.getOptionValue("stmin", String.valueOf(0)));
         startingTimeMaximum = Long.valueOf(cmd.getOptionValue("stmax", String.valueOf(0)));
+        randomizeSeed = Boolean.valueOf(cmd.getOptionValue("rer", "False"));
+
+        r = new Random(0);
 
         episodesLogger = new EpisodesLogger(statsFolder + File.separator + "episodes.csv");
         firstEpisodeStarted = false;
@@ -167,7 +174,9 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
 
         logger.debug("SPE - Got a RESET request");
 
-        Random r = new Random(System.currentTimeMillis());
+        if (randomizeSeed) {
+            r = new Random(System.currentTimeMillis());
+        }
 
         logger.debug("Stopping the EnvironmentStateCalculator");
         reporter.setResetRequest();
@@ -176,7 +185,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         }
         logger.debug("EnvironmentStateCalculator is now stopped");
 
-        long startingTS = startingTimeMinimum+r.nextInt((int)(startingTimeMaximum-startingTimeMinimum)+1);
+        long startingTS = startingTimeMinimum + r.nextInt((int) (startingTimeMaximum - startingTimeMinimum) + 1);
         logger.debug("SPE - Updating source starting time to " + startingTS);
         sourceFunction.setStartingTS(startingTS);
 

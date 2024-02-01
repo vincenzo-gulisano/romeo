@@ -87,7 +87,7 @@ echo "The PID of the python agent is ${python_pid}"
 echo "Starting SPE"
 
 echo "Starting experiment for ${id} (compression)"
-args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -n ${rate} -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max}"
+args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -n ${rate} -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max} -rer True"
 
 mvn clean compile package exec:java -Dexec.mainClass="com.vincenzogulisano.javapythoncommunicator.JPComm" -Dexec.args="${args}" > ${exp_folder}/spe.log 2>&1 &
 
