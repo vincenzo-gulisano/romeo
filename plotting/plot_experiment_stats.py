@@ -111,13 +111,13 @@ def plot_files_in_folder(folder,episodes,print_global_events,print_episode_event
                     
                     # print('episode',episode_value,'start',start_time,'end',stop_time)
                     temp_df = df[(df.iloc[:, 0] >= start_time) & (df.iloc[:, 0] <= stop_time)]
-                    moving_avg = temp_df.iloc[:, 1].rolling(window=10).mean()
+                    # moving_avg = temp_df.iloc[:, 1].rolling(window=10).mean()
                     # print('data',temp_df)
                     # Plot only the data between 'start' and 'stop'
                     axs[i].plot(temp_df.iloc[:, 0],
                             temp_df.iloc[:, 1],
                             label=f"{y_label} - Episode {episode_value}", linewidth=0.5)
-                    axs[i].plot(temp_df.iloc[:, 0], moving_avg, label=f"{y_label} - Episode {episode_value} (Moving Avg)", linewidth=1)
+                    # axs[i].plot(temp_df.iloc[:, 0], moving_avg, label=f"{y_label} - Episode {episode_value} (Moving Avg)", linewidth=1)
 
                 # Add vertical lines for each ts in episodes.csv
                 if print_episode_events:
