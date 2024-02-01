@@ -2,9 +2,9 @@ import os
 import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
-def plot_files_in_folder(folder,episodes,print_global_events,print_episode_events):
-
+def plot_files_in_folder(folder,episodes,episodesstatsfile,print_global_events,print_episode_events):
 
     print('Gathering valid CSV files')
     # Get all CSV files with 2 columns and only numerical values
@@ -75,6 +75,9 @@ def plot_files_in_folder(folder,episodes,print_global_events,print_episode_event
 
         if (episode_value in episodes):
 
+            # Initialize an empty list to store statistics
+            stats = []
+
             print('Creating detailed graphs for episode',episode_value)
             
             # Create a subfolder for each unique episode value
@@ -105,19 +108,24 @@ def plot_files_in_folder(folder,episodes,print_global_events,print_episode_event
                 axs[i].set_ylabel(y_label)
                 
                 # Filter data based on the 'start' and 'stop' columns in episode_data
-                for _, episode_entry in episode_data.iterrows():
-                    start_time = episode_data[episode_data['event'] == 'start'].iloc[:, 0].values[0]
-                    stop_time = episode_data[episode_data['event'] == 'end'].iloc[:, 0].values[0]
-                    
-                    # print('episode',episode_value,'start',start_time,'end',stop_time)
-                    temp_df = df[(df.iloc[:, 0] >= start_time) & (df.iloc[:, 0] <= stop_time)]
-                    # moving_avg = temp_df.iloc[:, 1].rolling(window=10).mean()
-                    # print('data',temp_df)
-                    # Plot only the data between 'start' and 'stop'
-                    axs[i].plot(temp_df.iloc[:, 0],
-                            temp_df.iloc[:, 1],
-                            label=f"{y_label} - Episode {episode_value}", linewidth=0.5)
-                    # axs[i].plot(temp_df.iloc[:, 0], moving_avg, label=f"{y_label} - Episode {episode_value} (Moving Avg)", linewidth=1)
+                # for _, episode_entry in episode_data.iterrows(): ### COMMENTED THIS BECAUSE I THINK IT IS NOT NEEDED
+                start_time = episode_data[episode_data['event'] == 'start'].iloc[:, 0].values[0]
+                stop_time = episode_data[episode_data['event'] == 'end'].iloc[:, 0].values[0]
+                
+                # print('episode',episode_value,'start',start_time,'end',stop_time)
+                temp_df = df[(df.iloc[:, 0] >= start_time) & (df.iloc[:, 0] <= stop_time)]
+                # moving_avg = temp_df.iloc[:, 1].rolling(window=10).mean()
+                # print('data',temp_df)
+                # Plot only the data between 'start' and 'stop'
+                axs[i].plot(temp_df.iloc[:, 0],
+                        temp_df.iloc[:, 1],
+                        label=f"{y_label} - Episode {episode_value}", linewidth=0.5)
+                # axs[i].plot(temp_df.iloc[:, 0], moving_avg, label=f"{y_label} - Episode {episode_value} (Moving Avg)", linewidth=1)
+
+
+                # Append episode statistics to the list
+                stats.append({'episode': episode_value, 'stat': os.path.splitext(os.path.basename(file_path))[0], 'mean': np.mean(temp_df.iloc[:, 1])})
+
 
                 # Add vertical lines for each ts in episodes.csv
                 if print_episode_events:
@@ -131,6 +139,13 @@ def plot_files_in_folder(folder,episodes,print_global_events,print_episode_event
             # plt.savefig(os.path.join(episode_folder, f"episode_{episode_value}.pdf"))
             plt.savefig(os.path.join(episode_folder, f"episode_{episode_value}.png"))
             plt.close()
+
+            # Convert the list of dictionaries to a DataFrame
+            stats_df = pd.DataFrame(stats)
+
+            # Append the DataFrame to the output CSV file
+            stats_df.to_csv(episodesstatsfile, mode='a', index=False, header=not os.path.exists(episodesstatsfile))
+            
             
     print("Plots saved successfully.")
 
@@ -138,6 +153,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Plot valid CSV files in a folder.')
     parser.add_argument('folder', type=str, help='The folder containing CSV files.')
     parser.add_argument('episodes', type=str, help='Episodes for which detailed stats should be created')
+    parser.add_argument('episodesstats', type=str, help='Output CSV file for episodes stats')
     parser.add_argument('--print_global_events', action='store_true', help='Print episodes and events')
     parser.add_argument('--print_episode_events', action='store_true', help='Print episodes and events')
 
@@ -149,4 +165,4 @@ if __name__ == "__main__":
     # Convert each string value to an integer
     episodes = [int(value) for value in episodes_string]
 
-    plot_files_in_folder(args.folder,episodes,args.print_global_events,args.print_episode_events)
+    plot_files_in_folder(args.folder,episodes,args.episodesstats,args.print_global_events,args.print_episode_events)

@@ -182,15 +182,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     
-    env = SPEEnvironment(args.steps)
+    env = SPEEnvironment(int(args.steps))
 
-    for i in range(args.episodes):
+    for i in range(int(args.episodes)):
         print('starting episode',i+1)
         obs = env.reset()
 
         while True:
             
-            action = args.compression
+            action = int(args.compression)
             obs, reward, done, info = env.step(action)
             
             if done == True:
