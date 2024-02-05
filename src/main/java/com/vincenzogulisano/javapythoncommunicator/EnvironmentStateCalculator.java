@@ -40,21 +40,21 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
     }
 
     private final long monitoringPeriod;
-    private final Producer<String, String> producer;
+    protected final Producer<String, String> producer;
 
     protected Map<String, Queue<Pair<Long, Double>>> measurements;
 
-    private volatile boolean resetRequest;
-    private volatile boolean resetAcknowledged;
-    private volatile boolean resetCompleted;
+    protected volatile boolean resetRequest;
+    protected volatile boolean resetAcknowledged;
+    protected volatile boolean resetCompleted;
 
     public Logger logger = LogManager.getLogger();
     public EpisodesLogger episodesLogger;
 
-    private AtomicInteger sendStateTokens;
-    private final String separator;
+    protected AtomicInteger sendStateTokens;
+    protected final String separator;
 
-    private ReentrantLock lock;
+    protected ReentrantLock lock;
 
     public EnvironmentStateCalculator(long monitoringPeriod, Producer<String, String> producer, String separator) {
         this.monitoringPeriod = monitoringPeriod;

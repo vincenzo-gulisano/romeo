@@ -9,6 +9,10 @@ import org.apache.logging.log4j.Logger;
 
 import com.vincenzogulisano.javapythoncommunicator.EnvironmentStateCalculator;
 
+/**
+ * This is the one that has been used for Exp1 and Exp2
+ */
+
 public class LatencyAndRatioDeltaESC extends EnvironmentStateCalculator {
 
     public Logger logger = LogManager.getLogger();
