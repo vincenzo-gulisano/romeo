@@ -19,8 +19,8 @@ class SPEEnvironment(Env):
         super(SPEEnvironment, self).__init__()
 
         # Define a 2-D observation space
-        self.observation_space = spaces.Box(low = np.array([0,0,0]), 
-                                            high = np.array([np.inf,1,1]),
+        self.observation_space = spaces.Box(low = np.array([0,0,0,0]), 
+                                            high = np.array([np.inf,np.inf,100,100]),
                                             dtype = np.float32)
         
         # Define an action space ranging from 0 to 11

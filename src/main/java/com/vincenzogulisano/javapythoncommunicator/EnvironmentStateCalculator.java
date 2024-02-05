@@ -84,6 +84,7 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
 
     public void setResetCompleted() {
         this.resetCompleted = true;
+        resetVariables();
     }
 
     public void addSendStateToken() {
@@ -99,6 +100,11 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
             return false;
         }
         return true;
+    }
+
+
+    protected void resetVariables() {
+        measurements.clear();
     }
 
     @Override

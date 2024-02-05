@@ -226,12 +226,12 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         }
         logger.debug("SPE - the source has sent all the state filling tuples too");
 
-        reporter.setResetCompleted();
         sourceFunction.giveGreenlightToStartSendingRealRateTuples();
 
         firstEpisodeStarted = true;
         Util.sleep(sleepBeforeRealRate / 2);
         episodesLogger.writeStartEvent();
+        reporter.setResetCompleted();
 
     }
 
