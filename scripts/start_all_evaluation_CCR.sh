@@ -59,73 +59,73 @@ for compression in "${compressions[@]}"; do
     exp_folder=${base_folder}/${id}
     mkdir -p "${exp_folder}"
 
-    # echo "Cleaning stats folder"
-    # rm -rf ${exp_folder}/*.csv
-    # rm -rf ${exp_folder}/*.log
-    # rm -rf ${exp_folder}/*.pdf
+    echo "Cleaning stats folder"
+    rm -rf ${exp_folder}/*.csv
+    rm -rf ${exp_folder}/*.log
+    rm -rf ${exp_folder}/*.pdf
 
-    # echo "Killing any past JVM instance that should have been killed before"
-    # # Get PIDs using pgrep
-    # PIDS=$(pgrep -f "com.vincenzogulisano.javapythoncommunicator.JPComm")
+    echo "Killing any past JVM instance that should have been killed before"
+    # Get PIDs using pgrep
+    PIDS=$(pgrep -f "com.vincenzogulisano.javapythoncommunicator.JPComm")
 
-    # # Check if PIDS is not empty
-    # if [ -n "$PIDS" ]; then
-    #     # Iterate over each PID and send kill command
-    #     for PID in $PIDS; do
-    #         kill "$PID"
-    #         echo "JVM with PID $PID killed."
-    #     done
-    # fi
+    # Check if PIDS is not empty
+    if [ -n "$PIDS" ]; then
+        # Iterate over each PID and send kill command
+        for PID in $PIDS; do
+            kill "$PID"
+            echo "JVM with PID $PID killed."
+        done
+    fi
 
-    # echo "killing previous python processes and stopping Kafka"
-    # pkill -9 python
-    # ./scripts/stop_kafka.sh
+    echo "killing previous python processes and stopping Kafka"
+    pkill -9 python
+    ./scripts/stop_kafka.sh
 
-    # sleep 3
+    sleep 3
 
-    # echo "Starting Kafka"
-    # ./scripts/start_kafka.sh ${exp_folder}
+    echo "Starting Kafka"
+    ./scripts/start_kafka.sh ${exp_folder}
 
-    # echo "Starting Python agent"
-    # python_pid=$(./scripts/start_CCR_agent.sh ${episodes} ${steps} ${compression} ${exp_folder})
-    # echo "The PID of the python agent is ${python_pid}"
+    echo "Starting Python agent"
+    python_pid=$(./scripts/start_CCR_agent.sh ${episodes} ${steps} ${compression} ${exp_folder})
+    echo "The PID of the python agent is ${python_pid}"
 
-    # echo "Starting SPE"
+    echo "Starting SPE"
 
-    # echo "Starting experiment for ${id} (compression)"
-    # args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -n ${rate} -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max}"
+    echo "Starting experiment for ${id} (compression)"
+    args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -n ${rate} -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max}"
 
-    # mvn clean compile package exec:java -Dexec.mainClass="com.vincenzogulisano.javapythoncommunicator.JPComm" -Dexec.args="${args}" > ${exp_folder}/spe.log 2>&1 &
+    mvn clean compile package exec:java -Dexec.mainClass="com.vincenzogulisano.javapythoncommunicator.JPComm" -Dexec.args="${args}" > ${exp_folder}/spe.log 2>&1 &
 
-    # sleep 5
+    sleep 5
 
-    # # Use pgrep to find the PID of the Java process
-    # JVM_PID=$(pgrep -f "com.vincenzogulisano.javapythoncommunicator.JPComm")
+    # Use pgrep to find the PID of the Java process
+    JVM_PID=$(pgrep -f "com.vincenzogulisano.javapythoncommunicator.JPComm")
 
-    # # Print the PID
-    # echo "JVM PID: $JVM_PID"
+    # Print the PID
+    echo "JVM PID: $JVM_PID"
 
-    # # args=($JVM_PID ${exp_folder}/)
-    # # python python/cpu_monitor.py $JVM_PID ${exp_folder}/ &
-    # # cpu_monitor_pid=$!
+    # args=($JVM_PID ${exp_folder}/)
+    # python python/cpu_monitor.py $JVM_PID ${exp_folder}/ &
+    # cpu_monitor_pid=$!
 
 
-    # # Example: Sleep until 60 seconds from now or until process with PID 123 is alive
-    # duration_seconds=$((duration / 1000))
-    # target_time=$(( $(get_current_time) + duration_seconds ))
+    # Example: Sleep until 60 seconds from now or until process with PID 123 is alive
+    duration_seconds=$((duration / 1000))
+    target_time=$(( $(get_current_time) + duration_seconds ))
 
-    # echo "Sleeping until $target_time or until process with PID $JVM_PID is not alive."
-    # sleep_until_time_or_pid "$target_time" "$JVM_PID"
+    echo "Sleeping until $target_time or until process with PID $JVM_PID is not alive."
+    sleep_until_time_or_pid "$target_time" "$JVM_PID"
 
-    # kill -9 ${JVM_PID}
-    # kill -9 ${python_pid}
-    # kill -9 ${cpu_monitor_pid}
+    kill -9 ${JVM_PID}
+    kill -9 ${python_pid}
+    kill -9 ${cpu_monitor_pid}
 
-    # ./scripts/stop_kafka.sh
-    # ./scripts/stop_kafka.sh
+    ./scripts/stop_kafka.sh
+    ./scripts/stop_kafka.sh
 
-    # pkill java
-    # pkill python
+    pkill java
+    pkill python
         
     echo "Creating extra stats"
     grep -Eo '[0-9]+,[0-9]+,action [0-9]+' ${exp_folder}/episodes.csv | sed -E 's/,action /,/' | cut -d, -f1,3 > ${exp_folder}/actions.csv
@@ -141,7 +141,7 @@ for compression in "${compressions[@]}"; do
     python plotting/plot_experiment_stats.py ${exp_folder}/ ${episodes_as_list} ${exp_folder}/episodesstats.csv
 
     echo "Appending episodes stats to global csv"
-    python plotting/append_episodesstatscsv_to_global_one.py ${exp_folder}/episodesstats.csv ${base_folder}/compressionandepisodesstats.csv ${compression}
+    python plotting/append_episodesstatscsv_to_global_one.py ${exp_folder}/episodesstats.csv ${base_folder}/compressionandepisodesstats.csv CCR-${compression}
 
 done
 

@@ -10,17 +10,21 @@ def create_boxplot(input_csv, output_folder, stat, measure):
     filtered_df = df[df['stat'] == stat]
 
     # Get unique 'CCR-Compression' values and sort them in ascending order
-    compression_values = sorted(filtered_df['CCR-Compression'].unique())
+    IDs = filtered_df['Agent-ID'].unique()
+    positions = list(range(len(IDs)))  # Define positions for x ticks
+
+    # print('IDs:',IDs)
 
     # Create boxplot for each unique CCR-Compression value
     plt.figure(figsize=(10, 6))
-    for compression in compression_values:
-        group_data = filtered_df[filtered_df['CCR-Compression'] == compression]
-        plt.boxplot(group_data[measure], positions=[compression], widths=0.5, showmeans=True)
+    for i, compression in enumerate(IDs):
+        group_data = filtered_df[filtered_df['Agent-ID'] == compression]
+        plt.boxplot(group_data[measure], positions=[i], widths=0.5, showmeans=True)
 
-    plt.xlabel('CCR-Compression')
+    plt.xlabel('Agent-ID')
     plt.ylabel(f'{measure} Values for {stat}')
-    plt.title(f'Boxplot of {stat} for Different CCR-Compression (Ascending Order)')
+    plt.title(f'Boxplot of {stat} for Different Agent-IDs')
+    plt.xticks(positions, IDs, rotation=45)  # Set x ticks with IDs
     plt.xticks(rotation=45)
     plt.grid(axis='y')
     plt.tight_layout()

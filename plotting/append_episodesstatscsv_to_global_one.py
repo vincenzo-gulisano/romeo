@@ -7,7 +7,7 @@ def append_column(input_csv, output_csv, column_value):
     df = pd.read_csv(input_csv)
 
     # Add a new column with the specified value
-    df['CCR-Compression'] = column_value
+    df['Agent-ID'] = column_value
 
     # Write the updated DataFrame to the output CSV file, appending to it
     df.to_csv(output_csv, mode='a', index=False, header=not os.path.exists(output_csv))
