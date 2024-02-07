@@ -42,3 +42,4 @@ if __name__ == "__main__":
     # Call the function to create boxplot
     create_boxplot(args.input_csv, args.output_folder, args.statistic,'mean')
     create_boxplot(args.input_csv, args.output_folder, args.statistic,'sum')
+    create_boxplot(args.input_csv, args.output_folder, args.statistic,'max')
