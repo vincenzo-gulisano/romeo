@@ -16,6 +16,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from collections import namedtuple
+import math
 
 
 GAMMA = 0.99
@@ -24,7 +25,7 @@ EPSION = 0.1
 buffer_size = 10000  # replay buffer size
 batch_size = 128
 num_episode = 50
-target_update = 2  # copy frequency from net to target_net
+target_update = 1  # copy frequency from net to target_net
 steps_per_episode = 100
 
 
@@ -131,8 +132,9 @@ class SPEEnvironment(Env):
         super(SPEEnvironment, self).__init__()
 
         # Define a 2-D observation space
-        self.observation_space = spaces.Box(low = np.array([0,0,0]), 
-                                            high = np.array([np.inf,1,1]),
+        # states: injection rate, latency, compression, CPU consumption
+        self.observation_space = spaces.Box(low = np.array([0,0,0,0]), 
+                                            high = np.array([np.inf, np.inf, 100, 100]),
                                             dtype = np.float32)
         
         # Define an action space ranging from 0 to 11
@@ -254,46 +256,7 @@ class KafkaActionsProducer:
         self.producer.produce(self.actions_topic, key=str(time.time()), value=action)
         self.producer.flush()
 
-    # def produce_action(self):
-    #     actionsBeforeReset=self.actionsPerEpisode
-    #     while True:
-    #         # Produce a random action to the 'actions' topic
-    #         time.sleep(1)
-    #         with self.statsConsumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by the other thread
-    #             if actionsBeforeReset==0:
-    #                 actionsBeforeReset=self.actionsPerEpisode
-    #                 print('Sending reset command',flush=True)
-    #                 self.action_D = self.max_D
-    #                 self.prev_stat_time = time.time()
-    #                 self.producer.produce(self.actions_topic, key=str(time.time()), value="reset")
-    #                 self.producer.flush()
-    #             elif self.statsConsumer.tracker.state is not None and (self.prev_stat_time is None or self.statsConsumer.tracker.last_time > self.prev_stat_time):
-    #                 print('Got a new state/reward pair:',self.statsConsumer.tracker.last_time,self.statsConsumer.tracker.state,self.statsConsumer.tracker.reward,flush=True)
-    #                 if self.statsConsumer.tracker.reward < 0 and self.action_D < self.max_D:
-    #                     self.action_D = min (self.action_D+50,self.max_D)
-    #                     self.producer.produce(self.actions_topic, key=str(time.time()), value="changeD,"+str(self.action_D))
-    #                     self.producer.flush()
-    #                     print('D updated to ',self.action_D)
-    #                     actionsBeforeReset-=1
-    #                 if self.statsConsumer.tracker.reward == 10 and self.action_D > 0:
-    #                     self.action_D = max (self.action_D-40,0)
-    #                     self.producer.produce(self.actions_topic, key=str(time.time()), value="changeD,"+str(self.action_D))
-    #                     self.producer.flush()
-    #                     print('D updated to ',self.action_D)
-    #                     actionsBeforeReset-=1
-    #                 if self.statsConsumer.tracker.reward == 0 and self.action_D > 0:
-    #                     self.action_D = max (self.action_D-20,0)
-    #                     self.producer.produce(self.actions_topic, key=str(time.time()), value="changeD,"+str(self.action_D))
-    #                     self.producer.flush()
-    #                     print('D updated to ',self.action_D)
-    #                     actionsBeforeReset-=1
-    #                     # self.measurements.pop(0)
-    #                 self.prev_stat_time = self.statsConsumer.tracker.last_time
 
-    # def start_producer(self):
-    #     producer_thread = threading.Thread(target=self.produce_action)
-    #     producer_thread.daemon = True
-    #     producer_thread.start()
 
 class KafkaStatsConsumer:
     def __init__(self, bootstrap_servers='michelangelo.cse.chalmers.se:9092', stats_topic='stats', group_id='0'):
@@ -402,6 +365,14 @@ if __name__ == "__main__":
 
     if i_episode % target_update == 0:
             Agent.target_net.load_state_dict(Agent.net.state_dict())
+            
+
+    if (i_episode + 1) % 10 == 0:  # saving paras per 10 episodes
+        torch.save(Agent.net.state_dict(), 'data/output/5/600/110000000/0/25000/601/dqn_model.pth')
+        # this might the correct one to save model paras every 10 episodes
+        # filename = 'data/output/5/600/110000000/0/25000/601/dqn_model_episode_{}.pth'.format(i_episode + 1)
+        # torch.save(Agent.net.state_dict(), filename)
+
 
     print('closing')
     env.close()
