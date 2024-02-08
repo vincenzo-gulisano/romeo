@@ -124,7 +124,7 @@ def plot_files_in_folder(folder,episodes,episodesstatsfile,print_global_events,p
 
 
                 # Append episode statistics to the list
-                stats.append({'episode': episode_value, 'stat': os.path.splitext(os.path.basename(file_path))[0], 'mean': np.mean(temp_df.iloc[:, 1]),  'sum': np.sum(temp_df.iloc[:, 1])})
+                stats.append({'episode': episode_value, 'stat': os.path.splitext(os.path.basename(file_path))[0], 'mean': np.mean(temp_df.iloc[:, 1]),  'sum': np.sum(temp_df.iloc[:, 1]),  'max': np.max(temp_df.iloc[:, 1])})
 
 
                 # Add vertical lines for each ts in episodes.csv

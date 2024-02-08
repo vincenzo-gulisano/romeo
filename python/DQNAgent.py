@@ -1,5 +1,6 @@
 import threading
 import time
+import argparse
 from confluent_kafka import Producer, Consumer, KafkaError
 import numpy as np 
 import cv2 
@@ -24,9 +25,9 @@ lr = 0.1
 EPSION = 0.1
 buffer_size = 10000  # replay buffer size
 batch_size = 128
-num_episode = 50
+# num_episode = 50
 target_update = 1  # copy frequency from net to target_net
-steps_per_episode = 100
+# steps_per_episode = 100
 
 
 # Define neural network
@@ -298,6 +299,20 @@ class KafkaStatsConsumer:
 
 
 if __name__ == "__main__":
+    
+    parser = argparse.ArgumentParser(description='Start an Agent that always chooses the same compression level')
+    parser.add_argument('episodes', help='Number of episodes')
+    parser.add_argument('steps', help='Number of steps')
+    parser.add_argument('-agentstate', help='State of the pre-trained agent', default=None)
+    parser.add_argument('-learningactive', help='Wheter the agent should learn', default=True)
+    args = parser.parse_args()
+    
+    print('Creating agent')
+    print('episodes:',args.episodes)
+    print('steps:',args.steps)
+    print('agentstate:',args.agentstate)
+    print('learningactive:',args.learningactive)
+    
     # kafka_stats_consumer = KafkaStatsConsumer()
     # kafka_actions_producer = KafkaActionsProducer(kafka_stats_consumer)
 
@@ -315,11 +330,15 @@ if __name__ == "__main__":
     #     pass
     #episodes = 20
     #steps_per_episode = 20
-    env = SPEEnvironment(steps_per_episode)
+    env = SPEEnvironment(int(args.steps))
     Agent = DQN(env.observation_space.shape[0], 256, env.action_space.n)
+   
+    if args.agentstate is not None:
+        Agent.net.load_state_dict(torch.load(args.agentstate))
+   
     average_reward = 0  # average reward of all episodes
 
-    for i_episode in range(num_episode):
+    for i_episode in range(int(args.episodes)):
         print('starting episode',i_episode + 1)
         s0 = env.reset()
         tot_reward = 0  # total reward per episode
@@ -349,7 +368,8 @@ if __name__ == "__main__":
                 t = 0
             Agent.put(s0, a0, r, t, s1)  # put into replay buffer
             s0 = s1
-            Agent.update_parameters()
+            if args.learningactive:
+                Agent.update_parameters()
             
             # Render the game
             # env.render()
