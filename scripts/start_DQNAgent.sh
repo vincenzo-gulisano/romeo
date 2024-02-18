@@ -9,4 +9,4 @@ python ./python/DQNAgent.py ${episodes} ${steps} -learningactive False -agentsta
 pid=$!
 
 # Print the PID
-echo $pid
+echo $pid 

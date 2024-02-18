@@ -1,6 +1,10 @@
-log_folder=$1
+#log_folder=$1
+episodes=$1
+steps=$2
+log_folder=$3
 
-python ./python/DummyRLAgent.py > ${log_folder}/python_agent.log &
+
+python ./python/DQNAgent.py ${episodes} ${steps} > ${log_folder}/python_agent.log &
 
 # Capture the process ID (PID) of the last background command
 pid=$!
