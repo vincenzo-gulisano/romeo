@@ -18,6 +18,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from collections import namedtuple
 import math
+import os
 
 
 GAMMA = 0.99
@@ -25,9 +26,9 @@ lr = 0.1
 EPSION = 0.1
 buffer_size = 10000  # replay buffer size
 batch_size = 128
-# num_episode = 50
+#episodes = 50
 target_update = 1  # copy frequency from net to target_net
-# steps_per_episode = 100
+#steps = 100
 
 
 # Define neural network
@@ -159,7 +160,14 @@ class SPEEnvironment(Env):
         # Start the consumer thread
         self.consumer.start_consumer()
 
+        # track latency
+        self.latency_threshold = 1000
+        self.latency_counter = 0
+
     def reset(self):
+
+        #reset latency counter
+        self.latency_counter = 0
 
         # Send the reset
         self.producer.produce("reset")
@@ -207,11 +215,27 @@ class SPEEnvironment(Env):
                     print('Got a new state/reward pair:',self.consumer.tracker.last_time,self.consumer.tracker.state,self.consumer.tracker.reward,flush=True)
                     state_measurement_available = True
         
+        # update latency counter
+        if self.consumer.tracker.state[1] > self.latency_threshold:
+            self.latency_counter += 1
+        else:
+            self.latency_counter = 0
+        
+        # check if latency is greater than 1 second in three consecutive steps
+        if self.latency_counter >= 3:
+            done = True
+        else:
+            done = False
+        
+        # check if there has remainig steps
+        if self.remaingSteps <= 0:
+            done = True
+        
         # Increment the episodic return
         self.ep_return += 1
 
         # TODO There's something missing, the SPE itself could be done if it runs out of data. This is not being checked as of now...
-        return self.consumer.tracker.state.copy(), self.consumer.tracker.reward, self.remaingSteps==0, []
+        return self.consumer.tracker.state.copy(), self.consumer.tracker.reward, done, []
     
     def close(self):
         super(SPEEnvironment, self).close()
@@ -313,43 +337,52 @@ if __name__ == "__main__":
     print('agentstate:',args.agentstate)
     print('learningactive:',args.learningactive)
     
-    # kafka_stats_consumer = KafkaStatsConsumer()
-    # kafka_actions_producer = KafkaActionsProducer(kafka_stats_consumer)
 
-    # # Start the producer thread
-    # kafka_actions_producer.start_producer()
-
-    # # Start the consumer thread
-    # kafka_stats_consumer.start_consumer()
-
-    # # Keep the main thread alive
-    # try:
-    #     while True:
-    #         time.sleep(1)
-    # except KeyboardInterrupt:
-    #     pass
-    #episodes = 20
-    #steps_per_episode = 20
     env = SPEEnvironment(int(args.steps))
     Agent = DQN(env.observation_space.shape[0], 256, env.action_space.n)
+
+    # load saved net's paras after 50 episodes
+    model_file = 'image/Exp3/Exp3_paras/dqn_model_episode_260.pth'
+    if os.path.exists(model_file):
+        Agent.net.load_state_dict(torch.load(model_file))
+        print("loaded net's paras...")
    
     if args.agentstate is not None:
         Agent.net.load_state_dict(torch.load(args.agentstate))
    
     average_reward = 0  # average reward of all episodes
 
-    for i_episode in range(int(args.episodes)):
+    # create folder to store paras
+    folder_name = 'data/output/5/600/5000000000/0/25000/601/Exp3_paras (261-300)'
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name) 
+
+    # create folder to store q value plots
+    folder_name = 'data/output/5/600/5000000000/0/25000/601/Exp3_q_value_plots (261-300)'
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
+
+    for i_episode in range(260,260 + int(args.episodes)):
         print('starting episode',i_episode + 1)
         s0 = env.reset()
         tot_reward = 0  # total reward per episode
         tot_time = 0  # actual processing time per episode
+        step_count = 0 # count the number of steps in every episode
+
+        plt.figure()
+        steps = [] # store the steps for plotting
+       # steps = [int (step) for step in steps] # guarantee the step is integer
+        q_values_history = [[] for _ in range(env.action_space.n)]
 
         while True:
-            # Take a random action
-            # action = env.action_space.sample()
-            # obs, reward, done, info = env.step(action)
             a0 = Agent.select_action(s0)
             #s1, r, done, _ = env.step(a0)
+            q_values = Agent.net(torch.Tensor(s0))
+
+            steps.append(step_count)
+
+            for i, q_value in enumerate(q_values.detach().numpy()):
+                q_values_history[i].append(q_value)
 
             # only keep the return value of s1, r, done, ignore the fourth return value
             step_result = env.step(a0)
@@ -361,18 +394,19 @@ if __name__ == "__main__":
             # r1 = (env.x_threshold - abs(x)) / env.x_threshold - 0.8
             # r2 = (env.theta_threshold_radians - abs(theta)) / env.theta_threshold_radians - 0.5
             # r = r1 + r2
-            tot_reward += r  # cal total reward of current episode
+            tot_reward += r # cal total reward of current episode
+            step_count += 1 # increment the step 
+
             if done:
                 t = 1
             else:
                 t = 0
+
             Agent.put(s0, a0, r, t, s1)  # put into replay buffer
             s0 = s1
+
             if args.learningactive:
                 Agent.update_parameters()
-            
-            # Render the game
-            # env.render()
             
             if done == True:
                 average_reward = average_reward + 1 / (i_episode + 1) * (
@@ -383,16 +417,28 @@ if __name__ == "__main__":
                       average_reward)
                 break
 
-    if i_episode % target_update == 0:
+        if i_episode % target_update == 0:
             Agent.target_net.load_state_dict(Agent.net.state_dict())
             
 
-    if (i_episode + 1) % 10 == 0:  # saving paras per 10 episodes
-        torch.save(Agent.net.state_dict(), 'data/output/5/600/110000000/0/25000/601/dqn_model.pth')
-        # this might the correct one to save model paras every 10 episodes
-        # filename = 'data/output/5/600/110000000/0/25000/601/dqn_model_episode_{}.pth'.format(i_episode + 1)
-        # torch.save(Agent.net.state_dict(), filename)
+        # saving paras per 10 episodes
+        if (i_episode + 1) % 10 == 0: 
+            # torch.save(Agent.net.state_dict(), 'data/output/5/600/110000000/0/25000/601/dqn_model.pth')
+            # this might the correct one to save model paras every 10 episodes
+            filename = 'data/output/5/600/5000000000/0/25000/601/Exp3_paras (261-300)/dqn_model_episode_{}.pth'.format(i_episode + 1)
+            torch.save(Agent.net.state_dict(), filename)
 
+        for i, q_values in enumerate(q_values_history):
+                plt.plot(steps, q_values, label = f'Action {i}')
+
+        # saving q value plots
+        plt.xlabel('Stpes')
+        plt.ylabel('Q Values')
+        plt.title(f'Q Values Over Episodes (Episode {i_episode + 1})')
+        plt.legend()
+        file_path = os.path.join(folder_name, f'exp3_q_values_plot_{i_episode + 1}.png')
+        plt.savefig(file_path)
+        plt.close()
 
     print('closing')
     env.close()
