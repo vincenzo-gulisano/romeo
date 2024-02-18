@@ -33,18 +33,20 @@ sleep_until_time_or_pid() {
 }
 
 # Define base folder and input file
-base_folder="/home/vincenzo/romeo/data/output"
+base_folder="/home/jingyu/romeo/data/output"
 input_file="/home/vincenzo/woost/data/input/input.txt"
 
 # Define lists of values
 wa=5
 ws=600
-duration=10000000
+duration=5000000000
 d=601
 rate=25000
 repetition=0
 starting_time_min=900
 starting_time_max=9900
+episodes=40
+steps=50
 
 # Define id variable with concatenation of values
 id="${wa}/${ws}/${duration}/${repetition}/${rate}"
@@ -81,7 +83,8 @@ echo "Starting Kafka"
 ./scripts/start_kafka.sh ${exp_folder}
 
 echo "Starting Python agent"
-python_pid=$(./scripts/start_python_agent.sh ${exp_folder})
+#python_pid=$(./scripts/start_python_agent.sh ${exp_folder})
+python_pid=$(./scripts/start_python_agent.sh ${episodes} ${steps} ${exp_folder})
 echo "The PID of the python agent is ${python_pid}"
 
 echo "Starting SPE"
