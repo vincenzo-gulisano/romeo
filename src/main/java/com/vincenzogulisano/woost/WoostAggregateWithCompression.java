@@ -66,6 +66,8 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
 
     private volatile boolean resetRequest;
     private volatile boolean resetAck;
+    // Temp
+    private volatile boolean firstCallAfterReset;
     // private Lock resetLock;
 
     public WoostAggregateWithCompression(
@@ -85,6 +87,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
 
         this.resetRequest = false;
         this.resetAck = false;
+        this.firstCallAfterReset = false;
         // this.resetLock = new ReentrantLock();
 
     }
@@ -93,6 +96,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         logger.debug("Registering reset request");
         resetAck = false;
         resetRequest = true;
+        firstCallAfterReset = false;
         // resetLock.lock();
         // logger.debug("Got the reset lock");
         logger.debug("{} tuples in input stream", getInput().size());
@@ -140,6 +144,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         logger.debug("Acking back to SPE");
         resetAck = true;
         resetRequest = false;
+        firstCallAfterReset = true;
     }
 
     public boolean getResetAck() {
@@ -197,23 +202,30 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
 
     public List<OUT> processTupleIn1(IN t) {
 
+        if (firstCallAfterReset) {
+            logger.debug("First invocation of processTupleIn1 after the reset");
+            logger.debug("{} tuples in input stream to be processed", getInput().size());
+        }
+
         // if (resetRequest) {
-        //     logger.debug("Processing reset request");
-        //     resetLock.lock();
-        //     logger.debug("Got the reset lock");
-        //     internalReset();
-        //     resetLock.unlock();
+        // logger.debug("Processing reset request");
+        // resetLock.lock();
+        // logger.debug("Got the reset lock");
+        // internalReset();
+        // resetLock.unlock();
         // }
 
         inProcess = true;
 
         // Check for D updates
         while (!dUpdates.isEmpty()) {
+            logger.debug("dUpdate is not empty");
             Long d = dUpdates.poll();
             if (d != null) {
                 compressionTimeThreshold = d;
                 logger.debug("Compression threshold updated to " + compressionTimeThreshold);
             }
+            Util.sleep(500);
         }
 
         // Prepare statistics vars
@@ -231,7 +243,17 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         long tL = getEarliestWinStartTS(latestTimestamp);
         String k = keyExtractor.getKey(t);
 
+        if (firstCallAfterReset) {
+            logger.debug("The condition to enter the output production loop is {}",
+                    (earliestWinLeftBoundary != -1 && earliestWinLeftBoundary < tL));
+        }
+
         while (earliestWinLeftBoundary != -1 && earliestWinLeftBoundary < tL) {
+
+            if (firstCallAfterReset) {
+                logger.debug("earliestWinLeftBoundary is {}", earliestWinLeftBoundary);
+                logger.debug("tL is {}", tL);
+            }
 
             // Produce results for compressed (if any)
             i1 = compressedWins.entrySet().iterator();
@@ -381,7 +403,9 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         }
 
         earliestWinLeftBoundary = tL;
-
+        if (firstCallAfterReset) {
+            logger.debug("Now updating metrics");
+        }
         // Update metrics
         memoryMetric.record(memoryChange);
         decompressionMetric.record(decompressions);
@@ -395,7 +419,11 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         throughputMetric.record(1);
 
         inProcess = false;
-
+        if (firstCallAfterReset) {
+            logger.debug("Exiting");
+            firstCallAfterReset = false;
+        }
+        
         return result;
     }
 
