@@ -33,7 +33,7 @@ sleep_until_time_or_pid() {
 }
 
 # Define base folder and input file
-base_folder="/home/vincenzo/romeo/data/output/DQNAgent"
+base_folder="/home/vincenzo/romeo/data/jingyu/exp2.2/DQNAgent"
 input_file="/home/vincenzo/woost/data/input/input.txt"
 
 # Define lists of values
@@ -46,8 +46,8 @@ repetition=0
 starting_time_min=900
 starting_time_max=9900
 episodes=5
-steps=10
-agentstate="/home/vincenzo/romeo/data/output/DQNAgent/dqn_model.pth"
+steps=100
+agentstate="/home/vincenzo/romeo/data/jingyu/exp2.2/5/600/110000000/0/25000/601/dqn_model_episode_50.pth"
 # compressions=(0 1 2 3 4 5 6 7 8 9 10)
 
 # for compression in "${compressions[@]}"; do
@@ -94,7 +94,7 @@ echo "The PID of the python agent is ${python_pid}"
 echo "Starting SPE"
 
 echo "Starting experiment for ${id}"
-args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -n ${rate} -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max}"
+args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -n ${rate} -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max}  -rer True"
 
 mvn clean compile package exec:java -Dexec.mainClass="com.vincenzogulisano.javapythoncommunicator.JPComm" -Dexec.args="${args}" > ${exp_folder}/spe.log 2>&1 &
 
@@ -142,7 +142,7 @@ episodes_as_list=$(seq -s, 0 $((episodes-1)))
 python plotting/plot_experiment_stats.py ${exp_folder}/ ${episodes_as_list} ${exp_folder}/episodesstats.csv
 
 echo "Appending episodes stats to global csv"
-python plotting/append_episodesstatscsv_to_global_one.py ${exp_folder}/episodesstats.csv ${base_folder}/compressionandepisodesstats.csv DQNAgent
+python plotting/append_episodesstatscsv_to_global_one.py ${exp_folder}/episodesstats.csv ${base_folder}/compressionandepisodesstats.csv DQNAgent-E
 
 # done
 

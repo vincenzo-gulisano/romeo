@@ -23,12 +23,32 @@ def create_boxplot(input_csv, output_folder, stat, measure):
 
     plt.xlabel('Agent-ID')
     plt.ylabel(f'{measure} Values for {stat}')
-    plt.title(f'Boxplot of {stat} for Different Agent-IDs')
+    # plt.title(f'Boxplot of {stat} for Different Agent-IDs')
     plt.xticks(positions, IDs, rotation=45)  # Set x ticks with IDs
     plt.xticks(rotation=45)
+    # plt.ylim([-50,100])
     plt.grid(axis='y')
     plt.tight_layout()
-    plt.savefig(f'{output_folder}/{stat}_{measure}_boxplot.pdf')
+    # plt.savefig(f'{output_folder}/{stat}_{measure}_boxplot.pdf')
+    plt.savefig(f'{output_folder}/{stat}_{measure}_boxplot.png')
+    plt.close()
+
+    plt.figure(figsize=(10, 6))
+    for i, compression in enumerate(IDs):
+        group_data = filtered_df[filtered_df['Agent-ID'] == compression]
+        plt.plot(group_data['episode']-group_data['episode'].iloc[0],group_data[measure],label=compression)
+
+    plt.xlabel('Episode')
+    plt.ylabel(f'{measure} Values for {stat}')
+    # plt.title(f'Boxplot of {stat} for Different Agent-IDs')
+    # plt.xticks(positions, IDs, rotation=45)  # Set x ticks with IDs
+    # plt.xticks(rotation=45)
+    # plt.ylim([-50,100])
+    plt.legend()
+    plt.grid(axis='y')
+    plt.tight_layout()
+    # plt.savefig(f'{output_folder}/{stat}_{measure}_boxplot.pdf')
+    plt.savefig(f'{output_folder}/{stat}_{measure}_episodes.png')
     plt.close()
 
 if __name__ == "__main__":

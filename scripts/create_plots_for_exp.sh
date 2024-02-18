@@ -1,6 +1,6 @@
 #!/bin/bash
-exp_folder="./data/jingyu/exp2/5/600/110000000/0/25000/601"
-episodes=50
+exp_folder="./data/jingyu/exp2.3/5/600/5000000000/0/25000/601"
+episodes=100
 
 echo "Creating extra stats"
 grep -Eo '[0-9]+,[0-9]+,action [0-9]+' ${exp_folder}/episodes.csv | sed -E 's/,action /,/' | cut -d, -f1,3 > ${exp_folder}/actions.csv
