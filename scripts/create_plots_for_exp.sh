@@ -1,6 +1,6 @@
 #!/bin/bash
-exp_folder="./data/jingyu/exp2.3/5/600/5000000000/0/25000/601"
-episodes=100
+exp_folder="./data/jingyu/exp4/failed_logs/01"
+episodes=75
 
 echo "Creating extra stats"
 grep -Eo '[0-9]+,[0-9]+,action [0-9]+' ${exp_folder}/episodes.csv | sed -E 's/,action /,/' | cut -d, -f1,3 > ${exp_folder}/actions.csv
@@ -14,3 +14,12 @@ grep -oE 'Received: -?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,
 echo "Creating plots"
 episodes_as_list=$(seq -s, 0 $((episodes-1)))
 python plotting/plot_experiment_stats.py ${exp_folder}/ ${episodes_as_list} ${exp_folder}/episodesstats.csv
+
+python plotting/append_episodesstatscsv_to_global_one.py ${exp_folder}/episodesstats.csv ${exp_folder}/compressionandepisodesstats.csv DQNAgent-1-75
+# python plotting/append_episodesstatscsv_to_global_one.py data/jingyu/exp3/Exp3_51-137epi_stopped/episodesstats.csv data/jingyu/exp3/compressionandepisodesstats.csv DQNAgent-50-130
+# python plotting/append_episodesstatscsv_to_global_one.py data/jingyu/exp3/Exp3_131-264epi_stopped/episodesstats.csv data/jingyu/exp3/compressionandepisodesstats.csv DQNAgent-130-250
+# python plotting/append_episodesstatscsv_to_global_one.py data/jingyu/exp3/Exp3_250-300epi_stopped/episodesstats.csv data/jingyu/exp3/compressionandepisodesstats.csv DQNAgent-250-300
+python plotting/create_stat_episodes_boxplot_for_compressions.py ${exp_folder}/compressionandepisodesstats.csv ${exp_folder}/ rewards
+python plotting/create_stat_episodes_boxplot_for_compressions.py ${exp_folder}/compressionandepisodesstats.csv ${exp_folder}/ steps
+python plotting/create_stat_episodes_boxplot_for_compressions.py ${exp_folder}/compressionandepisodesstats.csv ${exp_folder}/ observedcompression
+python plotting/create_stat_episodes_boxplot_for_compressions.py ${exp_folder}/compressionandepisodesstats.csv ${exp_folder}/ latency.average

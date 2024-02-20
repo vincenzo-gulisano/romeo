@@ -1,8 +1,9 @@
 import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
-def create_boxplot(input_csv, output_folder, stat, measure):
+def create_boxplot(input_csv, output_folder, stat, measure, continue_episodes_across_ids=False):
     # Read the input CSV file
     df = pd.read_csv(input_csv)
 
@@ -34,9 +35,23 @@ def create_boxplot(input_csv, output_folder, stat, measure):
     plt.close()
 
     plt.figure(figsize=(10, 6))
+    offset=0
+    xs=[]
+    ys=[]
     for i, compression in enumerate(IDs):
         group_data = filtered_df[filtered_df['Agent-ID'] == compression]
-        plt.plot(group_data['episode']-group_data['episode'].iloc[0],group_data[measure],label=compression)
+        plt.plot(group_data['episode']-group_data['episode'].iloc[0]+offset,group_data[measure],label=compression)
+        if continue_episodes_across_ids:
+            xs.extend([episode_value - group_data['episode'].iloc[0] + offset for episode_value in group_data['episode']])
+            ys.extend([measure_value  for measure_value in group_data[measure]])
+            offset=offset+group_data['episode'].iloc[-1]+1
+
+    if continue_episodes_across_ids:
+        #calculate equation for trendline
+        # print(xs)
+        z = np.polyfit(xs, ys, 1)
+        p = np.poly1d(z)
+        plt.plot(xs,p(xs))
 
     plt.xlabel('Episode')
     plt.ylabel(f'{measure} Values for {stat}')
@@ -64,6 +79,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Call the function to create boxplot
-    create_boxplot(args.input_csv, args.output_folder, args.statistic,'mean')
-    create_boxplot(args.input_csv, args.output_folder, args.statistic,'sum')
-    create_boxplot(args.input_csv, args.output_folder, args.statistic,'max')
+    create_boxplot(args.input_csv, args.output_folder, args.statistic,'mean',continue_episodes_across_ids=True)
+    create_boxplot(args.input_csv, args.output_folder, args.statistic,'sum',continue_episodes_across_ids=True)
+    create_boxplot(args.input_csv, args.output_folder, args.statistic,'max',continue_episodes_across_ids=True)

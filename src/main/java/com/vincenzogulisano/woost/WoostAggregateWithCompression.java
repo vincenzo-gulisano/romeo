@@ -45,6 +45,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
     private Metric tuplesMetric;
     private Metric memoryMetric;
     private Metric throughputMetric;
+    private Metric outputtMetric;
 
     private long compressionTimeThreshold;
     private Metric compressionsMetric;
@@ -141,6 +142,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         maxEventTimeMetric.reset();
         compressionRatio.reset();
         throughputMetric.reset();
+        outputtMetric.reset();
         logger.debug("Acking back to SPE");
         resetAck = true;
         resetRequest = false;
@@ -165,6 +167,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         maxEventTimeMetric.enable();
         compressionRatio.enable();
         throughputMetric.enable();
+        outputtMetric.enable();
 
     }
 
@@ -179,6 +182,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         maxEventTimeMetric.disable();
         compressionRatio.disable();
         throughputMetric.disable();
+        outputtMetric.disable();
     }
 
     // Iterators and entries used by the processTupleIn1 function
@@ -275,6 +279,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
                 wToDecompress.setLatestStimulus(t.getStimulus());
                 OUT outT = wToDecompress.getAggregatedResult();
                 if (outT != null) {
+                    outputtMetric.record(1);
                     result.add(outT);
                 }
 
@@ -423,7 +428,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
             logger.debug("Exiting");
             firstCallAfterReset = false;
         }
-        
+
         return result;
     }
 
@@ -495,6 +500,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         decompressionMetric = LiebreContext.userMetrics().newTotalCountMetric("dec", "count");
         maxEventTimeMetric = LiebreContext.userMetrics().newTotalMaxMetric("eventtime", "max");
         throughputMetric = LiebreContext.userMetrics().newCountPerSecondMetric("throughput", "count");
+        outputtMetric = LiebreContext.userMetrics().newCountPerSecondMetric("agg-output", "count");
     }
 
 }

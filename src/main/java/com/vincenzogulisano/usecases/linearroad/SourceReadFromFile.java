@@ -173,6 +173,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
 
                 t = readNextLine();
                 if (t == null) {
+                    logger.warn("Returning a null tuple!");
                     return null;
                 }
                 result = TupleInput.fromReading(t);

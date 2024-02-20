@@ -87,6 +87,12 @@ def plot_files_in_folder(folder,episodes,episodesstatsfile,print_global_events,p
             # Filter episodes_df for the current episode value
             episode_data = episodes_df[episodes_df['episode'] == episode_value]
 
+            # Count the number of entries that start with 'action' in the 'event' column
+            action_count = episode_data[episode_data['event'].str.startswith('action')].shape[0]
+
+            # Append episode statistic about number of steps
+            stats.append({'episode': episode_value, 'stat': 'steps', 'mean': action_count,  'sum': action_count,  'max': action_count})
+
             csv_files_to_process = ['injectionrate.rate.csv','throughput.count.csv','actions.csv','CPU-agg.average.csv','latency.average.csv','ratio.percent.csv','observedlatency.csv','observedcompression.csv','rewards.csv','cumulativereward.csv','latency.violations.csv']
 
             # Set the size of the figure

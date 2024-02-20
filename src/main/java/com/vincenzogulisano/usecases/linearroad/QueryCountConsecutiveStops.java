@@ -217,8 +217,16 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         }
         logger.debug("Got Ack from the Sink");
 
+        logger.debug("Sleeping 2 seconds before resetting the compression threshold");
+        Util.sleep(2000);
+
         logger.debug("Reset compression threshold of the Aggregate to " + compressionThreshold);
         woostAgg.changeD(compressionThreshold);
+
+
+        logger.debug("Sleeping 2 seconds before giving green light for state filling tuples");
+        Util.sleep(2000);
+
         sourceFunction.giveGreenlightToStartSendingStateFillingTuples();
 
         while (!sourceFunction.areAllStateFillingTuplesSent()) {
