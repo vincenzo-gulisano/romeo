@@ -321,6 +321,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
                 e2.getValue().setLatestStimulus(t.getStimulus());
                 OUT outT = e2.getValue().getAggregatedResult();
                 if (outT != null) {
+                    outputtMetric.record(1);
                     result.add(outT);
                 }
 
