@@ -485,6 +485,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         consumers.put("dec", x -> reporter.report((long) x[0], "dec", ((Long) x[1]).doubleValue()));
         consumers.put("eventtime", x -> reporter.report((long) x[0], "eventtime", ((Long) x[1]).doubleValue()));
         consumers.put("throughput", x -> reporter.report((long) x[0], "throughput", ((Long) x[1]).doubleValue()));
+        consumers.put("agg-output", x -> reporter.report((long) x[0], "agg-output", ((Long) x[1]).doubleValue()));
 
         return consumers;
 
