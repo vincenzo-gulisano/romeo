@@ -212,10 +212,10 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         }
         logger.debug("Got Ack from the Agg");
         sink.reset();
-        while (!sink.getResetAck()) {
-            Util.sleep(500);
-        }
-        logger.debug("Got Ack from the Sink");
+        // while (!sink.getResetAck()) {
+        //     Util.sleep(500);
+        // }
+        logger.debug("Sink reset");
 
         logger.debug("Sleeping 2 seconds before resetting the compression threshold");
         Util.sleep(2000);

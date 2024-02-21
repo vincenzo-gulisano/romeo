@@ -16,6 +16,7 @@ import com.vincenzogulisano.javapythoncommunicator.StatReporter;
 
 import common.metrics.Metric;
 import common.metrics.TimeMetric;
+import common.util.Util;
 import component.sink.BaseSink;
 import component.sink.SinkFunction;
 import query.LiebreContext;
@@ -30,34 +31,38 @@ public class SinkLogAndLatency extends BaseSink<TupleCarStops> {
 
     public Logger logger = LogManager.getLogger();
 
-    private volatile boolean resetRequest;
-    private volatile boolean resetAck;
-    private Lock resetLock;
+    // private volatile boolean resetRequest;
+    // private volatile boolean resetAck;
+    // private Lock resetLock;
 
     public SinkLogAndLatency(String id, SinkFunction<TupleCarStops> function, boolean writeOut, String outPath) {
         super(id, function);
         this.writeOut = writeOut;
         this.outPath = outPath;
 
-        this.resetRequest = false;
-        this.resetAck = false;
-        this.resetLock = new ReentrantLock();
+        // this.resetRequest = false;
+        // this.resetAck = false;
+        // this.resetLock = new ReentrantLock();
 
     }
 
     public void reset() {
         logger.debug("Registering reset request");
-        resetAck = false;
-        resetRequest = true;
-        resetLock.lock();
+        // resetAck = false;
+        // resetRequest = true;
+        // resetLock.lock();
         logger.debug("Got the reset lock");
+        while (getInput().size()>0) {
+            logger.debug("There are tuples in the input stream, waiting");
+            Util.sleep(500);
+        }
         if (getInput().size() == 0) {
             logger.debug("No tuples in the input stream, resetting immediately");
             internalReset();
         } else {
             logger.debug("There exist tuples in the input stream, deferring the reset to main thread");
         }
-        resetLock.unlock();
+        // resetLock.unlock();
     }
 
     private void internalReset() {
@@ -65,14 +70,14 @@ public class SinkLogAndLatency extends BaseSink<TupleCarStops> {
         getInput().clear();
         outrateMetric.reset();
         latencyMetric.reset();
-        logger.debug("Acking back to SPE");
-        resetAck = true;
-        resetRequest = false;
+        // logger.debug("Acking back to SPE");
+        // resetAck = true;
+        // resetRequest = false;
     }
 
-    public boolean getResetAck() {
-        return resetAck;
-    }
+    // public boolean getResetAck() {
+    //     return resetAck;
+    // }
 
     @Override
     public void enable() {
@@ -102,13 +107,13 @@ public class SinkLogAndLatency extends BaseSink<TupleCarStops> {
     @Override
     public void processTuple(TupleCarStops t) {
 
-        if (resetRequest) {
-            logger.debug("Processing reset request");
-            resetLock.lock();
-            logger.debug("Got the reset lock");
-            internalReset();
-            resetLock.unlock();
-        }
+        // if (resetRequest) {
+        //     logger.debug("Processing reset request");
+        //     resetLock.lock();
+        //     logger.debug("Got the reset lock");
+        //     internalReset();
+        //     resetLock.unlock();
+        // }
 
         super.processTuple(t);
         outrateMetric.record(1);
