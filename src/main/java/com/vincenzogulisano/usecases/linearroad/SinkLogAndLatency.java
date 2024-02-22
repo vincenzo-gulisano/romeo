@@ -52,7 +52,7 @@ public class SinkLogAndLatency extends BaseSink<TupleCarStops> {
         // resetRequest = true;
         // resetLock.lock();
         logger.debug("Got the reset lock");
-        while (getInput().size()>0) {
+        while (getInput().size() > 0) {
             logger.debug("There are tuples in the input stream, waiting");
             Util.sleep(500);
         }
@@ -76,8 +76,16 @@ public class SinkLogAndLatency extends BaseSink<TupleCarStops> {
     }
 
     // public boolean getResetAck() {
-    //     return resetAck;
+    // return resetAck;
     // }
+
+    // This method gets called by the BaseSink, and there are no concurrent calls to
+    // process, so there should be no need for locks
+    @Override
+    public void ping() {
+        outrateMetric.ping();
+        latencyMetric.ping();
+    }
 
     @Override
     public void enable() {
@@ -108,11 +116,11 @@ public class SinkLogAndLatency extends BaseSink<TupleCarStops> {
     public void processTuple(TupleCarStops t) {
 
         // if (resetRequest) {
-        //     logger.debug("Processing reset request");
-        //     resetLock.lock();
-        //     logger.debug("Got the reset lock");
-        //     internalReset();
-        //     resetLock.unlock();
+        // logger.debug("Processing reset request");
+        // resetLock.lock();
+        // logger.debug("Got the reset lock");
+        // internalReset();
+        // resetLock.unlock();
         // }
 
         super.processTuple(t);

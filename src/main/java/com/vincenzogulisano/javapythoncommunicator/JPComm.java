@@ -15,6 +15,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.vincenzogulisano.usecases.linearroad.IRLRCPUMatrix_ESC;
 import com.vincenzogulisano.usecases.linearroad.IRLRCPU_ESC;
 import com.vincenzogulisano.usecases.linearroad.LatencyAndRatioDeltaESC;
 import com.vincenzogulisano.usecases.linearroad.QueryCountConsecutiveStops;
@@ -48,7 +49,8 @@ public class JPComm {
         // TODO topic should not be hardcoded!
         consumer.subscribe(Collections.singletonList("dchanges"));
         // esc = new LatencyAndRatioDeltaESC(20, producer, "/");
-        esc = new IRLRCPU_ESC(10,producer, "/");
+        // esc = new IRLRCPU_ESC(10,producer, "/");
+        esc = new IRLRCPUMatrix_ESC(7,producer, "/",7);
         esc.addSendStateToken();
 
     }

@@ -18,9 +18,12 @@ class SPEEnvironment(Env):
     def __init__(self, stepsPerEpisode):
         super(SPEEnvironment, self).__init__()
 
+
+        self.valuesPerObservation = 7
+        # metrics = 4
         # Define a 2-D observation space
-        self.observation_space = spaces.Box(low = np.array([0,0,0,0]), 
-                                            high = np.array([np.inf,np.inf,100,100]),
+        self.observation_space = spaces.Box(low = np.array([np.zeros(self.valuesPerObservation),np.zeros(self.valuesPerObservation),np.zeros(self.valuesPerObservation),np.zeros(self.valuesPerObservation)]), 
+                                            high = np.array([np.full(self.valuesPerObservation, np.inf),np.full(self.valuesPerObservation, np.inf),np.full(self.valuesPerObservation, 100),np.full(self.valuesPerObservation, 100)]),
                                             dtype = np.float32)
         
         # Define an action space ranging from 0 to 11
@@ -30,7 +33,7 @@ class SPEEnvironment(Env):
         # 10 means set compression to 100%
         self.action_space = spaces.Discrete(11,)
 
-        self.consumer = KafkaStatsConsumer()
+        self.consumer = KafkaStatsConsumer(self.valuesPerObservation)
         self.producer = KafkaActionsProducer(self.consumer)
 
         self.stepsPerEpisode = stepsPerEpisode
@@ -57,9 +60,12 @@ class SPEEnvironment(Env):
             time.sleep(1)
             with self.consumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by other threads
                 if self.consumer.tracker.state is not None and self.consumer.tracker.last_time > self.prev_stat_time:
-                    print('Got a new state/reward pair:',self.consumer.tracker.last_time,self.consumer.tracker.state,self.consumer.tracker.reward,flush=True)
+                    print('Got a new state/reward pair:',self.consumer.tracker.last_time)
+                    for row in self.consumer.tracker.state:
+                        print ([f'{num:.2f}' for num in row])
+                    print('reward',self.consumer.tracker.reward,flush=True)
                     state_measurement_available = True
-
+                    
         # Reset the reward
         self.ep_return  = self.consumer.tracker.reward
 
@@ -85,7 +91,10 @@ class SPEEnvironment(Env):
             with self.consumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by other threads
                 # print('self.consumer.tracker.state is not None',(self.consumer.tracker.state is not None),'self.consumer.tracker.last_time',self.consumer.tracker.last_time,'self.prev_stat_time',self.prev_stat_time)
                 if self.consumer.tracker.state is not None and self.consumer.tracker.last_time > self.prev_stat_time:
-                    print('Got a new state/reward pair:',self.consumer.tracker.last_time,self.consumer.tracker.state,self.consumer.tracker.reward,flush=True)
+                    print('Got a new state/reward pair:',self.consumer.tracker.last_time)
+                    for row in self.consumer.tracker.state:
+                        print ([f'{num:.2f}' for num in row])
+                    print('reward',self.consumer.tracker.reward,flush=True)
                     state_measurement_available = True
         
         # Increment the episodic return
@@ -100,11 +109,12 @@ class SPEEnvironment(Env):
 
 
 class MeasurementTracker:
-    def __init__(self):
+    def __init__(self,valuesPerObservation):
         self.last_time = None
         self.state = None
         self.reward = None
         self.data_lock = threading.Lock()
+        self.valuesPerObservation = valuesPerObservation
 
     def process_input(self, input_str):
 
@@ -117,10 +127,15 @@ class MeasurementTracker:
 
             # Extract timestamp as an integer
             self.last_time = time.time()
-            # Convert the string to a list of doubles
-            doubles_list = [float(x) for x in parts[0].split(',')]
-            # Convert the list to a NumPy array of float32
-            self.state =  np.array(doubles_list, dtype=np.float32)
+            # # Convert the string to a list of doubles
+            # doubles_list = [float(x) for x in parts[0].split(',')]
+            # # Convert the list to a NumPy array of float32
+            # self.state =  np.array(doubles_list, dtype=np.float32)
+            # Split the string and create a list of floats, replacing -1 with np.nan
+            doubles_list = [np.nan if float(x) == -1.0 else float(x) for x in parts[0].split(',')]
+
+            # Convert the list to a NumPy array of float32 and reshape it to 4x5
+            self.state = np.array(doubles_list, dtype=np.float32).reshape(4, self.valuesPerObservation)
             self.reward = int(parts[1])
 
 class KafkaActionsProducer:
@@ -135,8 +150,9 @@ class KafkaActionsProducer:
         self.producer.flush()
 
 class KafkaStatsConsumer:
-    def __init__(self, bootstrap_servers='michelangelo.cse.chalmers.se:9092', stats_topic='stats', group_id='0'):
-        self.tracker = MeasurementTracker()
+    def __init__(self, valuesPerObservation, bootstrap_servers='michelangelo.cse.chalmers.se:9092', stats_topic='stats', group_id='0'):
+        self.valuesPerObservation = valuesPerObservation
+        self.tracker = MeasurementTracker(self.valuesPerObservation)
         self.bootstrap_servers = bootstrap_servers
         self.stats_topic = stats_topic
         self.group_id = group_id

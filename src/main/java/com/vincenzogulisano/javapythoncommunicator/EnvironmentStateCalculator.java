@@ -42,7 +42,7 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
     private final long monitoringPeriod;
     protected final Producer<String, String> producer;
 
-    protected Map<String, Queue<Pair<Long, Double>>> measurements;
+    protected Map<String, LinkedList<Pair<Long, Double>>> measurements;
 
     protected volatile boolean resetRequest;
     protected volatile boolean resetAcknowledged;
@@ -56,7 +56,10 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
 
     protected ReentrantLock lock;
 
-    public EnvironmentStateCalculator(long monitoringPeriod, Producer<String, String> producer, String separator) {
+    protected boolean resetAllMeasurementsAfterReport;
+
+    public EnvironmentStateCalculator(long monitoringPeriod, Producer<String, String> producer, String separator,
+            boolean resetAllMeasurementsAfterReport) {
         this.monitoringPeriod = monitoringPeriod;
         this.producer = producer;
         this.measurements = new HashMap<>();
@@ -66,6 +69,11 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
         this.separator = separator;
         this.sendStateTokens = new AtomicInteger();
         this.lock = new ReentrantLock();
+        this.resetAllMeasurementsAfterReport = resetAllMeasurementsAfterReport;
+    }
+
+    public EnvironmentStateCalculator(long monitoringPeriod, Producer<String, String> producer, String separator) {
+        this(monitoringPeriod, producer, separator, true);
     }
 
     public void close() {
@@ -92,7 +100,7 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
         logger.debug("added send state token, current value is {}", sendStateTokens.get());
     }
 
-    private boolean valueIsToBeRegistered(String id, double value) {
+    protected boolean valueIsToBeRegistered(String id, double value) {
         if (id.equals("outrate") && value == 0) {
             return false;
         }
@@ -101,7 +109,6 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
         }
         return true;
     }
-
 
     protected void resetVariables() {
         measurements.clear();
@@ -146,7 +153,7 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
         if (!measurements.isEmpty()) {
             for (String id_ : measurements.keySet()) {
                 while (!measurements.get(id_).isEmpty()
-                        && measurements.get(id_).peek().getTimestamp() <= ts - monitoringPeriod) {
+                        && measurements.get(id_).peek().getTimestamp() < ts - monitoringPeriod) {
                     dataSpansAtLeastTheMonitoringPeriod = true;
                     measurements.get(id_).poll();
                 }
@@ -158,7 +165,7 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
         for (String keyToRemove : keysToRemove) {
             measurements.remove(keyToRemove);
         }
-        
+
         if (dataSpansAtLeastTheMonitoringPeriod) {
 
             logger.debug(
@@ -178,7 +185,9 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
                 }
             }
 
-            measurements.clear();
+            if (resetAllMeasurementsAfterReport) {
+                measurements.clear();
+            }
             // System.out.println(String.format("Sending message %s", msg));
             // logger.debug(logMsg);
 

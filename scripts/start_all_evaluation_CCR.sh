@@ -47,7 +47,7 @@ starting_time_min=900
 starting_time_max=9900
 episodes=5
 steps=10
-compressions=(0 1 2 3 4 5 6 7 8 9 10)
+compressions=(4) #(0 1 2 3 4 5 6 7 8 9 10)
 
 for compression in "${compressions[@]}"; do
     echo "Compression: $compression"
