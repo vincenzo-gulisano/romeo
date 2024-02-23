@@ -23,6 +23,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
 
     private long IR; // Input Rate
     private long L; // Latency
+    private long lastLTimestamp;
     private double R; // Rate
     private double CPU;
     private long lastTS;
@@ -42,6 +43,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
     protected void resetVariables() {
         IR = -1;
         L = -1;
+        lastLTimestamp = -1;
         R = -1;
         CPU = -1;
         lastTS = -1;
@@ -65,7 +67,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
     @Override
     public String getRewardAsString() {
         if (L > 1000) {
-            return Long.toString((long) -(L - 1000) / 10);
+            return Long.toString(Math.min((L - 1000) / 10,-1));
         }
         return Long.toString((long) Math.round(Math.pow(100 - R, 1.5)));
     }
@@ -80,14 +82,14 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
 
         logger.debug("Checking if state measurement and reward are available");
 
-        List<String> relevantMetrics = new ArrayList<>(Arrays.asList("injectionrate", "ratio", "CPU-agg", "latency"));
+        List<String> relevantMetrics = new ArrayList<>(Arrays.asList("injectionrate", "latency", "ratio", "CPU-agg"));
 
         logger.debug("Trying to find the min and max timestamps of the relevant metrics {}", relevantMetrics);
         long minTS = Long.MAX_VALUE;
         long maxTS = Long.MIN_VALUE;
         for (String metric : relevantMetrics) {
             if (measurements.containsKey(metric)) {
-                logger.debug("Relevant measuremet: {}",measurements.get(metric));
+                logger.debug("Relevant measuremet: {}", measurements.get(metric));
                 minTS = measurements.get(metric).getFirst().getTimestamp() < minTS
                         ? measurements.get(metric).getFirst().getTimestamp()
                         : minTS;
@@ -163,7 +165,11 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
             if (id_.equals("latency")) {
                 L = -1;
                 for (Pair<Long, Double> v : measurements.get(id_)) {
-                    L = (long) (v.getValue() > L ? v.getValue() : L);
+                    if (v.getTimestamp() > lastLTimestamp) {
+                        L = (long) (v.getValue() > L ? v.getValue() : L);
+                        lastLTimestamp = v.getTimestamp();
+                        logger.debug("Found a newer latency for ts:{} and value:{}", lastLTimestamp, L);
+                    }
                 }
                 logger.debug("registered latency {}", L);
             }
@@ -171,7 +177,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
 
         // Notice I set lastTS + 1 to make sure I send the state when all the
         // measurements for the same second have been received
-        boolean ready = maxTS > lastTS && L != -1 && R != -1;
+        boolean ready = maxTS > lastTS && (L != -1 || R != -1);
         logger.debug("maxTS {} / lastTS {} / maxTS > lastTS {} / L {} / R {}/ ready {}", maxTS, lastTS,
                 maxTS > lastTS, L,
                 R, ready);
