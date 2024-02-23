@@ -67,7 +67,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
     @Override
     public String getRewardAsString() {
         if (L > 1000) {
-            return Long.toString(Math.min((L - 1000) / 10,-1));
+            return Long.toString(Math.min(-1*((L - 1000) / 10),-1));
         }
         return Long.toString((long) Math.round(Math.pow(100 - R, 1.5)));
     }
