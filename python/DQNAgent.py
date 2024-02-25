@@ -31,16 +31,22 @@ target_update = 1  # copy frequency from net to target_net
 #steps = 100
 
 
-# Define neural network
+# define neural network
 class Net(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
+    def __init__(self, input_shape, hidden_size, output_size):
         super(Net, self).__init__()
-        self.Linear1 = nn.Linear(input_size, hidden_size)
+        # flatten the input
+        self.flatten = nn.Flatten()
+        self.input_size = input_shape[0] * input_shape[1] # cal input size after flattening
+        self.Linear1 = nn.Linear(self.input_size, hidden_size)
         self.Linear2 = nn.Linear(hidden_size, hidden_size)
         self.Linear3 = nn.Linear(hidden_size, output_size)
 
     def forward(self, x):
         # print('x: ', x)
+        # flatten the input
+        if x.dim() > 1:
+            x = x.view(-1, self.input_size)
         x = F.relu(self.Linear1(x))
         x = F.relu(self.Linear2(x))
         x = self.Linear3(x)
@@ -72,9 +78,9 @@ class ReplayMemory(object):
 
 
 class DQN(object):
-    def __init__(self, input_size, hidden_size, output_size):
-        self.net = Net(input_size, hidden_size, output_size)
-        self.target_net = Net(input_size, hidden_size, output_size)
+    def __init__(self, input_shape, hidden_size, output_size):
+        self.net = Net(input_shape, hidden_size, output_size)
+        self.target_net = Net(input_shape, hidden_size, output_size)
         self.optim = optim.Adam(self.net.parameters(), lr=lr)
 
         self.target_net.load_state_dict(self.net.state_dict())
@@ -87,7 +93,10 @@ class DQN(object):
 
     def select_action(self, state):
         eps_threshold = random.random()
-        action = self.net(torch.Tensor(state))
+        #action = self.net(torch.Tensor(state))
+        # reshape state to 1D vector
+        state = torch.Tensor(state).view(-1)
+        action = self.net(state)
         if eps_threshold > EPSION:
             choice = torch.argmax(action).numpy()
         else:
@@ -99,14 +108,35 @@ class DQN(object):
             return
         samples = self.buffer.sample(batch_size)
         batch = Transition(*zip(*samples))
-        # convert tuple to numpy
-        tmp = np.vstack(batch.action)
-        # convert to Tensor
-        state_batch = torch.tensor(np.array(batch.state), dtype = torch.float32)
-        action_batch = torch.tensor(tmp.astype(int), dtype = torch.long)
-        reward_batch = torch.tensor(np.array(batch.reward), dtype = torch.float32)
-        done_batch = torch.tensor(np.array(batch.done), dtype = torch.float32)
-        next_state_batch = torch.tensor(np.array(batch.next_state), dtype = torch.float32)
+        # # convert tuple to numpy (column vector)
+        # tmp = np.vstack(batch.action)
+        # # convert to Tensor
+        # # state_batch = torch.tensor(np.array(batch.state), dtype = torch.float32)
+        # state_batch = torch.tensor(np.array(batch.state), dtype = torch.float32).view(batch_size, -1)
+
+        # action_batch = torch.tensor(tmp.astype(int), dtype = torch.long)
+        # reward_batch = torch.tensor(np.array(batch.reward), dtype = torch.float32)
+        # done_batch = torch.tensor(np.array(batch.done), dtype = torch.float32)
+        # # next_state_batch = torch.tensor(np.array(batch.next_state), dtype = torch.float32)
+        # next_state_batch = torch.tensor(np.array(batch.next_state), dtype = torch.float32).view(batch.size, -1)
+
+        # Ensure all elements in batch.state have the same shape and type
+        state_list = [np.array(state).reshape(-1) for state in batch.state]
+        next_state_list = [np.array(state).reshape(-1) for state in batch.next_state]
+
+        # Convert lists to NumPy arrays
+        state_array = np.vstack(state_list)
+        next_state_array = np.vstack(next_state_list)
+        action_array = np.vstack(batch.action)
+        reward_array = np.array(batch.reward)
+        done_array = np.array(batch.done)
+
+        # Convert to PyTorch tensors
+        state_batch = torch.tensor(state_array, dtype=torch.float32)
+        next_state_batch = torch.tensor(next_state_array, dtype=torch.float32)
+        action_batch = torch.tensor(action_array, dtype=torch.long)
+        reward_batch = torch.tensor(reward_array, dtype=torch.float32)
+        done_batch = torch.tensor(done_array, dtype=torch.float32)
 
         q_next = torch.max(self.target_net(next_state_batch).detach(), dim=1)[0]
         q_eval = self.net(state_batch).gather(1, action_batch)
@@ -126,6 +156,11 @@ class DQN(object):
         loss.backward()
         self.optim.step()
 
+    def get_q_values(self, state):
+        with torch.no_grad():  # no gradient cal when evaluating
+            state_tensor = torch.Tensor(state).view(-1)
+            return self.net(state_tensor).numpy()
+
 
 font = cv2.FONT_HERSHEY_COMPLEX_SMALL 
 
@@ -133,11 +168,23 @@ class SPEEnvironment(Env):
     def __init__(self, stepsPerEpisode):
         super(SPEEnvironment, self).__init__()
 
+        self.valuesPerObservation = 7
+        # metrics = 4
+
         # Define a 2-D observation space
         # states: injection rate, latency, compression, CPU consumption
-        self.observation_space = spaces.Box(low = np.array([0,0,0,0]), 
-                                            high = np.array([np.inf, np.inf, 100, 100]),
+        self.observation_space = spaces.Box(low = np.array([np.zeros(self.valuesPerObservation),
+                                                            np.zeros(self.valuesPerObservation),
+                                                            np.zeros(self.valuesPerObservation),
+                                                            np.zeros(self.valuesPerObservation)]), 
+                                            high = np.array([np.full(self.valuesPerObservation, np.inf),
+                                                             np.full(self.valuesPerObservation, np.inf),
+                                                             np.full(self.valuesPerObservation, 100),
+                                                             np.full(self.valuesPerObservation, 100)]),
                                             dtype = np.float32)
+        # self.observation_space = spaces.Box(low = np.array([0,0,0,0]), 
+        #                                     high = np.array([np.inf, np.inf, 100, 100]),
+        #                                     dtype = np.float32)
         
         # Define an action space ranging from 0 to 11
         # 0 means set compression to 0%
@@ -146,7 +193,7 @@ class SPEEnvironment(Env):
         # 10 means set compression to 100%
         self.action_space = spaces.Discrete(11,)
 
-        self.consumer = KafkaStatsConsumer()
+        self.consumer = KafkaStatsConsumer(self.valuesPerObservation)
         self.producer = KafkaActionsProducer(self.consumer)
 
         self.stepsPerEpisode = stepsPerEpisode
@@ -160,14 +207,13 @@ class SPEEnvironment(Env):
         # Start the consumer thread
         self.consumer.start_consumer()
 
-        # track latency
-        self.latency_threshold = 1000
-        self.latency_counter = 0
+        # track negative reward
+        self.negative_reward_counter = 0
 
     def reset(self):
 
-        #reset latency counter
-        self.latency_counter = 0
+        #reset negative reward counter
+        self.negative_reward_counter = 0
 
         # Send the reset
         self.producer.produce("reset")
@@ -184,7 +230,11 @@ class SPEEnvironment(Env):
             with self.consumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by other threads
                 # print('self.consumer.tracker.state is not None',(self.consumer.tracker.state is not None),'self.consumer.tracker.last_time',self.consumer.tracker.last_time,'self.prev_stat_time',self.prev_stat_time)
                 if self.consumer.tracker.state is not None and self.consumer.tracker.last_time > self.prev_stat_time:
-                    print('Got a new state/reward pair:',self.consumer.tracker.last_time,self.consumer.tracker.state,self.consumer.tracker.reward,flush=True)
+                    print('Got a new state/reward pair:',self.consumer.tracker.last_time)
+                    for row in self.consumer.tracker.state:
+                        print ([f'{num:.2f}' for num in row])
+                    print('reward',self.consumer.tracker.reward,flush=True)
+                    # print('Got a new state/reward pair:',self.consumer.tracker.last_time,self.consumer.tracker.state,self.consumer.tracker.reward,flush=True)
                     state_measurement_available = True
 
         # Reset the reward
@@ -212,17 +262,19 @@ class SPEEnvironment(Env):
             with self.consumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by other threads
                 # print('self.consumer.tracker.state is not None',(self.consumer.tracker.state is not None),'self.consumer.tracker.last_time',self.consumer.tracker.last_time,'self.prev_stat_time',self.prev_stat_time)
                 if self.consumer.tracker.state is not None and self.consumer.tracker.last_time > self.prev_stat_time:
-                    print('Got a new state/reward pair:',self.consumer.tracker.last_time,self.consumer.tracker.state,self.consumer.tracker.reward,flush=True)
+                    # print('Got a new state/reward pair:',self.consumer.tracker.last_time,self.consumer.tracker.state,self.consumer.tracker.reward,flush=True)
+                    print('Got a new state/reward pair:',self.consumer.tracker.last_time)
+                    for row in self.consumer.tracker.state:
+                        print ([f'{num:.2f}' for num in row])
+                    print('reward',self.consumer.tracker.reward,flush=True)
                     state_measurement_available = True
         
-        # update latency counter
-        if self.consumer.tracker.state[1] > self.latency_threshold:
-            self.latency_counter += 1
-        else:
-            self.latency_counter = 0
+        # update negative reward counter
+        if self.consumer.tracker.reward < 0:
+            self.negative_reward_counter += 1
         
-        # check if latency is greater than 1 second in three consecutive steps
-        if self.latency_counter >= 3:
+        # check if need to end this episode
+        if self.negative_reward_counter >= 3:
             done = True
         else:
             done = False
@@ -243,11 +295,13 @@ class SPEEnvironment(Env):
 
 
 class MeasurementTracker:
-    def __init__(self):
+    def __init__(self, valuesPerObservation):
         self.last_time = None
         self.state = None
         self.reward = None
         self.data_lock = threading.Lock()
+        self.valuesPerObservation = valuesPerObservation
+
 
     def process_input(self, input_str):
 
@@ -260,10 +314,12 @@ class MeasurementTracker:
 
             # Extract timestamp as an integer
             self.last_time = time.time()
-            # Convert the string to a list of doubles
+            # Split the string and create a list of floats, replacing -1 with np.nan
+            # doubles_list = [np.nan if float(x) == -1.0 else float(x) for x in parts[0].split(',')]
+            # Convert the string to a list of floats without replacing -1.0 with np.nan
             doubles_list = [float(x) for x in parts[0].split(',')]
-            # Convert the list to a NumPy array of float32
-            self.state =  np.array(doubles_list, dtype=np.float32)
+            # Convert the list to a NumPy array of float32 and reshape it to 4x7
+            self.state = np.array(doubles_list, dtype=np.float32).reshape(4, self.valuesPerObservation)
             self.reward = int(parts[1])
 
 class KafkaActionsProducer:
@@ -272,20 +328,16 @@ class KafkaActionsProducer:
         self.actions_topic = actions_topic
         self.producer = Producer({'bootstrap.servers': self.bootstrap_servers})
         self.statsConsumer = statsConsumer
-        # self.prev_stat_time = None
-        # self.max_D = 600
-        # self.action_D = 600
-        # self.actionsPerEpisode = 15;
+
 
     def produce(self, action):
         self.producer.produce(self.actions_topic, key=str(time.time()), value=action)
         self.producer.flush()
 
-
-
 class KafkaStatsConsumer:
-    def __init__(self, bootstrap_servers='michelangelo.cse.chalmers.se:9092', stats_topic='stats', group_id='0'):
-        self.tracker = MeasurementTracker()
+    def __init__(self, valuesPerObservation, bootstrap_servers='michelangelo.cse.chalmers.se:9092', stats_topic='stats', group_id='0'):
+        self.valuesPerObservation = valuesPerObservation
+        self.tracker = MeasurementTracker(self.valuesPerObservation)
         self.bootstrap_servers = bootstrap_servers
         self.stats_topic = stats_topic
         self.group_id = group_id
@@ -339,13 +391,14 @@ if __name__ == "__main__":
     
 
     env = SPEEnvironment(int(args.steps))
-    Agent = DQN(env.observation_space.shape[0], 256, env.action_space.n)
+    input_shape = (4, 7)
+    Agent = DQN(input_shape, 256, env.action_space.n)
 
     # load saved net's paras after 50 episodes
-    model_file = 'image/Exp3/Exp3_paras/dqn_model_episode_260.pth'
-    if os.path.exists(model_file):
-        Agent.net.load_state_dict(torch.load(model_file))
-        print("loaded net's paras...")
+    # model_file = 'image/Exp3/Exp3_paras/dqn_model_episode_260.pth'
+    # if os.path.exists(model_file):
+    #     Agent.net.load_state_dict(torch.load(model_file))
+    #     print("loaded net's paras...")
    
     if args.agentstate is not None:
         Agent.net.load_state_dict(torch.load(args.agentstate))
@@ -353,23 +406,24 @@ if __name__ == "__main__":
     average_reward = 0  # average reward of all episodes
 
     # create folder to store paras
-    folder_name = 'data/output/5/600/5000000000/0/25000/601/Exp3_paras (261-300)'
+    folder_name = 'data/output/5/600/5000000000/0/25000/601/Exp5.1_paras (1-100)'
     if not os.path.exists(folder_name):
         os.makedirs(folder_name) 
 
     # create folder to store q value plots
-    folder_name = 'data/output/5/600/5000000000/0/25000/601/Exp3_q_value_plots (261-300)'
+    folder_name = 'data/output/5/600/5000000000/0/25000/601/Exp5.1_q_value_plots (1-100)'
     if not os.path.exists(folder_name):
         os.makedirs(folder_name)
 
-    for i_episode in range(260,260 + int(args.episodes)):
+    for i_episode in range(0, int(args.episodes)):
         print('starting episode',i_episode + 1)
         s0 = env.reset()
+        s0 = s0.reshape(-1)
         tot_reward = 0  # total reward per episode
         tot_time = 0  # actual processing time per episode
         step_count = 0 # count the number of steps in every episode
 
-        plt.figure()
+        # plt.figure()
         steps = [] # store the steps for plotting
        # steps = [int (step) for step in steps] # guarantee the step is integer
         q_values_history = [[] for _ in range(env.action_space.n)]
@@ -378,6 +432,7 @@ if __name__ == "__main__":
             a0 = Agent.select_action(s0)
             #s1, r, done, _ = env.step(a0)
             q_values = Agent.net(torch.Tensor(s0))
+            print(f"Step {step_count + 1}, Action {a0}, Q values: {q_values}") 
 
             steps.append(step_count)
 
@@ -409,10 +464,23 @@ if __name__ == "__main__":
                 Agent.update_parameters()
             
             if done == True:
+                # plt.figure()
+                # for i, q_values in enumerate(q_values_history):
+                #     if len(q_values) > 0:
+                #         q_values = np.array(q_values).flatten()
+                #         plt.plot(steps, q_values, label = f'Action {i}')
+                #         # saving q value plots
+                # # saving q value plots
+                # plt.xlabel('Stpes')
+                # plt.ylabel('Q Values')
+                # plt.title(f'Q Values Over Episodes (Episode {i_episode + 1})')
+                # plt.legend()
+                # file_path = os.path.join(folder_name, f'exp5_q_values_plot_{i_episode + 1}.png')
+                # plt.savefig(file_path)
+                # plt.close()
                 average_reward = average_reward + 1 / (i_episode + 1) * (
                         tot_reward - average_reward)
-                if ((i_episode + 1) % 2 == 0):
-                    print('Episode ', i_episode + 1, 'tot_time: ', tot_time,
+                print('Episode ', i_episode + 1, 'tot_time: ', tot_time,
                       ' tot_reward: ', tot_reward, ' average_reward: ',
                       average_reward)
                 break
@@ -425,20 +493,8 @@ if __name__ == "__main__":
         if (i_episode + 1) % 10 == 0: 
             # torch.save(Agent.net.state_dict(), 'data/output/5/600/110000000/0/25000/601/dqn_model.pth')
             # this might the correct one to save model paras every 10 episodes
-            filename = 'data/output/5/600/5000000000/0/25000/601/Exp3_paras (261-300)/dqn_model_episode_{}.pth'.format(i_episode + 1)
-            torch.save(Agent.net.state_dict(), filename)
-
-        for i, q_values in enumerate(q_values_history):
-                plt.plot(steps, q_values, label = f'Action {i}')
-
-        # saving q value plots
-        plt.xlabel('Stpes')
-        plt.ylabel('Q Values')
-        plt.title(f'Q Values Over Episodes (Episode {i_episode + 1})')
-        plt.legend()
-        file_path = os.path.join(folder_name, f'exp3_q_values_plot_{i_episode + 1}.png')
-        plt.savefig(file_path)
-        plt.close()
+            filename = 'data/output/5/600/5000000000/0/25000/601/Exp5.1_paras (1-100)/dqn_model_episode_{}.pth'.format(i_episode + 1)
+            torch.save(Agent.net.state_dict(), filename)     
 
     print('closing')
     env.close()
