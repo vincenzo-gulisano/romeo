@@ -10,12 +10,11 @@ awk -F',' 'BEGIN {OFS=","; sum=0} {sum += $2; print $1, sum}' ${exp_folder}/rewa
 awk -F',' 'NR > 1 { print $1 "," ($2 < 1000 ? 0 : 1) }' ${exp_folder}/latency.average.csv > ${exp_folder}/latency.violations.csv
 
 echo "Creating plots"
-episodes_as_list=$(seq -s, 0 $((episodes-1)))
-python plotting/plot_experiment_stats_exp5.py --print_global_events ${exp_folder}/ ${episodes_as_list} ${exp_folder}/episodesstats.csv 
+python plotting/plot_experiment_stats_exp5.py --print_global_events ${exp_folder}/ ${exp_folder}/episodesstats.csv 
 
-# python plotting/append_episodesstatscsv_to_global_one.py ${exp_folder}/episodesstats.csv ${base_exp_folder}/compressionandepisodesstats.csv DQNAgent-081-180
+python plotting/append_episodesstatscsv_to_global_one.py ${exp_folder}/episodesstats.csv ${base_exp_folder}/compressionandepisodesstats.csv DQNAgent
 
-# python plotting/create_stat_episodes_boxplot_for_compressions.py ${base_exp_folder}/compressionandepisodesstats.csv ${base_exp_folder}/ rewards
-# python plotting/create_stat_episodes_boxplot_for_compressions.py ${base_exp_folder}/compressionandepisodesstats.csv ${base_exp_folder}/ steps
-# python plotting/create_stat_episodes_boxplot_for_compressions.py ${base_exp_folder}/compressionandepisodesstats.csv ${base_exp_folder}/ observedcompression
-# python plotting/create_stat_episodes_boxplot_for_compressions.py ${base_exp_folder}/compressionandepisodesstats.csv ${base_exp_folder}/ latency.average
+python plotting/create_stat_episodes_boxplot_for_compressions.py ${base_exp_folder}/compressionandepisodesstats.csv ${base_exp_folder}/ rewards
+python plotting/create_stat_episodes_boxplot_for_compressions.py ${base_exp_folder}/compressionandepisodesstats.csv ${base_exp_folder}/ ratio.percent
+python plotting/create_stat_episodes_boxplot_for_compressions.py ${base_exp_folder}/compressionandepisodesstats.csv ${base_exp_folder}/ latency.average
+python plotting/create_stat_episodes_boxplot_for_compressions.py ${base_exp_folder}/compressionandepisodesstats.csv ${base_exp_folder}/ steps

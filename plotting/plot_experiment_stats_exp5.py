@@ -4,14 +4,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-def plot_files_in_folder(folder,episodes,episodesstatsfile,print_global_events,print_episode_events):
+def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_episode_events):
 
-    print('Gathering valid CSV files')
-    # Get all CSV files with 2 columns and only numerical values
-    csv_files = [file for file in os.listdir(folder) if file.endswith('.csv')]
     valid_csv_files = []
 
-    for file in csv_files:
+    csv_files_to_process = ['injectionrate.rate.csv','throughput.count.csv','actions.csv','CPU-agg.average.csv','latency.average.csv','ratio.percent.csv','rewards.csv','cumulativereward.csv','latency.violations.csv']
+
+    for file in csv_files_to_process:
         file_path = os.path.join(folder, file)
         try:
             df = pd.read_csv(file_path)
@@ -41,8 +40,14 @@ def plot_files_in_folder(folder,episodes,episodesstatsfile,print_global_events,p
 
     episodes_df['ts'] -= min_value
 
+    # Set the size of the figure
+    fig1, ax1 = plt.subplots(len(valid_csv_files),1,figsize=(highest_episode, len(valid_csv_files)*2), sharex=True)
+
+    # Set the size of the figure
+    fig2, ax2 = plt.subplots(len(valid_csv_files),1,figsize=(highest_episode, len(valid_csv_files)*2), sharex=True)
+
     # Plot each valid CSV file
-    for file_path in valid_csv_files:
+    for i,file_path in enumerate(valid_csv_files):
         df = pd.read_csv(file_path)
         x_label = 'Time (s)'
         y_label = os.path.splitext(os.path.basename(file_path))[0]
@@ -50,129 +55,132 @@ def plot_files_in_folder(folder,episodes,episodesstatsfile,print_global_events,p
         # Adjust the values by subtracting the minimum value
         df.iloc[:, 0] -= min_value
 
-        # Plotting
-
-        # Set the size of the figure
-        fig, ax = plt.subplots(figsize=(highest_episode, 1.9))
-
-        ax.plot(df.iloc[:, 0], df.iloc[:, 1], label=y_label)
-        ax.set_xlabel(x_label)
-        ax.set_ylabel(y_label)
+        # Plotting for fig 1
+        ax1[i].plot(df.iloc[:, 0], df.iloc[:, 1], label=y_label)
+        ax1[i].set_xlabel(x_label)
+        ax1[i].set_ylabel(y_label)
         # plt.yscale('log')
         
         # Add vertical lines for each ts in episodes.csv
         if print_global_events:
             for index, row in episodes_df.iterrows():
                 if row['event']=='start' or row['event']=='end':
-                    ax.axvline(row['ts'], linestyle='--', color='red')
-                    ax.text(row['ts'], df.iloc[:, 1].max(), f"{row['episode']}: {row['event']}", rotation=90, color='red')
+                    ax1[i].axvline(row['ts'], linestyle='--', color='red')
+                    ax1[i].text(row['ts'], (df.iloc[:, 1].min()+df.iloc[:, 1].max())/2, f"{row['episode']}: {row['event']}", rotation=90, color='red')
 
-        # ax.legend()
-        ax.set_title(f'Plot for {os.path.basename(file_path)}')
+        if i==0:
+            ax1[i].set_title(f'Plot for {os.path.basename(file_path)}')
 
-        plt.savefig(f"{os.path.splitext(file_path)[0]}.pdf")
-        plt.close()
+        x_episode_offset = 0
 
-    # Iterate through unique episode values in episodes_df
-    for episode_value in episodes_df['episode'].unique():
-
-        if (episode_value in episodes):
+        # Iterate through unique episode values in episodes_df
+        for episode_value in episodes_df['episode'].unique():
 
             # Initialize an empty list to store statistics
             stats = []
 
-            # print('Creating detailed graphs for episode',episode_value)
-            
-            # # Create a subfolder for each unique episode value
-            # episode_folder = os.path.join(folder, str(episode_value))
-            # os.makedirs(episode_folder, exist_ok=True)
-
             # Filter episodes_df for the current episode value
             episode_data = episodes_df[episodes_df['episode'] == episode_value]
 
-            # Count the number of entries that start with 'action' in the 'event' column
-            action_count = episode_data[episode_data['event'].str.startswith('action')].shape[0]
+            # Check if both 'start' and 'end' events exist for this episode
+            has_start = (episode_data['event'] == 'start').any()
+            has_end = (episode_data['event'] == 'end').any()
 
-            # Append episode statistic about number of steps
-            stats.append({'episode': episode_value, 'stat': 'steps', 'mean': action_count,  'sum': action_count,  'max': action_count})
+            if has_start and has_end:
 
-            # csv_files_to_process = ['injectionrate.rate.csv','throughput.count.csv','actions.csv','CPU-agg.average.csv','latency.average.csv','ratio.percent.csv','observedlatency.csv','observedcompression.csv','rewards.csv','cumulativereward.csv','latency.violations.csv']
-            csv_files_to_process = ['injectionrate.rate.csv','throughput.count.csv','actions.csv','CPU-agg.average.csv','latency.average.csv','ratio.percent.csv','rewards.csv','cumulativereward.csv','latency.violations.csv']
+                # Count the number of entries that start with 'action' in the 'event' column
+                action_count = episode_data[episode_data['event'].str.startswith('action')].shape[0]
 
-            # Set the size of the figure
-            # fig, axs = plt.subplots(len(csv_files_to_process), 1, figsize=(10, 3 * len(csv_files_to_process)))
+                # Append the steps stat only for the first csv, no need to append it every time
+                if i == 0:
+                    stats.append({'episode': episode_value, 'stat': 'steps', 'mean': action_count,  'sum': action_count,  'max': action_count})
 
-            # Plot each valid CSV file for the current episode value
-            for i, basename in enumerate(csv_files_to_process):
-
-                file_path = next((f for f in valid_csv_files if os.path.basename(f) == basename), None)
-    
-                df = pd.read_csv(file_path)
-                # x_label = 'Time (s)'
-                # y_label = os.path.splitext(os.path.basename(file_path))[0]
-                
-                # Adjust the values by subtracting the minimum value
-                df.iloc[:, 0] -= min_value
-
-                # axs[i].set_xlabel(x_label)
-                # axs[i].set_ylabel(y_label)
-                
                 # Filter data based on the 'start' and 'stop' columns in episode_data
                 # for _, episode_entry in episode_data.iterrows(): ### COMMENTED THIS BECAUSE I THINK IT IS NOT NEEDED
                 start_time = episode_data[episode_data['event'] == 'start'].iloc[:, 0].values[0]
                 stop_time = episode_data[episode_data['event'] == 'end'].iloc[:, 0].values[0]
-                
+            
                 # print('episode',episode_value,'start',start_time,'end',stop_time)
                 temp_df = df[(df.iloc[:, 0] >= start_time) & (df.iloc[:, 0] <= stop_time)]
-                # moving_avg = temp_df.iloc[:, 1].rolling(window=10).mean()
-                # print('data',temp_df)
-                # Plot only the data between 'start' and 'stop'
-                # axs[i].plot(temp_df.iloc[:, 0],
-                #         temp_df.iloc[:, 1],
-                #         label=f"{y_label} - Episode {episode_value}", linewidth=0.5)
-                # axs[i].plot(temp_df.iloc[:, 0], moving_avg, label=f"{y_label} - Episode {episode_value} (Moving Avg)", linewidth=1)
 
+                # Create X axis as a range from start_time to stop_time by increments of 1
+                X = np.arange(start_time, stop_time + 1)
+
+                # Create a DataFrame with X axis and initialize Y axis with NaN
+                new_df = pd.DataFrame({'X': X, 'Y': np.nan})
+
+                # Update Y values in new_df based on temp_df
+                for x in X:
+                    if x in temp_df.iloc[:, 0].values:
+                        # Filter temp_df to find rows where the first column matches x
+                        matching_rows = temp_df[temp_df.iloc[:, 0] == x]
+                        if not matching_rows.empty:
+                            # Extract the first matching row's index for clarity
+                            first_matching_index = matching_rows.index[0]
+                            # Ensure we access the row safely
+                            y_value = matching_rows.at[first_matching_index, temp_df.columns[1]]
+                            # print(x, first_matching_index, y_value)
+                            # Update the Y value for this x
+                            new_df.loc[new_df['X'] == x, 'Y'] = y_value
+
+
+                # Plot
+                ax2[i].plot(new_df.iloc[:, 0]-start_time+x_episode_offset,new_df.iloc[:, 1])
+                
+                ax2[i].axvline(x_episode_offset, linestyle='--', color='red')
+                ax2[i].text(x_episode_offset, (new_df.iloc[:, 1].min()+new_df.iloc[:, 1].max())/2, f"Episode {episode_value}", rotation=90, color='red')
+
+                ax2[i].set_xlabel(x_label)
+                ax2[i].set_ylabel(y_label)
+
+                # adjust offset for x axes
+                x_episode_offset+=stop_time-start_time
 
                 # Append episode statistics to the list
                 stats.append({'episode': episode_value, 'stat': os.path.splitext(os.path.basename(file_path))[0], 'mean': np.mean(temp_df.iloc[:, 1]),  'sum': np.sum(temp_df.iloc[:, 1]),  'max': np.max(temp_df.iloc[:, 1])})
 
 
-                # Add vertical lines for each ts in episodes.csv
-                # if print_episode_events:
-                #     for _, row in episode_data.iterrows():
-                #         axs[i].axvline(row['ts'], linestyle='--', color='red')
-                #         axs[i].text(row['ts'], temp_df.iloc[:, 1].max(), f"{row['episode']}: {row['event']}", rotation=90, color='red')
+                    # Add vertical lines for each ts in episodes.csv
+                    # if print_episode_events:
+                    #     for _, row in episode_data.iterrows():
+                    #         axs[i].axvline(row['ts'], linestyle='--', color='red')
+                    #         axs[i].text(row['ts'], temp_df.iloc[:, 1].max(), f"{row['episode']}: {row['event']}", rotation=90, color='red')
 
-                # ax.legend()
-                # axs[i].set_title(f'Plot for {os.path.basename(file_path)} - Episode {episode_value}')
+                    # ax.legend()
+                    # axs[i].set_title(f'Plot for {os.path.basename(file_path)} - Episode {episode_value}')
 
-            # plt.savefig(os.path.join(episode_folder, f"episode_{episode_value}.pdf"))
-            # plt.savefig(os.path.join(episode_folder, f"episode_{episode_value}.png"))
-            # plt.close()
+                # plt.savefig(os.path.join(episode_folder, f"episode_{episode_value}.pdf"))
+                # plt.savefig(os.path.join(episode_folder, f"episode_{episode_value}.png"))
+                # plt.close()
 
-            # Convert the list of dictionaries to a DataFrame
-            stats_df = pd.DataFrame(stats)
+                # Convert the list of dictionaries to a DataFrame
+                stats_df = pd.DataFrame(stats)
 
-            # Append the DataFrame to the output CSV file
-            stats_df.to_csv(episodesstatsfile, mode='a', index=False, header=not os.path.exists(episodesstatsfile))
-            
+                # Append the DataFrame to the output CSV file
+                stats_df.to_csv(episodesstatsfile, mode='a', index=False, header=not os.path.exists(episodesstatsfile))
+
+
+        
+    fig1.tight_layout()
+    fig2.tight_layout()
+        # Ensure subplots are close to each other and adjust left and right margins
+    fig1.subplots_adjust(hspace=0, left=0.07, right=0.93)
+    fig2.subplots_adjust(hspace=0, left=0.07, right=0.93)
+    fig1.savefig(os.path.join(folder, 'stats_global.pdf'))
+    fig2.savefig(os.path.join(folder, 'stats_episodes.pdf'))
+    plt.close()
+
+    
             
     print("Plots saved successfully.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Plot valid CSV files in a folder.')
     parser.add_argument('folder', type=str, help='The folder containing CSV files.')
-    parser.add_argument('episodes', type=str, help='Episodes for which detailed stats should be created')
     parser.add_argument('episodesstats', type=str, help='Output CSV file for episodes stats')
     parser.add_argument('--print_global_events', action='store_true', help='Print episodes and events')
     parser.add_argument('--print_episode_events', action='store_true', help='Print episodes and events')
 
     args = parser.parse_args()
 
-        # Split the string into a list of strings
-    episodes_string = args.episodes.split(',')
-
-    # Convert each string value to an integer
-    episodes = [int(value) for value in episodes_string]
-
-    plot_files_in_folder(args.folder,episodes,args.episodesstats,args.print_global_events,args.print_episode_events)
+    plot_files_in_folder(args.folder,args.episodesstats,args.print_global_events,args.print_episode_events)
