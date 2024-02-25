@@ -47,11 +47,20 @@ def create_boxplot(input_csv, output_folder, stat, measure, continue_episodes_ac
             offset=offset+group_data['episode'].iloc[-1]+1
 
     if continue_episodes_across_ids:
+        
         #calculate equation for trendline
         # print(xs)
         z = np.polyfit(xs, ys, 1)
         p = np.poly1d(z)
         plt.plot(xs,p(xs))
+        z = np.polyfit(xs, ys, 5)
+        p = np.poly1d(z)
+        plt.plot(xs,p(xs))
+
+        # If you want a moving average instead
+        # window_size = 5  # Choose your window size for the moving average
+        # moving_averages = np.convolve(ys, np.ones(window_size)/window_size, mode='same')
+        # plt.plot(xs, moving_averages, color='red')
 
     plt.xlabel('Episode')
     plt.ylabel(f'{measure} Values for {stat}')

@@ -44,7 +44,7 @@ def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_epis
     fig1, ax1 = plt.subplots(len(valid_csv_files),1,figsize=(highest_episode, len(valid_csv_files)*2), sharex=True)
 
     # Set the size of the figure
-    fig2, ax2 = plt.subplots(len(valid_csv_files),1,figsize=(highest_episode, len(valid_csv_files)*2), sharex=True)
+    # fig2, ax2 = plt.subplots(len(valid_csv_files),1,figsize=(highest_episode, len(valid_csv_files)*2), sharex=True)
 
     # Plot each valid CSV file
     for i,file_path in enumerate(valid_csv_files):
@@ -71,10 +71,22 @@ def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_epis
         if i==0:
             ax1[i].set_title(f'Plot for {os.path.basename(file_path)}')
 
-        x_episode_offset = 0
+    # Iterate through unique episode values in episodes_df
+    for episode_value in episodes_df['episode'].unique():
 
-        # Iterate through unique episode values in episodes_df
-        for episode_value in episodes_df['episode'].unique():
+        # Set the size of the figure
+        fig2, ax2 = plt.subplots(len(valid_csv_files),1,figsize=(4, len(valid_csv_files)), sharex=True)
+
+        # Plot each valid CSV file
+        for i,file_path in enumerate(valid_csv_files):
+            
+            df = pd.read_csv(file_path)
+            x_label = 'Time (s)'
+            y_label = os.path.splitext(os.path.basename(file_path))[0]
+            
+
+            # Adjust the values by subtracting the minimum value
+            df.iloc[:, 0] -= min_value
 
             # Initialize an empty list to store statistics
             stats = []
@@ -125,16 +137,16 @@ def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_epis
 
 
                 # Plot
-                ax2[i].plot(new_df.iloc[:, 0]-start_time+x_episode_offset,new_df.iloc[:, 1])
+                ax2[i].plot(new_df.iloc[:, 0]-start_time,new_df.iloc[:, 1])
                 
-                ax2[i].axvline(x_episode_offset, linestyle='--', color='red')
-                ax2[i].text(x_episode_offset, (new_df.iloc[:, 1].min()+new_df.iloc[:, 1].max())/2, f"Episode {episode_value}", rotation=90, color='red')
+                ax2[i].axvline(0, linestyle='--', color='red')
+                ax2[i].text(0, (new_df.iloc[:, 1].min()+new_df.iloc[:, 1].max())/2, f"Episode {episode_value}", rotation=90, color='red')
 
                 ax2[i].set_xlabel(x_label)
                 ax2[i].set_ylabel(y_label)
 
                 # adjust offset for x axes
-                x_episode_offset+=stop_time-start_time
+                # x_episode_offset+=stop_time-start_time
 
                 # Append episode statistics to the list
                 stats.append({'episode': episode_value, 'stat': os.path.splitext(os.path.basename(file_path))[0], 'mean': np.mean(temp_df.iloc[:, 1]),  'sum': np.sum(temp_df.iloc[:, 1]),  'max': np.max(temp_df.iloc[:, 1])})
@@ -159,19 +171,19 @@ def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_epis
                 # Append the DataFrame to the output CSV file
                 stats_df.to_csv(episodesstatsfile, mode='a', index=False, header=not os.path.exists(episodesstatsfile))
 
+        fig2.tight_layout()
+            # Ensure subplots are close to each other and adjust left and right margins
+        fig2.subplots_adjust(hspace=0)
+        fig2.savefig(os.path.join(folder, f'episode{episode_value:03}.pdf'))
+        plt.close()
 
         
     fig1.tight_layout()
-    fig2.tight_layout()
         # Ensure subplots are close to each other and adjust left and right margins
     fig1.subplots_adjust(hspace=0, left=0.07, right=0.93)
-    fig2.subplots_adjust(hspace=0, left=0.07, right=0.93)
     fig1.savefig(os.path.join(folder, 'stats_global.pdf'))
-    fig2.savefig(os.path.join(folder, 'stats_episodes.pdf'))
     plt.close()
 
-    
-            
     print("Plots saved successfully.")
 
 if __name__ == "__main__":
