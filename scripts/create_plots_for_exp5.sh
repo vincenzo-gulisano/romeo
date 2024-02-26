@@ -1,10 +1,10 @@
 #!/bin/bash
 base_exp_folder="./data/jingyu/exp5.1"
-exp_folder="${base_exp_folder}/001-100"
+exp_folder="${base_exp_folder}/101-600"
 episodes=100
 
-rm ${exp_folder}/episodesstats.csv 
-rm ${base_exp_folder}/compressionandepisodesstats.csv
+# rm ${exp_folder}/episodesstats.csv 
+# rm ${base_exp_folder}/compressionandepisodesstats.csv
 
 echo "Creating extra stats"
 grep -Eo '[0-9]+,[0-9]+,action [0-9]+' ${exp_folder}/episodes.csv | sed -E 's/,action /,/' | cut -d, -f1,3 > ${exp_folder}/actions.csv
@@ -15,7 +15,7 @@ awk -F',' 'NR > 1 { print $1 "," ($2 < 1000 ? 0 : 1) }' ${exp_folder}/latency.av
 echo "Creating plots"
 python plotting/plot_experiment_stats_exp5.py --print_global_events ${exp_folder}/ ${exp_folder}/episodesstats.csv 
 
-python plotting/append_episodesstatscsv_to_global_one.py ${exp_folder}/episodesstats.csv ${base_exp_folder}/compressionandepisodesstats.csv DQNAgent-001-100
+python plotting/append_episodesstatscsv_to_global_one.py ${exp_folder}/episodesstats.csv ${base_exp_folder}/compressionandepisodesstats.csv DQNAgent-101-600
 
 python plotting/create_stat_episodes_boxplot_for_compressions.py ${base_exp_folder}/compressionandepisodesstats.csv ${base_exp_folder}/ rewards
 python plotting/create_stat_episodes_boxplot_for_compressions.py ${base_exp_folder}/compressionandepisodesstats.csv ${base_exp_folder}/ ratio.percent

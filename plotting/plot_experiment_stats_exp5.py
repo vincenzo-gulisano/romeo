@@ -71,6 +71,10 @@ def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_epis
         if i==0:
             ax1[i].set_title(f'Plot for {os.path.basename(file_path)}')
 
+    # Create a subfolder for each unique episode value
+    episode_folder = os.path.join(folder, 'eps')
+    os.makedirs(episode_folder, exist_ok=True)
+
     # Iterate through unique episode values in episodes_df
     for episode_value in episodes_df['episode'].unique():
 
@@ -174,7 +178,7 @@ def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_epis
         fig2.tight_layout()
             # Ensure subplots are close to each other and adjust left and right margins
         fig2.subplots_adjust(hspace=0)
-        fig2.savefig(os.path.join(folder, f'episode{episode_value:03}.pdf'))
+        fig2.savefig(os.path.join(episode_folder, f'episode{episode_value:03}.png'))
         plt.close()
 
         

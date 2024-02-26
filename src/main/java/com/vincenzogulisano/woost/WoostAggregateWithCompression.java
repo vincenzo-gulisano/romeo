@@ -54,6 +54,11 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
 
     private Metric maxEventTimeMetric;
 
+    // This new field is added to keep track of the latest event time
+    // It is set to -1 upon reset
+    // TODO It is probably redundant, latestTimestamp might do
+    private volatile long latestEventTime;
+
     private TreeMap<Long, Set<String>> tsKeys;
     private HashMap<String, Long> keyLatestTs;
 
@@ -134,6 +139,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         tsKeys = new TreeMap<>();
         keyLatestTs = new HashMap<>();
         earliestWinLeftBoundary = -1;
+        latestEventTime = -1;
         windowsMetric.reset();
         tuplesMetric.reset();
         memoryMetric.reset();
@@ -413,11 +419,12 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
             logger.debug("Now updating metrics");
         }
         // Update metrics
+        latestEventTime = t.getTimestamp();
         memoryMetric.record(memoryChange);
         decompressionMetric.record(decompressions);
         tuplesMetric.record(tuplesChange);
         compressionsMetric.record(compressions);
-        maxEventTimeMetric.record(t.getTimestamp());
+        maxEventTimeMetric.record(latestEventTime);
         windowsMetric.record(windowsChange);
         compressionRatio.record((long) (((double) uncompressedWins.size() * 100)
                 / ((double) compressedWins.size() + (double) uncompressedWins.size())));
@@ -470,9 +477,10 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         return result;
     }
 
-    public void changeD(long v) {
+    public long changeD(long v) {
         logger.debug("Storing change request to d:" + v);
         dUpdates.add(v);
+        return latestEventTime;
     }
 
     public HashMap<String, Consumer<Object[]>> setStatReporter(StatReporter reporter) {

@@ -166,7 +166,11 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         logger.debug("SPE - changeD invoked");
         episodesLogger.writeActionEvent(Long.toString(v));
         long newCompression = (long) ((double) ws * ((double) v / 10.0));
-        woostAgg.changeD(newCompression);
+        long latestEventTime = woostAgg.changeD(newCompression);
+        long latestClockTime = System.currentTimeMillis() / 1000;
+        logger.debug(
+                "At D change, event time {} and clock time {}. Next state should be reported only if event time >= {} and clock time >= {}",
+                latestEventTime, latestClockTime, latestEventTime + 2, latestClockTime + 2);
     }
 
     @Override
@@ -213,7 +217,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         logger.debug("Got Ack from the Agg");
         sink.reset();
         // while (!sink.getResetAck()) {
-        //     Util.sleep(500);
+        // Util.sleep(500);
         // }
         logger.debug("Sink reset");
 
@@ -222,7 +226,6 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
 
         logger.debug("Reset compression threshold of the Aggregate to " + compressionThreshold);
         woostAgg.changeD(compressionThreshold);
-
 
         logger.debug("Sleeping 2 seconds before giving green light for state filling tuples");
         Util.sleep(2000);
