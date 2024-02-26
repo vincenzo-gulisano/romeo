@@ -52,6 +52,8 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
     public EpisodesLogger episodesLogger;
 
     protected AtomicInteger sendStateTokens;
+    protected long clockTimeBarrier;
+    protected long eventTimeBarrier;
     protected final String separator;
 
     protected ReentrantLock lock;
@@ -95,9 +97,16 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
         resetVariables();
     }
 
-    public void addSendStateToken() {
+    public void addSendStateToken(long clockTimeBarrier, long eventTimeBarrier) {
+        if (this.sendStateTokens.get() != 0) {
+            logger.fatal("Cannot add a state token if one is already defined!");
+            throw new RuntimeException("Cannot add a state token if one is already defined!");
+        }
         this.sendStateTokens.incrementAndGet();
-        logger.debug("added send state token, current value is {}", sendStateTokens.get());
+        this.clockTimeBarrier = clockTimeBarrier;
+        this.eventTimeBarrier = eventTimeBarrier;
+        logger.debug("added send state token, current value is {}, clockTimeBarrier:{}, eventTimeBarrier:{}",
+                sendStateTokens.get(), clockTimeBarrier, eventTimeBarrier);
     }
 
     protected boolean valueIsToBeRegistered(String id, double value) {

@@ -51,7 +51,7 @@ public class JPComm {
         // esc = new LatencyAndRatioDeltaESC(20, producer, "/");
         // esc = new IRLRCPU_ESC(10,producer, "/");
         esc = new IRLRCPUMatrix_ESC(7,producer, "/",7);
-        esc.addSendStateToken();
+        // esc.addSendStateToken();
 
     }
 
@@ -79,10 +79,10 @@ public class JPComm {
                             String action = parts[1];
                             Long change = Long.parseLong(action);
                             actionable.changeD(change);
-                            esc.addSendStateToken();
+                            // esc.addSendStateToken();
                         } else if (parts[0].equals("reset")) {
                             actionable.reset();
-                            esc.addSendStateToken();
+                            // esc.addSendStateToken();
                         } else if (parts[0].equals("close")) {
                             logger.debug("Closing SPE");
                             actionable.close();

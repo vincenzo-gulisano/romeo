@@ -440,6 +440,16 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         return result;
     }
 
+    /**
+     * Returns the latest event time processed by the Aggregate. Or -1 if no tuple
+     * has been processed (possibly after a reset)
+     * 
+     * @return The latest event time
+     */
+    public long getLatestEventTime() {
+        return latestEventTime;
+    }
+
     private WoostTimeWindow<IN, OUT> getWindow(long tL, String k) {
         WoostTimeWindow<IN, OUT> result = null;
         if (compressedWins.containsKey(k)) {

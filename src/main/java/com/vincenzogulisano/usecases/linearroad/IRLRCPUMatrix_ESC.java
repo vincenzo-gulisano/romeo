@@ -26,7 +26,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
     private long lastLTimestamp;
     private double R; // Rate
     private double CPU;
-    private long lastTS;
+    // private long lastTS;
     // private long ts;
 
     private double[][] measurement;
@@ -46,7 +46,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         lastLTimestamp = -1;
         R = -1;
         CPU = -1;
-        lastTS = -1;
+        // lastTS = -1;
         // ts = -1;
     }
 
@@ -84,7 +84,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
 
         List<String> relevantMetrics = new ArrayList<>(Arrays.asList("injectionrate", "latency", "ratio", "CPU-agg"));
 
-        logger.debug("Trying to find the min and max timestamps of the relevant metrics {}", relevantMetrics);
+        // logger.debug("Trying to find the min and max timestamps of the relevant metrics {}", relevantMetrics);
         long minTS = Long.MAX_VALUE;
         long maxTS = Long.MIN_VALUE;
         for (String metric : relevantMetrics) {
@@ -103,19 +103,19 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
             throw new RuntimeException("Could not find a single statistic for the relevant metrics " + relevantMetrics);
         }
         if (maxTS - minTS < valuesPerObservation - 1) {
-            logger.debug("Cannot produce measurements, since I do not have {} values per observation",
-                    valuesPerObservation);
+            // logger.debug("Cannot produce measurements, since I do not have {} values per observation",
+            //         valuesPerObservation);
             return false;
         }
 
         if (minTS <= maxTS - valuesPerObservation) {
             minTS = maxTS - valuesPerObservation + 1;
-            logger.debug("There are more values than needed, changed minTS to {}", minTS);
+            // logger.debug("There are more values than needed, changed minTS to {}", minTS);
         }
 
-        logger.debug("MinTS={} MaxTS={}", minTS, maxTS);
-        logger.debug("Creating a 2d matrix of {}x{} entries and populating it", relevantMetrics.size(),
-                (int) (maxTS - minTS + 1));
+        // logger.debug("MinTS={} MaxTS={}", minTS, maxTS);
+        // logger.debug("Creating a 2d matrix of {}x{} entries and populating it", relevantMetrics.size(),
+        //         (int) (maxTS - minTS + 1));
         measurement = new double[relevantMetrics.size()][(int) (maxTS - minTS + 1)];
         for (int i = 0; i < measurement.length; i++) {
             for (int j = 0; j < measurement[i].length; j++) {
@@ -148,15 +148,15 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
                 switch (id_) {
                     case "injectionrate":
                         IR = (long) avg;
-                        logger.debug("registered injectionrate {}", IR);
+                        // logger.debug("registered injectionrate {}", IR);
                         break;
                     case "ratio":
                         R = avg;
-                        logger.debug("registered ratio {}", R);
+                        // logger.debug("registered ratio {}", R);
                         break;
                     case "CPU-agg":
                         CPU = avg;
-                        logger.debug("registered cpu {}", CPU);
+                        // logger.debug("registered cpu {}", CPU);
                         break;
                     default:
                         break;
@@ -168,22 +168,22 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
                     if (v.getTimestamp() > lastLTimestamp) {
                         L = (long) (v.getValue() > L ? v.getValue() : L);
                         lastLTimestamp = v.getTimestamp();
-                        logger.debug("Found a newer latency for ts:{} and value:{}", lastLTimestamp, L);
+                        // logger.debug("Found a newer latency for ts:{} and value:{}", lastLTimestamp, L);
                     }
                 }
-                logger.debug("registered latency {}", L);
+                // logger.debug("registered latency {}", L);
             }
         }
 
         // Notice I set lastTS + 1 to make sure I send the state when all the
         // measurements for the same second have been received
-        boolean ready = maxTS > lastTS && (L != -1 || R != -1);
-        logger.debug("maxTS {} / lastTS {} / maxTS > lastTS {} / L {} / R {}/ ready {}", maxTS, lastTS,
-                maxTS > lastTS, L,
+        boolean ready = maxTS >= clockTimeBarrier && (L != -1 || R != -1);
+        logger.debug("maxTS {} / clockTimeBarrier {} / maxTS >= clockTimeBarrier {} / L {} / R {}/ ready {}", maxTS, clockTimeBarrier,
+                maxTS >= clockTimeBarrier, L,
                 R, ready);
 
         if (ready) {
-            lastTS = maxTS;
+            // lastTS = maxTS;
 
             String logMsg = "";
             logMsg += "ts" + "\t";

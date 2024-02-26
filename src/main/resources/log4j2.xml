@@ -25,18 +25,18 @@
         <Logger name="com.vincenzogulisano.util.ThreadCPUMonitor" level="debug" additivity="false" includeLocation="true">
             <AppenderRef ref="Console" />
         </Logger>
-        <Logger name="com.vincenzogulisano.javapythoncommunicator.EnvironmentStateCalculator" level="debug" additivity="false" includeLocation="true">
+        <!--Logger name="com.vincenzogulisano.javapythoncommunicator.EnvironmentStateCalculator" level="debug" additivity="false" includeLocation="true">
             <AppenderRef ref="Console" />
-        </Logger>
+        </Logger-->
         <Logger name="com.vincenzogulisano.usecases.linearroad.IRLRCPUMatrix_ESC" level="debug" additivity="false" includeLocation="true">
             <AppenderRef ref="Console" />
         </Logger>
         <Logger name="com.vincenzogulisano.woost.WoostAggregateWithCompression" level="debug" additivity="false" includeLocation="true">
             <AppenderRef ref="Console" />
         </Logger>
-        <Logger name="com.vincenzogulisano.javapythoncommunicator.JPComm" level="debug" additivity="false" includeLocation="true">
+        <!--Logger name="com.vincenzogulisano.javapythoncommunicator.JPComm" level="debug" additivity="false" includeLocation="true">
             <AppenderRef ref="Console" />
-        </Logger>
+        </Logger-->
         <Logger name="org.apache.kafka" level="WARN"/>
     </Loggers>
 </Configuration>

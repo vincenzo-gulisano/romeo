@@ -171,6 +171,10 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         logger.debug(
                 "At D change, event time {} and clock time {}. Next state should be reported only if event time >= {} and clock time >= {}",
                 latestEventTime, latestClockTime, latestEventTime + 2, latestClockTime + 2);
+
+        logger.debug("Since D has changed, adding a token to the state monitor");
+        reporter.addSendStateToken(latestClockTime + 1, latestEventTime + 1);
+
     }
 
     @Override
@@ -240,9 +244,14 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         sourceFunction.giveGreenlightToStartSendingRealRateTuples();
 
         firstEpisodeStarted = true;
-        Util.sleep(sleepBeforeRealRate / 2);
+        Util.sleep(sleepBeforeRealRate);
         episodesLogger.writeStartEvent();
         reporter.setResetCompleted();
+
+        logger.debug("Since the reset is complete, adding a token to the state monitor");
+        long latestEventTime = woostAgg.getLatestEventTime();
+        long latestClockTime = System.currentTimeMillis() / 1000;
+        reporter.addSendStateToken(latestClockTime, latestEventTime);
 
     }
 
