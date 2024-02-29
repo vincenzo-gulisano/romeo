@@ -54,7 +54,7 @@ public class SinkLogAndLatency extends BaseSink<TupleCarStops> {
         logger.debug("Got the reset lock");
         while (getInput().size() > 0) {
             logger.debug("There are tuples in the input stream, waiting");
-            Util.sleep(500);
+            Util.sleep(50);
         }
         if (getInput().size() == 0) {
             logger.debug("No tuples in the input stream, resetting immediately");

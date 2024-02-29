@@ -20,10 +20,45 @@ class SPEEnvironment(Env):
 
 
         self.valuesPerObservation = 7
-        # metrics = 4
+        
+        # METRICS:
+        # injectionrate     
+        # throughput            
+        # outrate            
+        # latency             
+        # ratio               
+        # comp                  
+        # dec                   
+        # CPU-in                
+        # CPU-agg              
+        # CPU-out               
+        # eventtime
+
         # Define a 2-D observation space
-        self.observation_space = spaces.Box(low = np.array([np.zeros(self.valuesPerObservation),np.zeros(self.valuesPerObservation),np.zeros(self.valuesPerObservation),np.zeros(self.valuesPerObservation)]), 
-                                            high = np.array([np.full(self.valuesPerObservation, np.inf),np.full(self.valuesPerObservation, np.inf),np.full(self.valuesPerObservation, 100),np.full(self.valuesPerObservation, 100)]),
+        self.observation_space = spaces.Box(low = np.array(
+                                                [np.full(self.valuesPerObservation, -1),
+                                                np.full(self.valuesPerObservation, -1),
+                                                np.full(self.valuesPerObservation, -1),
+                                                np.full(self.valuesPerObservation, -1),
+                                                np.full(self.valuesPerObservation, -1),
+                                                np.full(self.valuesPerObservation, -1),
+                                                np.full(self.valuesPerObservation, -1),
+                                                np.full(self.valuesPerObservation, -1),
+                                                np.full(self.valuesPerObservation, -1),
+                                                np.full(self.valuesPerObservation, -1),
+                                                np.full(self.valuesPerObservation, -1)]), 
+                                            high = np.array(
+                                                [np.full(self.valuesPerObservation, np.inf),
+                                                 np.full(self.valuesPerObservation, np.inf),
+                                                 np.full(self.valuesPerObservation, np.inf),
+                                                 np.full(self.valuesPerObservation, np.inf),
+                                                 np.full(self.valuesPerObservation, 100),
+                                                 np.full(self.valuesPerObservation, np.inf),
+                                                 np.full(self.valuesPerObservation, np.inf),
+                                                 np.full(self.valuesPerObservation, 100),
+                                                 np.full(self.valuesPerObservation, 100),
+                                                 np.full(self.valuesPerObservation, 100),
+                                                 np.full(self.valuesPerObservation, np.inf)]),
                                             dtype = np.float32)
         
         # Define an action space ranging from 0 to 11
@@ -132,10 +167,10 @@ class MeasurementTracker:
             # # Convert the list to a NumPy array of float32
             # self.state =  np.array(doubles_list, dtype=np.float32)
             # Split the string and create a list of floats, replacing -1 with np.nan
-            doubles_list = [np.nan if float(x) == -1.0 else float(x) for x in parts[0].split(',')]
+            doubles_list = [float(x) for x in parts[0].split(',')]
 
             # Convert the list to a NumPy array of float32 and reshape it to 4x5
-            self.state = np.array(doubles_list, dtype=np.float32).reshape(4, self.valuesPerObservation)
+            self.state = np.array(doubles_list, dtype=np.float32).reshape(11, self.valuesPerObservation)
             self.reward = int(parts[1])
 
 class KafkaActionsProducer:
@@ -206,7 +241,10 @@ if __name__ == "__main__":
 
         while True:
             
-            action = int(args.compression)
+            if int(args.compression) != -1:
+                action = int(args.compression)
+            else:
+                action = env.action_space.sample()
             obs, reward, done, info = env.step(action)
             
             if done == True:

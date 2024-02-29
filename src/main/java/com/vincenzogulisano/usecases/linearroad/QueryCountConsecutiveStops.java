@@ -51,7 +51,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
     private Random r;
     private boolean randomizeSeed;
 
-    public final static long sleepBeforeRealRate = 5000;
+    public final static long sleepBeforeRealRate = 1000;
 
     // The name of this Logger will be "org.apache.logging.Child"
     public Logger logger = LogManager.getLogger();
@@ -169,8 +169,8 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         long latestEventTime = woostAgg.changeD(newCompression);
         long latestClockTime = System.currentTimeMillis() / 1000;
         logger.debug(
-                "At D change, event time {} and clock time {}. Next state should be reported only if event time >= {} and clock time >= {}",
-                latestEventTime, latestClockTime, latestEventTime + 2, latestClockTime + 2);
+                "D changed to {} at event time {} and clock time {}. Barriers: event time >= {} and clock time >= {}",
+                v, latestEventTime, latestClockTime, latestEventTime + 1, latestClockTime + 1);
 
         logger.debug("Since D has changed, adding a token to the state monitor");
         reporter.addSendStateToken(latestClockTime + 1, latestEventTime + 1);
@@ -185,13 +185,6 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         if (randomizeSeed) {
             r = new Random(System.currentTimeMillis());
         }
-
-        logger.debug("Stopping the EnvironmentStateCalculator");
-        reporter.setResetRequest();
-        while (reporter.getResetAcknowledged()) {
-            Util.sleep(10);
-        }
-        logger.debug("EnvironmentStateCalculator is now stopped");
 
         long startingTS = startingTimeMinimum + r.nextInt((int) (startingTimeMaximum - startingTimeMinimum) + 1);
         logger.debug("SPE - Updating source starting time to " + startingTS);
@@ -211,12 +204,12 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         }
 
         while (!sourceFunction.getResetAck()) {
-            Util.sleep(500);
+            Util.sleep(50);
         }
         logger.debug("SPE - The source is no longer injecting tuples, resetting Agg, Sink, and Source");
         woostAgg.reset();
         while (!woostAgg.getResetAck()) {
-            Util.sleep(500);
+            Util.sleep(50);
         }
         logger.debug("Got Ack from the Agg");
         sink.reset();
@@ -225,14 +218,14 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         // }
         logger.debug("Sink reset");
 
-        logger.debug("Sleeping 2 seconds before resetting the compression threshold");
-        Util.sleep(2000);
+        // logger.debug("Sleeping 2 seconds before resetting the compression threshold");
+        // Util.sleep(2000);
 
         logger.debug("Reset compression threshold of the Aggregate to " + compressionThreshold);
         woostAgg.changeD(compressionThreshold);
 
-        logger.debug("Sleeping 2 seconds before giving green light for state filling tuples");
-        Util.sleep(2000);
+        // logger.debug("Sleeping 2 seconds before giving green light for state filling tuples");
+        // Util.sleep(2000);
 
         sourceFunction.giveGreenlightToStartSendingStateFillingTuples();
 
@@ -244,9 +237,16 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         sourceFunction.giveGreenlightToStartSendingRealRateTuples();
 
         firstEpisodeStarted = true;
-        Util.sleep(sleepBeforeRealRate);
+        // Util.sleep(sleepBeforeRealRate);
         episodesLogger.writeStartEvent();
+
+        logger.debug("Resetting the EnvironmentStateCalculator");
+        reporter.setResetRequest();
+        while (!reporter.getResetAcknowledged()) {
+            Util.sleep(50);
+        }
         reporter.setResetCompleted();
+        logger.debug("EnvironmentStateCalculator is now reset");
 
         logger.debug("Since the reset is complete, adding a token to the state monitor");
         long latestEventTime = woostAgg.getLatestEventTime();

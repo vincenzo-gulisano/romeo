@@ -112,9 +112,14 @@ public class ThreadCPUMonitor {
 
             // Sleep for 1 second (adjust as needed)
             try {
-                Thread.sleep(1000);
+                Thread.sleep(250);
             } catch (InterruptedException e) {
                 e.printStackTrace();
+            }
+
+            // Pinging just in case
+            for (TimeMetric metric : threadStats.values()) {
+                metric.ping();
             }
         }
 

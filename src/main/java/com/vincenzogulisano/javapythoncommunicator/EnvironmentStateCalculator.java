@@ -86,15 +86,18 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
 
     public void setResetRequest() {
         this.resetRequest = true;
+        logger.debug("SPE asking for a reset. resetRequest:{}", resetRequest);
     }
 
     public boolean getResetAcknowledged() {
+        logger.debug("SPE invoking getResetAcknowledged. resetAcknowledged:{}", resetAcknowledged);
         return resetAcknowledged;
     }
 
     public void setResetCompleted() {
         this.resetCompleted = true;
         resetVariables();
+        logger.debug("reset completed set by SPE. resetCompleted={}", resetCompleted);
     }
 
     public void addSendStateToken(long clockTimeBarrier, long eventTimeBarrier) {
@@ -132,16 +135,20 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
             // System.out.println("EnvironmentStateCalculator - got a reset request, stop
             // storing stats for now");
             resetRequest = false;
-            resetAcknowledged = true;
             resetCompleted = false;
+            resetAcknowledged = true;
+            logger.debug(
+                    "EnvironmentStateCalculator - resetting. resetRequest:{}, resetAcknowledged:{}, resetCompleted:{}",
+                    resetRequest, resetAcknowledged, resetCompleted);
             measurements.clear();
             this.lock.unlock();
             return;
         }
 
         if (resetAcknowledged && !resetCompleted) {
-            // System.out.println("EnvironmentStateCalculator - reset acknowledge, but not
-            // completed. Not storing stats");
+            logger.debug(
+                    "EnvironmentStateCalculator - reset acknowledge, but not completed. Not storing stats. resetAcknowledged:{}, resetCompleted:{}",
+                    resetAcknowledged, resetCompleted);
             this.lock.unlock();
             return;
         }
@@ -151,6 +158,7 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
             // completed. Storing stats");
             resetAcknowledged = false;
             resetCompleted = false;
+            logger.debug("Setting resetAcknowledged and resetCompleted to false");
         }
 
         // System.out.println(String.format("Storing %d,%s,%.2f", ts, id, value));
@@ -207,6 +215,7 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
                 measurements.put(id, new LinkedList<>());
             }
             measurements.get(id).add(new Pair<Long, Double>(ts, value));
+            logger.debug("Registering {},{},{}", ts, id, String.format("%.2f", value));
             // System.out.println(String.format("EnvironmentStateCalculator registering
             // (%d,%s,%.2f)", ts, id, value));
         }

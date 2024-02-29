@@ -41,9 +41,9 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
     private Map<String, byte[]> compressedWins;
     private long earliestWinLeftBoundary;
 
-    private Metric windowsMetric;
-    private Metric tuplesMetric;
-    private Metric memoryMetric;
+    // private Metric windowsMetric;
+    // private Metric tuplesMetric;
+    // private Metric memoryMetric;
     private Metric throughputMetric;
     private Metric outputtMetric;
 
@@ -108,7 +108,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         logger.debug("{} tuples in input stream", getInput().size());
         while (getInput().size() > 0 || inProcess) {
             logger.debug("Tuples being processed ({})", getInput().size());
-            Util.sleep(500);
+            Util.sleep(50);
         }
         // if (getInput().size() == 0) {
         logger.debug("No tuples in the input stream, resetting");
@@ -140,9 +140,9 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         keyLatestTs = new HashMap<>();
         earliestWinLeftBoundary = -1;
         latestEventTime = -1;
-        windowsMetric.reset();
-        tuplesMetric.reset();
-        memoryMetric.reset();
+        // windowsMetric.reset();
+        // tuplesMetric.reset();
+        // memoryMetric.reset();
         compressionsMetric.reset();
         decompressionMetric.reset();
         maxEventTimeMetric.reset();
@@ -165,9 +165,9 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         logger.debug("Enabling statistiscs");
 
         super.enable();
-        windowsMetric.enable();
-        tuplesMetric.enable();
-        memoryMetric.enable();
+        // windowsMetric.enable();
+        // tuplesMetric.enable();
+        // memoryMetric.enable();
         compressionsMetric.enable();
         decompressionMetric.enable();
         maxEventTimeMetric.enable();
@@ -180,15 +180,27 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
     @Override
     public void disable() {
         super.disable();
-        windowsMetric.disable();
-        tuplesMetric.disable();
-        memoryMetric.disable();
+        // windowsMetric.disable();
+        // tuplesMetric.disable();
+        // memoryMetric.disable();
         compressionsMetric.disable();
         decompressionMetric.disable();
         maxEventTimeMetric.disable();
         compressionRatio.disable();
         throughputMetric.disable();
         outputtMetric.disable();
+    }
+
+    private void pingMetrics() {
+        // windowsMetric.ping();
+        // tuplesMetric.ping();
+        // memoryMetric.ping();
+        compressionsMetric.ping();
+        decompressionMetric.ping();
+        maxEventTimeMetric.ping();
+        compressionRatio.ping();
+        throughputMetric.ping();
+        outputtMetric.ping();
     }
 
     // Iterators and entries used by the processTupleIn1 function
@@ -202,15 +214,20 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
     WoostTimeWindow<IN, OUT> wToCompress;
 
     // statistics updates
-    long memoryChange;
-    long decompressions;
-    long compressions;
-    long tuplesChange;
-    long windowsChange;
+    // long memoryChange;
+    // long decompressions;
+    // long compressions;
+    // long tuplesChange;
+    // long windowsChange;
 
     private volatile boolean inProcess = false;
 
     public List<OUT> processTupleIn1(IN t) {
+
+        // Ping all stats
+        throughputMetric.record(1);
+        latestEventTime = t.getTimestamp();
+        maxEventTimeMetric.record(latestEventTime);
 
         if (firstCallAfterReset) {
             logger.debug("First invocation of processTupleIn1 after the reset");
@@ -235,15 +252,15 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
                 compressionTimeThreshold = d;
                 logger.debug("Compression threshold updated to " + compressionTimeThreshold);
             }
-            Util.sleep(500);
+            // Util.sleep(500);
         }
 
         // Prepare statistics vars
-        memoryChange = 0;
-        decompressions = 0;
-        tuplesChange = 0;
-        compressions = 0;
-        windowsChange = 0;
+        // memoryChange = 0;
+        // decompressions = 0;
+        // tuplesChange = 0;
+        // compressions = 0;
+        // windowsChange = 0;
 
         // Create result
         List<OUT> result = new LinkedList<OUT>();
@@ -265,12 +282,14 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
                 logger.debug("tL is {}", tL);
             }
 
+            long compressions = 0;
+            long decompressions = 0;
             // Produce results for compressed (if any)
             i1 = compressedWins.entrySet().iterator();
             while (i1.hasNext()) {
                 e1 = i1.next();
 
-                memoryChange -= e1.getValue().length;
+                // memoryChange -= e1.getValue().length;
 
                 // Decompress
                 try {
@@ -290,14 +309,14 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
                 }
 
                 // Slide
-                tuplesChange -= wToDecompress.getNumberOfTuples();
+                // tuplesChange -= wToDecompress.getNumberOfTuples();
                 wToDecompress.slideTo(earliestWinLeftBoundary + WA);
-                tuplesChange += wToDecompress.getNumberOfTuples();
+                // tuplesChange += wToDecompress.getNumberOfTuples();
 
                 // Remove or compress again
                 if (wToDecompress.isEmpty()) {
                     i1.remove();
-                    windowsChange--;
+                    // windowsChange--;
                 } else {
 
                     try {
@@ -310,18 +329,22 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
                         exception.printStackTrace();
                     }
 
-                    memoryChange += e1.getValue().length;
+                    // memoryChange += e1.getValue().length;
                     compressions++;
                 }
 
             }
+            compressionsMetric.record(compressions);
+            decompressionMetric.record(decompressions);
+            compressionRatio.record((long) (((double) uncompressedWins.size() * 100)
+                    / ((double) compressedWins.size() + (double) uncompressedWins.size())));
 
             // Produce results for uncompressed (if any)
             i2 = uncompressedWins.entrySet().iterator();
             while (i2.hasNext()) {
                 e2 = i2.next();
 
-                memoryChange -= e2.getValue().getSizeInBytes();
+                // memoryChange -= e2.getValue().getSizeInBytes();
 
                 // Get output
                 e2.getValue().setLatestStimulus(t.getStimulus());
@@ -332,9 +355,9 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
                 }
 
                 // Slide
-                tuplesChange -= e2.getValue().getNumberOfTuples();
+                // tuplesChange -= e2.getValue().getNumberOfTuples();
                 e2.getValue().slideTo(earliestWinLeftBoundary + WA);
-                tuplesChange += e2.getValue().getNumberOfTuples();
+                // tuplesChange += e2.getValue().getNumberOfTuples();
 
                 // Remove or compress again
                 if (e2.getValue().isEmpty()) {
@@ -343,9 +366,9 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
                     keyLatestTs.remove(e2.getKey());
 
                     i2.remove();
-                    windowsChange--;
+                    // windowsChange--;
                 } else {
-                    memoryChange += e2.getValue().getSizeInBytes();
+                    // memoryChange += e2.getValue().getSizeInBytes();
                 }
 
             }
@@ -359,10 +382,10 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
 
         // Add contribution of this tuple and update metrics
         WoostTimeWindow<IN, OUT> w = getWindow(tL, k);
-        memoryChange -= w.getSizeInBytes();
+        // memoryChange -= w.getSizeInBytes();
         w.add(t);
-        tuplesChange++;
-        memoryChange += w.getSizeInBytes();
+        // tuplesChange++;
+        // memoryChange += w.getSizeInBytes();
 
         // if the key was already observed before, it has been
         // stored associated to its previous timestamp, so that can be
@@ -379,6 +402,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
 
         // Compress early windows (if any)
         compressionIt = tsKeys.entrySet().iterator();
+        long compressions = 0;
         while (compressionIt.hasNext()) {
             compressionE = compressionIt.next();
             if (latestTimestamp - compressionE.getKey() >= compressionTimeThreshold) {
@@ -388,7 +412,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
                     wToCompress = uncompressedWins.get(wK);
                     uncompressedWins.remove(wK); // Added while writing pseudocode, check if correct!
                     // Move to compressed windows and update memory metric
-                    memoryChange -= wToCompress.getSizeInBytes();
+                    // memoryChange -= wToCompress.getSizeInBytes();
 
                     try {
                         baos = new ByteArrayOutputStream();
@@ -397,7 +421,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
                         oos.close();
                         // assert (!compressedWins.containsKey(wK));
                         compressedWins.put(wK, Snappy.compress(baos.toByteArray()));
-                        memoryChange += compressedWins.get(wK).length;
+                        // memoryChange += compressedWins.get(wK).length;
 
                         compressions++;
                     } catch (IOException exception) {
@@ -413,23 +437,18 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
                 break;
             }
         }
+        compressionsMetric.record(compressions);
+        compressionRatio.record((long) (((double) uncompressedWins.size() * 100)
+                / ((double) compressedWins.size() + (double) uncompressedWins.size())));
 
         earliestWinLeftBoundary = tL;
         if (firstCallAfterReset) {
             logger.debug("Now updating metrics");
         }
         // Update metrics
-        latestEventTime = t.getTimestamp();
-        memoryMetric.record(memoryChange);
-        decompressionMetric.record(decompressions);
-        tuplesMetric.record(tuplesChange);
-        compressionsMetric.record(compressions);
-        maxEventTimeMetric.record(latestEventTime);
-        windowsMetric.record(windowsChange);
-        compressionRatio.record((long) (((double) uncompressedWins.size() * 100)
-                / ((double) compressedWins.size() + (double) uncompressedWins.size())));
-
-        throughputMetric.record(1);
+        // memoryMetric.record(memoryChange);
+        // tuplesMetric.record(tuplesChange);
+        // windowsMetric.record(windowsChange);
 
         inProcess = false;
         if (firstCallAfterReset) {
@@ -455,7 +474,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         if (compressedWins.containsKey(k)) {
             // Decompress
 
-            memoryChange -= compressedWins.get(k).length;
+            // memoryChange -= compressedWins.get(k).length;
 
             try {
                 result = (WoostTimeWindow<IN, OUT>) new ObjectInputStream(
@@ -466,9 +485,10 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
 
             // long winMemBeforeDecompress = result.getSizeInBytes();
             // result.decompress();
-            memoryChange += result.getSizeInBytes();
+            // memoryChange += result.getSizeInBytes();
 
-            decompressions++;
+            // decompressions++;
+            decompressionMetric.record(1);
             // assert (!uncompressedWins.containsKey(k));
             uncompressedWins.put(k, result);
             compressedWins.remove(k);
@@ -481,7 +501,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
             result.setParallelismDegree(parallelismDegree);
             result.slideTo(tL);
             uncompressedWins.put(k, result);
-            windowsChange++;
+            // windowsChange++;
 
         }
         return result;
@@ -496,9 +516,12 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
     public HashMap<String, Consumer<Object[]>> setStatReporter(StatReporter reporter) {
         logger.debug("Agg - Registering consumers");
         HashMap<String, Consumer<Object[]>> consumers = new HashMap<>();
-        consumers.put("windows", x -> reporter.report((long) x[0], "windows", ((Long) x[1]).doubleValue()));
-        consumers.put("tuples", x -> reporter.report((long) x[0], "tuples", ((Long) x[1]).doubleValue()));
-        consumers.put("memory", x -> reporter.report((long) x[0], "memory", ((Long) x[1]).doubleValue()));
+        // consumers.put("windows", x -> reporter.report((long) x[0], "windows", ((Long)
+        // x[1]).doubleValue()));
+        // consumers.put("tuples", x -> reporter.report((long) x[0], "tuples", ((Long)
+        // x[1]).doubleValue()));
+        // consumers.put("memory", x -> reporter.report((long) x[0], "memory", ((Long)
+        // x[1]).doubleValue()));
         consumers.put("comp", x -> reporter.report((long) x[0], "comp", ((Long) x[1]).doubleValue()));
         consumers.put("ratio", x -> reporter.report((long) x[0], "ratio", ((Long) x[1]).doubleValue()));
         consumers.put("dec", x -> reporter.report((long) x[0], "dec", ((Long) x[1]).doubleValue()));
@@ -512,12 +535,15 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
 
     public void createStatistics() {
         logger.debug("Agg - Creating statistics");
-        windowsMetric = LiebreContext.userMetrics().newTotalCountMetric("windows", "count");
-        tuplesMetric = LiebreContext.userMetrics().newTotalCountMetric("tuples", "count");
-        memoryMetric = LiebreContext.userMetrics().newTotalCountMetric("memory", "size");
-        compressionsMetric = LiebreContext.userMetrics().newTotalCountMetric("comp", "count");
+        // windowsMetric = LiebreContext.userMetrics().newTotalCountMetric("windows",
+        // "count");
+        // tuplesMetric = LiebreContext.userMetrics().newTotalCountMetric("tuples",
+        // "count");
+        // memoryMetric = LiebreContext.userMetrics().newTotalCountMetric("memory",
+        // "size");
+        compressionsMetric = LiebreContext.userMetrics().newCountPerSecondMetric("comp", "count");
         compressionRatio = LiebreContext.userMetrics().newAverageTimeMetric("ratio", "percent");
-        decompressionMetric = LiebreContext.userMetrics().newTotalCountMetric("dec", "count");
+        decompressionMetric = LiebreContext.userMetrics().newCountPerSecondMetric("dec", "count");
         maxEventTimeMetric = LiebreContext.userMetrics().newTotalMaxMetric("eventtime", "max");
         throughputMetric = LiebreContext.userMetrics().newCountPerSecondMetric("throughput", "count");
         outputtMetric = LiebreContext.userMetrics().newCountPerSecondMetric("agg-output", "count");
