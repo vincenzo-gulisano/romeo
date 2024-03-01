@@ -133,6 +133,10 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         }
         logger.debug("Longest hiccup stretch (without accounting for non-increasing event times!):{}", hiccupStretch);
         logger.debug("Above threshold CPU:{}", aboveThresholdCPU);
+
+        lastReportedStateMaxTS = lastReportedState.lastKey();
+        logger.debug("Reward computed, lastReportedStateMaxTS updated to {}", lastReportedStateMaxTS);
+
         return reward;
     }
 
@@ -270,9 +274,8 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
             logger.debug("This is the resulting matrix\n{}",
                     stateFormatter(lastReportedState, null));
             // logger.debug("This is the reward\n{}",
-            //         getReward());
+            // getReward());
             // prevReportedState = lastReportedState;
-            lastReportedStateMaxTS = lastReportedState.lastKey();
         }
         return ready;
 
