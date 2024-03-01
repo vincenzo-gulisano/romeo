@@ -163,36 +163,36 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
     }
 
     public long getWS_WA_Ceil() {
-        return (long)Math.ceil((double)ws / (double)wa);
+        return (long) Math.ceil((double) ws / (double) wa);
     }
 
     public long getContributingWindows(long ts) {
-        return ts % wa >= ws % wa && ws % wa != 0L ? (getWS_WA_Ceil()-1) : getWS_WA_Ceil();
-     }
+        return ts % wa >= ws % wa && ws % wa != 0L ? (getWS_WA_Ceil() - 1) : getWS_WA_Ceil();
+    }
 
-     public long getEarliestWinStartTS(long ts) {
-        return (long)Math.max((double)((ts / wa - this.getContributingWindows(ts) + 1L) * wa), 0.0);
-     }
-  
+    public long getEarliestWinStartTS(long ts) {
+        return (long) Math.max((double) ((ts / wa - this.getContributingWindows(ts) + 1L) * wa), 0.0);
+    }
+
     @Override
     public void changeD(long v) {
         logger.debug("SPE - changeD invoked");
         episodesLogger.writeActionEvent(Long.toString(v));
         long newCompression = (long) ((double) ws * ((double) v / 10.0));
         long latestEventTime = woostAgg.changeD(newCompression);
-        long nextEventTimeOutput = getEarliestWinStartTS(latestEventTime)+ws;
-        logger.debug("Next batch of outputs to be produced by A at {}",nextEventTimeOutput);
-        if (nextEventTimeOutput==latestEventTime+1) {
+        long nextEventTimeOutput = getEarliestWinStartTS(latestEventTime) + ws;
+        logger.debug("Next batch of outputs to be produced by A at {}", nextEventTimeOutput);
+        if (nextEventTimeOutput == latestEventTime + 1) {
             logger.debug("Since is the event time after this, taking the next batch of outputs");
             nextEventTimeOutput += wa;
         }
         long latestClockTime = System.currentTimeMillis() / 1000;
         logger.debug(
                 "D changed to {} at event time {} and clock time {}. Barriers: event time >= {} and clock time >= {}",
-                v, latestEventTime, latestClockTime, nextEventTimeOutput, latestClockTime + 1);
+                v, latestEventTime, latestClockTime, nextEventTimeOutput + 1, latestClockTime + 1);
 
         logger.debug("Since D has changed, adding a token to the state monitor");
-        reporter.addSendStateToken(latestClockTime + 1, nextEventTimeOutput);
+        reporter.addSendStateToken(latestClockTime + 1, nextEventTimeOutput + 1);
 
     }
 
@@ -237,13 +237,15 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         // }
         logger.debug("Sink reset");
 
-        // logger.debug("Sleeping 2 seconds before resetting the compression threshold");
+        // logger.debug("Sleeping 2 seconds before resetting the compression
+        // threshold");
         // Util.sleep(2000);
 
         logger.debug("Reset compression threshold of the Aggregate to " + compressionThreshold);
         woostAgg.changeD(compressionThreshold);
 
-        // logger.debug("Sleeping 2 seconds before giving green light for state filling tuples");
+        // logger.debug("Sleeping 2 seconds before giving green light for state filling
+        // tuples");
         // Util.sleep(2000);
 
         sourceFunction.giveGreenlightToStartSendingStateFillingTuples();
