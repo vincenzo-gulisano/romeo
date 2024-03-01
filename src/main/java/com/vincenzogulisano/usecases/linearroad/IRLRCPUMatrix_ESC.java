@@ -63,8 +63,8 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
     @Override
     public String getStateMeasurementAsString() {
         String logMsg = "";
-        for (long ts : lastReportedState.keySet()) {
-            for (String metric : relevantMetrics) {
+        for (String metric : relevantMetrics) {
+            for (long ts : lastReportedState.keySet()) {
                 if (lastReportedState.get(ts).containsKey(metric)) {
                     logMsg += String.format("%.2f", lastReportedState.get(ts).get(metric)) + ",";
                 } else {
