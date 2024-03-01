@@ -136,7 +136,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
 
         lastReportedStateMaxTS = lastReportedState.lastKey();
         logger.debug("Reward computed, lastReportedStateMaxTS updated to {}", lastReportedStateMaxTS);
-        logger.debug("\n*************\n*Reward: {}\n*************\n", reward);
+        logger.debug("\n*************\n* Reward: {}\n*************\n", reward);
 
         return reward;
     }
