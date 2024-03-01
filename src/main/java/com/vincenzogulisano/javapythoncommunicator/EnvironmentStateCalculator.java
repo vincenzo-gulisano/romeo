@@ -193,7 +193,7 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
                     logger.debug("And state/reward too");
                     sendStateTokens.set(0);
 
-                    String msg = getStateMeasurementAsString() + separator + getRewardAsString();
+                    String msg = getStateMeasurementAsString() + separator + getReward();
                     logger.debug("Sending state/reward {}", msg);
                     producer.send(new ProducerRecord<>("stats", msg));
                     if (episodesLogger != null) {
@@ -238,6 +238,6 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
      */
     public abstract boolean computeStateMeasurementAndReward();
 
-    public abstract String getRewardAsString();
+    public abstract long getReward();
 
 }

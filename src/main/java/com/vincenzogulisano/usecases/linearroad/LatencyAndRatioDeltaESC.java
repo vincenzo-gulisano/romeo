@@ -67,11 +67,11 @@ public class LatencyAndRatioDeltaESC extends EnvironmentStateCalculator {
     }
 
     @Override
-    public String getRewardAsString() {
+    public long getReward() {
         if (latency > 1000) {
-            return Long.toString((long) -(latency-1000));
+            return (long) -(latency-1000);
         }
-        return Long.toString((long) (100-ratios.get(1)));
+        return (long) (100-ratios.get(1));
         // if (latency >= 1000) {
         //     return "-100";
         // }

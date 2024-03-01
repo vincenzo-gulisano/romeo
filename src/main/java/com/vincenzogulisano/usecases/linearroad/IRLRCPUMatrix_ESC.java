@@ -20,19 +20,23 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
 
     public Logger logger = LogManager.getLogger();
 
-    private long IR; // Input Rate
-    private long L; // Latency
-    private long lastLTimestamp;
-    private double R; // Rate
-    private double CPU;
+    // private long IR; // Input Rate
+    // private long L; // Latency
+    // private long lastLTimestamp;
+    // private double R; // Rate
+    // private double CPU;
     // private long lastTS;
     // private long ts;
 
     // private double[][] measurement;
-    private TreeMap<Long, HashMap<String, Double>> prevReportedState;
+    // private TreeMap<Long, HashMap<String, Double>> prevReportedState;
+
     private TreeMap<Long, HashMap<String, Double>> lastReportedState;
+    private long lastReportedStateMaxTS;
     List<String> relevantMetrics;
     private long valuesPerObservation;
+    private final long latencyThreshold = 1000;
+    private final long CPUThreshold = 80;
 
     public IRLRCPUMatrix_ESC(long monitoringPeriod, Producer<String, String> producer, String separator,
             long valuesPerObservation) {
@@ -46,13 +50,14 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
     }
 
     protected void resetVariables() {
-        IR = -1;
-        L = -1;
-        lastLTimestamp = -1;
-        R = -1;
-        CPU = -1;
-        prevReportedState = new TreeMap<>();
+        // IR = -1;
+        // L = -1;
+        // lastLTimestamp = -1;
+        // R = -1;
+        // CPU = -1;
+        // prevReportedState = new TreeMap<>();
         lastReportedState = new TreeMap<>();
+        lastReportedStateMaxTS = -1;
     }
 
     @Override
@@ -72,11 +77,63 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
     }
 
     @Override
-    public String getRewardAsString() {
-        if (L > 1000) {
-            return Long.toString(Math.min(-1 * ((L - 1000) / 10), -1));
+    public long getReward() {
+
+        logger.debug("\nComputing Reward (for timestamps from {})", lastReportedStateMaxTS + 1);
+
+        long reward = 0;
+
+        logger.debug("Checking if new latency values above threshold exist...");
+        long latency = Long.MIN_VALUE;
+        double ratio = Double.MAX_VALUE;
+        for (long ts : lastReportedState.keySet()) {
+            if (ts > lastReportedStateMaxTS && lastReportedState.get(ts).containsKey("latency")
+                    && lastReportedState.get(ts).get("latency") != -1) {
+                latency = (long) Math.max(lastReportedState.get(ts).get("latency"), latency);
+            }
         }
-        return Long.toString((long) Math.round(Math.pow(100 - R, 1.5)));
+        if (latency >= latencyThreshold) {
+            reward = Math.min(-1 * ((latency - 1000) / 10), -1);
+            logger.debug("... they do! reporting {}", reward);
+        } else {
+            logger.debug("Retrieving the latest ratio value...");
+            for (long ts : lastReportedState.keySet()) {
+                if (ts > lastReportedStateMaxTS && lastReportedState.get(ts).containsKey("ratio")
+                        && lastReportedState.get(ts).get("ratio") != -1) {
+                    ratio = lastReportedState.get(ts).get("ratio");
+                }
+            }
+            if (ratio != Double.MAX_VALUE) {
+                reward = (long) Math.round(Math.pow(100 - ratio, 1.5));
+                logger.debug("... which is {} and means reward {}", String.format("%.2f", ratio), reward);
+            }
+        }
+
+        logger.debug("Computing extra indicators (not used as of now)");
+        long hiccupStretch = 0;
+        long thisHiccupStretch = 0;
+        for (long ts : lastReportedState.keySet()) {
+            if (ts > lastReportedStateMaxTS && (!lastReportedState.get(ts).containsKey("eventtime")
+                    || (lastReportedState.get(ts).containsKey("eventtime")
+                            && lastReportedState.get(ts).get("eventtime") == -1))) {
+                thisHiccupStretch++;
+            } else {
+                hiccupStretch = Math.max(hiccupStretch, thisHiccupStretch);
+                thisHiccupStretch = 0;
+            }
+        }
+        hiccupStretch = Math.max(hiccupStretch, thisHiccupStretch);
+        long aboveThresholdCPU = 0;
+        for (long ts : lastReportedState.keySet()) {
+            if (ts > lastReportedStateMaxTS && lastReportedState.get(ts).containsKey("CPU-agg")) {
+                if (lastReportedState.get(ts).get("CPU-agg") >= CPUThreshold) {
+                    aboveThresholdCPU++;
+                }
+            }
+        }
+        logger.debug("Longest hiccup stretch (without accounting for non-increasing event times!):{}", hiccupStretch);
+        logger.debug("Above threshold CPU:{}", aboveThresholdCPU);
+        return reward;
     }
 
     @Override // In this case I am returning everything
@@ -154,67 +211,68 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
             }
         }
 
-        for (String id_ : measurements.keySet()) {
-            if (id_.equals("injectionrate") || id_.equals("ratio") || id_.equals("CPU-agg")) {
-                double sum = 0.0;
-                double count = 0.0;
-                for (Pair<Long, Double> v : measurements.get(id_)) {
-                    if (v.getValue() != -1) {
-                        sum += v.getValue();
-                        count++;
-                    }
-                }
-                double avg = count > 0 ? sum / count : -1;
-                switch (id_) {
-                    case "injectionrate":
-                        IR = (long) avg;
-                        // logger.debug("registered injectionrate {}", IR);
-                        break;
-                    case "ratio":
-                        R = avg;
-                        // logger.debug("registered ratio {}", R);
-                        break;
-                    case "CPU-agg":
-                        CPU = avg;
-                        // logger.debug("registered cpu {}", CPU);
-                        break;
-                    default:
-                        break;
-                }
-            }
-            if (id_.equals("latency")) {
-                L = -1;
-                for (Pair<Long, Double> v : measurements.get(id_)) {
-                    if (v.getTimestamp() > lastLTimestamp) {
-                        L = (long) (v.getValue() > L ? v.getValue() : L);
-                        lastLTimestamp = v.getTimestamp();
-                        // logger.debug("Found a newer latency for ts:{} and value:{}", lastLTimestamp,
-                        // L);
-                    }
-                }
-                // logger.debug("registered latency {}", L);
-            }
-        }
+        // for (String id_ : measurements.keySet()) {
+        // if (id_.equals("injectionrate") || id_.equals("ratio") ||
+        // id_.equals("CPU-agg")) {
+        // double sum = 0.0;
+        // double count = 0.0;
+        // for (Pair<Long, Double> v : measurements.get(id_)) {
+        // if (v.getValue() != -1) {
+        // sum += v.getValue();
+        // count++;
+        // }
+        // }
+        // double avg = count > 0 ? sum / count : -1;
+        // switch (id_) {
+        // case "injectionrate":
+        // IR = (long) avg;
+        // // logger.debug("registered injectionrate {}", IR);
+        // break;
+        // case "ratio":
+        // R = avg;
+        // // logger.debug("registered ratio {}", R);
+        // break;
+        // case "CPU-agg":
+        // CPU = avg;
+        // // logger.debug("registered cpu {}", CPU);
+        // break;
+        // default:
+        // break;
+        // }
+        // }
+        // if (id_.equals("latency")) {
+        // L = -1;
+        // for (Pair<Long, Double> v : measurements.get(id_)) {
+        // if (v.getTimestamp() > lastLTimestamp) {
+        // L = (long) (v.getValue() > L ? v.getValue() : L);
+        // lastLTimestamp = v.getTimestamp();
+        // // logger.debug("Found a newer latency for ts:{} and value:{}",
+        // lastLTimestamp,
+        // // L);
+        // }
+        // }
+        // // logger.debug("registered latency {}", L);
+        // }
+        // }
 
         // Notice I set lastTS + 1 to make sure I send the state when all the
         // measurements for the same second have been received
+
         long lastEventTime = (long) (lastReportedState.lastEntry().getValue().containsKey("eventtime")
                 ? lastReportedState.lastEntry().getValue().get("eventtime")
                 : -1);
-        boolean ready = lastReportedState.lastKey() >= clockTimeBarrier && lastEventTime >= eventTimeBarrier
-                && (L != -1 || R != -1);
-        logger.debug(
-                "lastReportedState.lastKey() {} / clockTimeBarrier {} / lastEventTime {} / eventTimeBarrier {} / maxTS >= clockTimeBarrier {} / L {} / R {}/ ready {}",
-                lastReportedState.lastKey(),
-                clockTimeBarrier,
-                lastEventTime, eventTimeBarrier,
-                lastReportedState.lastKey() >= clockTimeBarrier, L,
-                R, ready);
-
+        boolean ready = lastReportedState.lastKey() >= clockTimeBarrier && lastEventTime >= eventTimeBarrier;
         if (ready) {
-            logger.debug("\nThis is the resulting matrix\n{}Reward: {}",
-                    stateFormatter(lastReportedState, prevReportedState), getRewardAsString());
-            prevReportedState = lastReportedState;
+            logger.debug(
+                    "State is ready in terms of time barriers (>=):\n\tlastReportedState.lastKey():{}\n\tclockTimeBarrier:{}\n\tlastEventTime:{}\n\teventTimeBarrier:{}",
+                    lastReportedState.lastKey(), clockTimeBarrier, lastEventTime, eventTimeBarrier);
+
+            logger.debug("This is the resulting matrix\n{}",
+                    stateFormatter(lastReportedState, null));
+            logger.debug("This is the reward\n{}",
+                    getReward());
+            // prevReportedState = lastReportedState;
+            lastReportedStateMaxTS = lastReportedState.lastKey();
         }
         return ready;
 

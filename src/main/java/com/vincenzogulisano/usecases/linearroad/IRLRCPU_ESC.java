@@ -42,11 +42,11 @@ public class IRLRCPU_ESC extends EnvironmentStateCalculator {
     }
 
     @Override
-    public String getRewardAsString() {
+    public long getReward() {
         if (L > 1000) {
-            return Long.toString((long) -(L - 1000) / 10);
+            return (long) -(L - 1000) / 10;
         }
-        return Long.toString((long) (100 - R));
+        return (long) (100 - R);
     }
 
     @Override
