@@ -250,8 +250,8 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
             Long d = dUpdates.poll();
             if (d != null) {
                 compressionTimeThreshold = d;
-                logger.debug("\n************\n*Compression threshold updated to {}->{}\n************", d,
-                        compressionTimeThreshold);
+                logger.debug("\n************\n*Compression threshold updated to {} at {}\n************",
+                        compressionTimeThreshold,System.currentTimeMillis()/1000);
             }
             // Util.sleep(500);
         }
