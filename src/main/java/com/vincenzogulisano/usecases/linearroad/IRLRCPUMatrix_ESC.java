@@ -149,7 +149,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
     @Override
     public boolean computeStateMeasurementAndReward() {
 
-        logger.debug("Checking if state measurement and reward are available");
+        // logger.debug("Checking if state measurement and reward are available");
 
         lastReportedState = new TreeMap<>();
 
@@ -267,16 +267,18 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
                 ? lastReportedState.lastEntry().getValue().get("eventtime")
                 : -1);
         boolean ready = lastReportedState.lastKey() >= clockTimeBarrier && lastEventTime >= eventTimeBarrier;
+        logger.debug(
+                    "State ready based on barriers (>=)? {} - clock time:{} clock time barrier:{} event time:{} event time barrier:{}",
+                    ready, lastReportedState.lastKey(), clockTimeBarrier, lastEventTime, eventTimeBarrier);
         if (ready) {
-            logger.debug(
-                    "State is ready in terms of time barriers (>=):\n\tlastReportedState.lastKey():{}\n\tclockTimeBarrier:{}\n\tlastEventTime:{}\n\teventTimeBarrier:{}",
-                    lastReportedState.lastKey(), clockTimeBarrier, lastEventTime, eventTimeBarrier);
-
+            
             logger.debug("This is the resulting matrix\n{}",
                     stateFormatter(lastReportedState, null));
             // logger.debug("This is the reward\n{}",
             // getReward());
             // prevReportedState = lastReportedState;
+        } else {
+
         }
         return ready;
 
