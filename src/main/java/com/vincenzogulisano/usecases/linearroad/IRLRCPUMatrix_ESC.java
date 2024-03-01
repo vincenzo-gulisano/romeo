@@ -269,8 +269,8 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
 
             logger.debug("This is the resulting matrix\n{}",
                     stateFormatter(lastReportedState, null));
-            logger.debug("This is the reward\n{}",
-                    getReward());
+            // logger.debug("This is the reward\n{}",
+            //         getReward());
             // prevReportedState = lastReportedState;
             lastReportedStateMaxTS = lastReportedState.lastKey();
         }
