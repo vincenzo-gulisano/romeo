@@ -47,6 +47,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
     private boolean firstEpisodeStarted;
     private long startingTimeMinimum;
     private long startingTimeMaximum;
+    private long wa;
     private long ws;
     private Random r;
     private boolean randomizeSeed;
@@ -82,7 +83,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         String inputFile = cmd.getOptionValue("i");
         compressionThreshold = Long.parseLong(cmd.getOptionValue("d", String.valueOf(Long.MAX_VALUE)));
         experimentLength = Long.parseLong(cmd.getOptionValue("l"));
-        long wa = Long.parseLong(cmd.getOptionValue("wa"));
+        wa = Long.parseLong(cmd.getOptionValue("wa"));
         ws = Long.parseLong(cmd.getOptionValue("ws"));
         String outPath = cmd.getOptionValue("o", "");
         boolean writeOut = outPath.equals("") ? false : true;
@@ -161,19 +162,37 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
 
     }
 
+    public long getWS_WA_Ceil() {
+        return (long)Math.ceil((double)ws / (double)wa);
+    }
+
+    public long getContributingWindows(long ts) {
+        return ts % wa >= ws % wa && ws % wa != 0L ? (getWS_WA_Ceil()-1) : getWS_WA_Ceil();
+     }
+
+     public long getEarliestWinStartTS(long ts) {
+        return (long)Math.max((double)((ts / wa - this.getContributingWindows(ts) + 1L) * wa), 0.0);
+     }
+  
     @Override
     public void changeD(long v) {
         logger.debug("SPE - changeD invoked");
         episodesLogger.writeActionEvent(Long.toString(v));
         long newCompression = (long) ((double) ws * ((double) v / 10.0));
         long latestEventTime = woostAgg.changeD(newCompression);
+        long nextEventTimeOutput = getEarliestWinStartTS(latestEventTime);
+        logger.debug("Next batch of outputs to be produced by A at {}",nextEventTimeOutput);
+        if (nextEventTimeOutput==latestEventTime+1) {
+            logger.debug("Since is the event time after this, taking the next batch of outputs");
+            nextEventTimeOutput += wa;
+        }
         long latestClockTime = System.currentTimeMillis() / 1000;
         logger.debug(
                 "D changed to {} at event time {} and clock time {}. Barriers: event time >= {} and clock time >= {}",
-                v, latestEventTime, latestClockTime, latestEventTime + 1, latestClockTime + 1);
+                v, latestEventTime, latestClockTime, nextEventTimeOutput, latestClockTime + 1);
 
         logger.debug("Since D has changed, adding a token to the state monitor");
-        reporter.addSendStateToken(latestClockTime + 1, latestEventTime + 1);
+        reporter.addSendStateToken(latestClockTime + 1, nextEventTimeOutput);
 
     }
 
