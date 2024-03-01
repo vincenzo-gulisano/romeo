@@ -180,7 +180,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         episodesLogger.writeActionEvent(Long.toString(v));
         long newCompression = (long) ((double) ws * ((double) v / 10.0));
         long latestEventTime = woostAgg.changeD(newCompression);
-        long nextEventTimeOutput = getEarliestWinStartTS(latestEventTime);
+        long nextEventTimeOutput = getEarliestWinStartTS(latestEventTime)+ws;
         logger.debug("Next batch of outputs to be produced by A at {}",nextEventTimeOutput);
         if (nextEventTimeOutput==latestEventTime+1) {
             logger.debug("Since is the event time after this, taking the next batch of outputs");
