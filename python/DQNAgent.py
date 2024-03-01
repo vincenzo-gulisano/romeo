@@ -169,18 +169,33 @@ class SPEEnvironment(Env):
         super(SPEEnvironment, self).__init__()
 
         self.valuesPerObservation = 7
-        # metrics = 4
-
+        # metrics = 11
         # Define a 2-D observation space
-        # states: injection rate, latency, compression, CPU consumption
-        self.observation_space = spaces.Box(low = np.array([np.zeros(self.valuesPerObservation),
-                                                            np.zeros(self.valuesPerObservation),
-                                                            np.zeros(self.valuesPerObservation),
-                                                            np.zeros(self.valuesPerObservation)]), 
-                                            high = np.array([np.full(self.valuesPerObservation, np.inf),
-                                                             np.full(self.valuesPerObservation, np.inf),
-                                                             np.full(self.valuesPerObservation, 100),
-                                                             np.full(self.valuesPerObservation, 100)]),
+        # states: injectionrate, throughput, outrate, latency, ratio, comp, dec, CPU-in, CPU-agg, CPU-out, event time
+        self.observation_space = spaces.Box(low = np.array(
+                                                [np.full(self.valuesPerObservation, -1),
+                                                np.full(self.valuesPerObservation, -1),
+                                                np.full(self.valuesPerObservation, -1),
+                                                np.full(self.valuesPerObservation, -1),
+                                                np.full(self.valuesPerObservation, -1),
+                                                np.full(self.valuesPerObservation, -1),
+                                                np.full(self.valuesPerObservation, -1),
+                                                np.full(self.valuesPerObservation, -1),
+                                                np.full(self.valuesPerObservation, -1),
+                                                np.full(self.valuesPerObservation, -1),
+                                                np.full(self.valuesPerObservation, -1)]), 
+                                            high = np.array(
+                                                [np.full(self.valuesPerObservation, np.inf),
+                                                 np.full(self.valuesPerObservation, np.inf),
+                                                 np.full(self.valuesPerObservation, np.inf),
+                                                 np.full(self.valuesPerObservation, np.inf),
+                                                 np.full(self.valuesPerObservation, 100),
+                                                 np.full(self.valuesPerObservation, np.inf),
+                                                 np.full(self.valuesPerObservation, np.inf),
+                                                 np.full(self.valuesPerObservation, 100),
+                                                 np.full(self.valuesPerObservation, 100),
+                                                 np.full(self.valuesPerObservation, 100),
+                                                 np.full(self.valuesPerObservation, np.inf)]),
                                             dtype = np.float32)
         # self.observation_space = spaces.Box(low = np.array([0,0,0,0]), 
         #                                     high = np.array([np.inf, np.inf, 100, 100]),
@@ -318,8 +333,10 @@ class MeasurementTracker:
             # doubles_list = [np.nan if float(x) == -1.0 else float(x) for x in parts[0].split(',')]
             # Convert the string to a list of floats without replacing -1.0 with np.nan
             doubles_list = [float(x) for x in parts[0].split(',')]
-            # Convert the list to a NumPy array of float32 and reshape it to 4x7
-            self.state = np.array(doubles_list, dtype=np.float32).reshape(4, self.valuesPerObservation)
+            # Convert the list to a NumPy array of float32 and reshape it to 11x7
+            self.state = np.array(doubles_list, dtype=np.float32).reshape(11, self.valuesPerObservation)
+            # state_matrix = np.array(doubles_list, dtype=np.float32).reshape(-1, self.valuesPerObservation)
+            # self.state = state_matrix.T
             self.reward = int(parts[1])
 
 class KafkaActionsProducer:
@@ -391,7 +408,7 @@ if __name__ == "__main__":
     
 
     env = SPEEnvironment(int(args.steps))
-    input_shape = (4, 7)
+    input_shape = (11, 7)
     Agent = DQN(input_shape, 256, env.action_space.n)
 
     # load saved net's paras after 50 episodes
@@ -406,12 +423,12 @@ if __name__ == "__main__":
     average_reward = 0  # average reward of all episodes
 
     # create folder to store paras
-    folder_name = 'data/output/5/600/5000000000/0/25000/601/Exp5.1_paras (1-100)'
+    folder_name = 'data/output/5/600/5000000000/0/25000/601/Exp6_paras (1-5)'
     if not os.path.exists(folder_name):
         os.makedirs(folder_name) 
 
     # create folder to store q value plots
-    folder_name = 'data/output/5/600/5000000000/0/25000/601/Exp5.1_q_value_plots (1-100)'
+    folder_name = 'data/output/5/600/5000000000/0/25000/601/Exp6_q_value_plots (1-5)'
     if not os.path.exists(folder_name):
         os.makedirs(folder_name)
 
@@ -475,7 +492,7 @@ if __name__ == "__main__":
                 # plt.ylabel('Q Values')
                 # plt.title(f'Q Values Over Episodes (Episode {i_episode + 1})')
                 # plt.legend()
-                # file_path = os.path.join(folder_name, f'exp5_q_values_plot_{i_episode + 1}.png')
+                # file_path = os.path.join(folder_name, f'exp6_q_values_plot_{i_episode + 1}.png')
                 # plt.savefig(file_path)
                 # plt.close()
                 average_reward = average_reward + 1 / (i_episode + 1) * (
@@ -493,7 +510,7 @@ if __name__ == "__main__":
         if (i_episode + 1) % 10 == 0: 
             # torch.save(Agent.net.state_dict(), 'data/output/5/600/110000000/0/25000/601/dqn_model.pth')
             # this might the correct one to save model paras every 10 episodes
-            filename = 'data/output/5/600/5000000000/0/25000/601/Exp5.1_paras (1-100)/dqn_model_episode_{}.pth'.format(i_episode + 1)
+            filename = 'data/output/5/600/5000000000/0/25000/601/Exp6_paras (1-5)/dqn_model_episode_{}.pth'.format(i_episode + 1)
             torch.save(Agent.net.state_dict(), filename)     
 
     print('closing')
