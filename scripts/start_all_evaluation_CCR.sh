@@ -33,7 +33,7 @@ sleep_until_time_or_pid() {
 }
 
 # Define base folder and input file
-base_folder="/home/vincenzo/romeo/data/output/CCR"
+base_folder="/home/vincenzo/romeo/data/output/CCR-exp6"
 input_file="/home/vincenzo/woost/data/input/input.txt"
 
 # Define lists of values
@@ -45,9 +45,9 @@ rate=25000
 repetition=0
 starting_time_min=900
 starting_time_max=9900
-episodes=1
-steps=20
-compressions=(-1) #(0 1 2 3 4 5 6 7 8 9 10)
+episodes=20
+steps=150
+compressions=(-1) #0 1 2 3 4 5 6 7 8 9 10) # -1)
 
 for compression in "${compressions[@]}"; do
     echo "Compression: $compression"
@@ -124,28 +124,24 @@ for compression in "${compressions[@]}"; do
     ./scripts/stop_kafka.sh
     ./scripts/stop_kafka.sh
 
-    pkill java
-    pkill python
+    # pkill java
+    # pkill python
         
-    # echo "Creating extra stats"
-    # grep -Eo '[0-9]+,[0-9]+,action [0-9]+' ${exp_folder}/episodes.csv | sed -E 's/,action /,/' | cut -d, -f1,3 > ${exp_folder}/actions.csv
-    # grep -oE 'Received: -?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?/-?[0-9]+ at time [0-9]+(\.[0-9]+)?' ${exp_folder}/python_agent.log | awk -F'[/ ]' '{print $6,$3}' | awk '{gsub(/\..*/, "", $1); print $1","$2}' > ${exp_folder}/rewards.csv
-    # awk -F',' 'BEGIN {OFS=","; sum=0} {sum += $2; print $1, sum}' ${exp_folder}/rewards.csv > ${exp_folder}/cumulativereward.csv
-    # awk -F',' 'NR > 1 { print $1 "," ($2 < 1000 ? 0 : 1) }' ${exp_folder}/latency.average.csv > ${exp_folder}/latency.violations.csv
-    # grep -oE 'Received: -?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?/-?[0-9]+ at time [0-9]+(\.[0-9]+)?' ${exp_folder}/python_agent.log | awk -F'[/ ,]' '{print $9,$3}' | awk '{gsub(/\..*/, "", $1); print $1","$2}' > ${exp_folder}/observedlatency.csv
-    # grep -oE 'Received: -?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?/-?[0-9]+ at time [0-9]+(\.[0-9]+)?' ${exp_folder}/python_agent.log | awk -F'[/ ,]' '{print $9,$4}' | awk '{gsub(/\..*/, "", $1); print $1","$2}' > ${exp_folder}/observedcompression.csv
-    # grep -oE 'Received: -?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?/-?[0-9]+ at time [0-9]+(\.[0-9]+)?' ${exp_folder}/python_agent.log | awk -F'[/ ,]' '{print $9,$5}' | awk '{gsub(/\..*/, "", $1); print $1","$2}' > ${exp_folder}/observedcpu.csv
+    echo "Creating extra stats"
+    grep -Eo '[0-9]+,[0-9]+,action [0-9]+' ${exp_folder}/episodes.csv | sed -E 's/,action /,/' | cut -d, -f1,3 > ${exp_folder}/actions.csv
+    awk '/^Got a new state\/reward pair: / {sub(/^Got a new state\/reward pair: /, ""); print int($1)} /^reward / {sub(/^reward /, ""); print $1}' ${exp_folder}/python_agent.log | paste -d, - -  > ${exp_folder}/rewards.csv
+    awk -F',' 'BEGIN {OFS=","; sum=0} {sum += $2; print $1, sum}' ${exp_folder}/rewards.csv > ${exp_folder}/cumulativereward.csv
+    awk -F',' 'NR > 1 { print $1 "," ($2 < 1000 ? 0 : 1) }' ${exp_folder}/latency.average.csv > ${exp_folder}/latency.violations.csv
 
-    # echo "Creating plots"
-    # episodes_as_list=$(seq -s, 0 $((episodes-1)))
-    # python plotting/plot_experiment_stats.py ${exp_folder}/ ${episodes_as_list} ${exp_folder}/episodesstats.csv
+    echo "Creating plots"
+    python plotting/plot_experiment_stats_exp5.py --print_global_events ${exp_folder}/ ${exp_folder}/episodesstats.csv 
 
-    # echo "Appending episodes stats to global csv"
-    # python plotting/append_episodesstatscsv_to_global_one.py ${exp_folder}/episodesstats.csv ${base_folder}/compressionandepisodesstats.csv CCR-${compression}
+    echo "Appending episodes stats to global csv"
+    python plotting/append_episodesstatscsv_to_global_one.py ${exp_folder}/episodesstats.csv ${base_folder}/compressionandepisodesstats.csv CCR-${compression}
 
 done
 
-# boxplot_stats=("rewards" "latency.average" "observedcompression" "latency.violations")
+# boxplot_stats=("rewards" "ratio.percent" "latency.average" "steps")
 
 # for boxplot_stat in "${boxplot_stats[@]}"; do
 #     python plotting/create_stat_episodes_boxplot_for_compressions.py ${base_folder}/compressionandepisodesstats.csv ${base_folder} ${boxplot_stat}

@@ -119,32 +119,32 @@ def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_epis
                 # print('episode',episode_value,'start',start_time,'end',stop_time)
                 temp_df = df[(df.iloc[:, 0] >= start_time) & (df.iloc[:, 0] <= stop_time)]
 
-                # Create X axis as a range from start_time to stop_time by increments of 1
-                X = np.arange(start_time, stop_time + 1)
+                # # Create X axis as a range from start_time to stop_time by increments of 1
+                # X = np.arange(start_time, stop_time + 1)
 
-                # Create a DataFrame with X axis and initialize Y axis with NaN
-                new_df = pd.DataFrame({'X': X, 'Y': np.nan})
+                # # Create a DataFrame with X axis and initialize Y axis with NaN
+                # new_df = pd.DataFrame({'X': X, 'Y': np.nan})
 
-                # Update Y values in new_df based on temp_df
-                for x in X:
-                    if x in temp_df.iloc[:, 0].values:
-                        # Filter temp_df to find rows where the first column matches x
-                        matching_rows = temp_df[temp_df.iloc[:, 0] == x]
-                        if not matching_rows.empty:
-                            # Extract the first matching row's index for clarity
-                            first_matching_index = matching_rows.index[0]
-                            # Ensure we access the row safely
-                            y_value = matching_rows.at[first_matching_index, temp_df.columns[1]]
-                            # print(x, first_matching_index, y_value)
-                            # Update the Y value for this x
-                            new_df.loc[new_df['X'] == x, 'Y'] = y_value
+                # # Update Y values in new_df based on temp_df
+                # for x in X:
+                #     if x in temp_df.iloc[:, 0].values:
+                #         # Filter temp_df to find rows where the first column matches x
+                #         matching_rows = temp_df[temp_df.iloc[:, 0] == x]
+                #         if not matching_rows.empty:
+                #             # Extract the first matching row's index for clarity
+                #             first_matching_index = matching_rows.index[0]
+                #             # Ensure we access the row safely
+                #             y_value = matching_rows.at[first_matching_index, temp_df.columns[1]]
+                #             # print(x, first_matching_index, y_value)
+                #             # Update the Y value for this x
+                #             new_df.loc[new_df['X'] == x, 'Y'] = y_value
 
 
                 # Plot
-                ax2[i].plot(new_df.iloc[:, 0]-start_time,new_df.iloc[:, 1])
+                ax2[i].plot(temp_df.iloc[:, 0]-start_time,temp_df.iloc[:, 1])
                 
                 ax2[i].axvline(0, linestyle='--', color='red')
-                ax2[i].text(0, (new_df.iloc[:, 1].min()+new_df.iloc[:, 1].max())/2, f"Episode {episode_value}", rotation=90, color='red')
+                ax2[i].text(0, (temp_df.iloc[:, 1].min()+temp_df.iloc[:, 1].max())/2, f"Episode {episode_value}", rotation=90, color='red')
 
                 ax2[i].set_xlabel(x_label)
                 ax2[i].set_ylabel(y_label)
@@ -178,7 +178,7 @@ def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_epis
         fig2.tight_layout()
             # Ensure subplots are close to each other and adjust left and right margins
         fig2.subplots_adjust(hspace=0)
-        fig2.savefig(os.path.join(episode_folder, f'episode{episode_value:03}.png'))
+        fig2.savefig(os.path.join(episode_folder, f'episode{episode_value:03}.pdf'))
         plt.close()
 
         

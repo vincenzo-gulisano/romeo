@@ -238,6 +238,7 @@ if __name__ == "__main__":
     for i in range(int(args.episodes)):
         print('starting episode',i+1)
         obs = env.reset()
+        negative_rewards = 0
 
         while True:
             
@@ -246,8 +247,11 @@ if __name__ == "__main__":
             else:
                 action = env.action_space.sample()
             obs, reward, done, info = env.step(action)
-            
-            if done == True:
+            if reward<0:
+                negative_rewards += 1
+                print('Got 3 negative rewards for this episode, resetting!')
+
+            if done == True or negative_rewards>=3:
                 break
 
     print('closing')
