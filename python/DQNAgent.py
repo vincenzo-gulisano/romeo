@@ -97,11 +97,14 @@ class DQN(object):
         # reshape state to 1D vector
         state = torch.Tensor(state).view(-1)
         action = self.net(state)
+        action_time = time.time()
         if eps_threshold > EPSION:
             choice = torch.argmax(action).numpy()
+            action_type = "exploitation"
         else:
             choice = np.random.randint(0, action.shape[0])  # random sampling
-        return choice
+            action_type = "exploration"
+        return choice, action_type, action_time
 
     def update_parameters(self):
         if self.buffer.__len__() < batch_size:
@@ -423,14 +426,14 @@ if __name__ == "__main__":
     average_reward = 0  # average reward of all episodes
 
     # create folder to store paras
-    folder_name = 'data/output/5/600/5000000000/0/25000/601/Exp6_paras (1-5)'
-    if not os.path.exists(folder_name):
-        os.makedirs(folder_name) 
+    paras_folder_name = 'data/output/5/600/5000000000/0/25000/601/Exp6_paras (1-100)'
+    if not os.path.exists(paras_folder_name):
+        os.makedirs(paras_folder_name) 
 
     # create folder to store q value plots
-    folder_name = 'data/output/5/600/5000000000/0/25000/601/Exp6_q_value_plots (1-5)'
-    if not os.path.exists(folder_name):
-        os.makedirs(folder_name)
+    q_value_folder_name = 'data/output/5/600/5000000000/0/25000/601/Exp6_q_value_plots (1-100)'
+    if not os.path.exists(q_value_folder_name):
+        os.makedirs(q_value_folder_name)
 
     for i_episode in range(0, int(args.episodes)):
         print('starting episode',i_episode + 1)
@@ -446,14 +449,14 @@ if __name__ == "__main__":
         q_values_history = [[] for _ in range(env.action_space.n)]
 
         while True:
-            a0 = Agent.select_action(s0)
+            a0, action_type, action_time = Agent.select_action(s0)
             #s1, r, done, _ = env.step(a0)
-            q_values = Agent.net(torch.Tensor(s0))
-            print(f"Step {step_count + 1}, Action {a0}, Q values: {q_values}") 
+            q_values = Agent.net(torch.Tensor(s0)).detach().numpy().squeeze()
+            print(f"Step {step_count + 1}, Action {a0}, Action type: {action_type}, Q values: {q_values}, Action time: {action_time}") 
 
             steps.append(step_count)
 
-            for i, q_value in enumerate(q_values.detach().numpy()):
+            for i, q_value in enumerate(q_values):
                 q_values_history[i].append(q_value)
 
             # only keep the return value of s1, r, done, ignore the fourth return value
@@ -481,37 +484,38 @@ if __name__ == "__main__":
                 Agent.update_parameters()
             
             if done == True:
-                # plt.figure()
-                # for i, q_values in enumerate(q_values_history):
-                #     if len(q_values) > 0:
-                #         q_values = np.array(q_values).flatten()
-                #         plt.plot(steps, q_values, label = f'Action {i}')
-                #         # saving q value plots
-                # # saving q value plots
-                # plt.xlabel('Stpes')
-                # plt.ylabel('Q Values')
-                # plt.title(f'Q Values Over Episodes (Episode {i_episode + 1})')
-                # plt.legend()
-                # file_path = os.path.join(folder_name, f'exp6_q_values_plot_{i_episode + 1}.png')
-                # plt.savefig(file_path)
-                # plt.close()
-                average_reward = average_reward + 1 / (i_episode + 1) * (
-                        tot_reward - average_reward)
-                print('Episode ', i_episode + 1, 'tot_time: ', tot_time,
-                      ' tot_reward: ', tot_reward, ' average_reward: ',
-                      average_reward)
+
+                average_reward = average_reward + 1 / (i_episode + 1) * (tot_reward - average_reward)
+                print('Episode ', i_episode + 1, 'tot_time: ', tot_time, ' tot_reward: ', tot_reward, ' average_reward: ', average_reward)
                 break
 
         if i_episode % target_update == 0:
             Agent.target_net.load_state_dict(Agent.net.state_dict())
+
+        plt.figure()
+        for i, action_q_values in enumerate(q_values_history):
+                if len(steps) == len(action_q_values):
+                    action_q_values = [val[0] if isinstance(val, np.ndarray) and len(val) == 1 else val for val in action_q_values]
+                    plt.plot(steps, action_q_values, label = f'Action {i}')
+                else:
+                    print(f"Error: Mismatch in lengths for Action {i}")
+
+
+        # saving q value plots
+        plt.xlabel('Stpes')
+        plt.ylabel('Q Values')
+        plt.title(f'Q Values Over Episodes (Episode {i_episode + 1})')
+        plt.legend()
+        q_value_file_path = os.path.join(q_value_folder_name, f'exp6_q_values_plot_{i_episode + 1}.png')
+        plt.savefig(q_value_file_path)
+        plt.close()
             
 
         # saving paras per 10 episodes
         if (i_episode + 1) % 10 == 0: 
-            # torch.save(Agent.net.state_dict(), 'data/output/5/600/110000000/0/25000/601/dqn_model.pth')
-            # this might the correct one to save model paras every 10 episodes
-            filename = 'data/output/5/600/5000000000/0/25000/601/Exp6_paras (1-5)/dqn_model_episode_{}.pth'.format(i_episode + 1)
-            torch.save(Agent.net.state_dict(), filename)     
+            # save model paras every 10 episodes
+            paras_file_path = os.path.join(paras_folder_name, f'exp6_dqn_model_episode_{i_episode + 1}.pth')
+            torch.save(Agent.net.state_dict(), paras_file_path)        
 
     print('closing')
     env.close()
