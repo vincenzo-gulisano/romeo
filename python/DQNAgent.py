@@ -226,12 +226,20 @@ class SPEEnvironment(Env):
         self.consumer.start_consumer()
 
         # track negative reward
-        self.negative_reward_counter = 0
+        # self.negative_reward_counter = 0
+
+        # track latency
+        self.latency_threshold = 2500
+        self.latency_counter = 0
+
 
     def reset(self):
 
         #reset negative reward counter
-        self.negative_reward_counter = 0
+        #self.negative_reward_counter = 0
+
+        # reset latency counter
+        self.latency_counter = 0 
 
         # Send the reset
         self.producer.produce("reset")
@@ -268,13 +276,13 @@ class SPEEnvironment(Env):
         # Assert that it is a valid action 
         assert self.action_space.contains(action), "Invalid action"
 
-        print('Transmitting action',action)
+        # print('Transmitting action',action)
         self.producer.produce("changeD,"+str(action))
 
         # Wait for the state and reward measurement
         self.prev_stat_time = time.time()
         state_measurement_available = False
-        print('Waiting for new observation')
+        # print('Waiting for new observation')
         while not state_measurement_available:
             time.sleep(1)
             with self.consumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by other threads
@@ -287,12 +295,23 @@ class SPEEnvironment(Env):
                     print('reward',self.consumer.tracker.reward,flush=True)
                     state_measurement_available = True
         
-        # update negative reward counter
-        if self.consumer.tracker.reward < 0:
-            self.negative_reward_counter += 1
+        # # update negative reward counter
+        # if self.consumer.tracker.reward < 0:
+        #     self.negative_reward_counter += 1
         
-        # check if need to end this episode
-        if self.negative_reward_counter >= 3:
+        # # check if need to end this episode
+        # if self.negative_reward_counter >= 3:
+        #     done = True
+        # else:
+        #     done = False
+        
+        # upfate latency counter
+        if self.consumer.tracker.state[3, -1] > self.latency_threshold:
+            self.latency_counter += 1
+            print(f"High latency observed: {self.consumer.tracker.state[3, -1]} ms at step {(150 - self.remaingSteps) + 1}")
+        
+        # check if latency is greater than 2.5s in three steps for every episode
+        if self.latency_counter >= 3:
             done = True
         else:
             done = False
@@ -323,7 +342,7 @@ class MeasurementTracker:
 
     def process_input(self, input_str):
 
-        print('Received:',input_str,'at time',time.time(),flush=True)
+        # print('Received:',input_str,'at time',time.time(),flush=True)
 
         # Split the string into parts using ","
         parts = input_str.split("/")
@@ -426,12 +445,12 @@ if __name__ == "__main__":
     average_reward = 0  # average reward of all episodes
 
     # create folder to store paras
-    paras_folder_name = 'data/output/5/600/5000000000/0/25000/601/Exp6_paras (1-100)'
+    paras_folder_name = 'data/output/5/600/5000000000/0/25000/601/Exp7_paras (1-100)'
     if not os.path.exists(paras_folder_name):
         os.makedirs(paras_folder_name) 
 
     # create folder to store q value plots
-    q_value_folder_name = 'data/output/5/600/5000000000/0/25000/601/Exp6_q_value_plots (1-100)'
+    q_value_folder_name = 'data/output/5/600/5000000000/0/25000/601/Exp7_q_value_plots (1-100)'
     if not os.path.exists(q_value_folder_name):
         os.makedirs(q_value_folder_name)
 
@@ -464,11 +483,7 @@ if __name__ == "__main__":
             s1, r, done = step_result[:3]
 
             tot_time += r  # cal. total time of current episode
-            # reward cal. method
-            # x, x_dot, theta, theta_dot = s1
-            # r1 = (env.x_threshold - abs(x)) / env.x_threshold - 0.8
-            # r2 = (env.theta_threshold_radians - abs(theta)) / env.theta_threshold_radians - 0.5
-            # r = r1 + r2
+
             tot_reward += r # cal total reward of current episode
             step_count += 1 # increment the step 
 
@@ -484,7 +499,7 @@ if __name__ == "__main__":
                 Agent.update_parameters()
             
             if done == True:
-
+                # incremental averaging
                 average_reward = average_reward + 1 / (i_episode + 1) * (tot_reward - average_reward)
                 print('Episode ', i_episode + 1, 'tot_time: ', tot_time, ' tot_reward: ', tot_reward, ' average_reward: ', average_reward)
                 break
@@ -506,7 +521,7 @@ if __name__ == "__main__":
         plt.ylabel('Q Values')
         plt.title(f'Q Values Over Episodes (Episode {i_episode + 1})')
         plt.legend()
-        q_value_file_path = os.path.join(q_value_folder_name, f'exp6_q_values_plot_{i_episode + 1}.png')
+        q_value_file_path = os.path.join(q_value_folder_name, f'exp7_q_values_plot_{i_episode + 1}.png')
         plt.savefig(q_value_file_path)
         plt.close()
             
@@ -514,7 +529,7 @@ if __name__ == "__main__":
         # saving paras per 10 episodes
         if (i_episode + 1) % 10 == 0: 
             # save model paras every 10 episodes
-            paras_file_path = os.path.join(paras_folder_name, f'exp6_dqn_model_episode_{i_episode + 1}.pth')
+            paras_file_path = os.path.join(paras_folder_name, f'exp7_dqn_model_episode_{i_episode + 1}.pth')
             torch.save(Agent.net.state_dict(), paras_file_path)        
 
     print('closing')
