@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-def plot_data(input_folder, output_pdf, stat_X, stat_Y, aggregation_X, aggregation_Y, min_size=50, max_size=50, min_opacity=1.0, max_opacity=1.0):
+def plot_data(input_folder, output_pdf, stat_X, stat_Y, aggregation_X, aggregation_Y, min_size=10, max_size=200, min_opacity=0.1, max_opacity=1.0):
     # Construct the file path and read the CSV
     file_path = f'{input_folder}/compressionandepisodesstats.csv'
     df = pd.read_csv(file_path)
