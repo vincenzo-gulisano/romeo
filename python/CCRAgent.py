@@ -79,6 +79,10 @@ class SPEEnvironment(Env):
         # Start the consumer thread
         self.consumer.start_consumer()
 
+        # track latency
+        self.latency_threshold = 2500
+        self.latency_counter = 0
+
     def reset(self):
 
         # Send the reset
@@ -100,7 +104,7 @@ class SPEEnvironment(Env):
                         print ([f'{num:.2f}' for num in row])
                     print('reward',self.consumer.tracker.reward,flush=True)
                     state_measurement_available = True
-                    
+                 
         # Reset the reward
         self.ep_return  = self.consumer.tracker.reward
 
@@ -132,11 +136,26 @@ class SPEEnvironment(Env):
                     print('reward',self.consumer.tracker.reward,flush=True)
                     state_measurement_available = True
         
+        # upfate latency counter
+        if self.consumer.tracker.state[3, -1] > self.latency_threshold:
+            self.latency_counter += 1
+            print(f"High latency observed: {self.consumer.tracker.state[3, -1]} ms at step {(150 - self.remaingSteps) + 1}")
+        
+        # check if latency is greater than 2.5s in three steps for every episode
+        if self.latency_counter >= 3:
+            done = True
+        else:
+            done = False
+        
+        # check if there has remainig steps
+        if self.remaingSteps <= 0:
+            done = True
+        
         # Increment the episodic return
         self.ep_return += 1
 
         # TODO There's something missing, the SPE itself could be done if it runs out of data. This is not being checked as of now...
-        return self.consumer.tracker.state.copy(), self.consumer.tracker.reward, self.remaingSteps==0, []
+        return self.consumer.tracker.state.copy(), self.consumer.tracker.reward, done, []
     
     def close(self):
         super(SPEEnvironment, self).close()
@@ -249,9 +268,9 @@ if __name__ == "__main__":
             obs, reward, done, info = env.step(action)
             if reward<0:
                 negative_rewards += 1
-                print('Got 3 negative rewards for this episode, resetting!')
+                # print('Got 3 negative rewards for this episode, resetting!')
 
-            if done == True or negative_rewards>=3:
+            if done == True:
                 break
 
     print('closing')

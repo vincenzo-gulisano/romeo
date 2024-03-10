@@ -33,21 +33,21 @@ sleep_until_time_or_pid() {
 }
 
 # Define base folder and input file
-base_folder="/home/vincenzo/romeo/data/output/CCR-exp6"
+base_folder="/home/vincenzo/romeo/data/output/CCR-exp7"
 input_file="/home/vincenzo/woost/data/input/input.txt"
 
 # Define lists of values
 wa=5
 ws=600
-duration=10000000
+duration=100000000
 d=601
 rate=25000
 repetition=0
 starting_time_min=900
 starting_time_max=9900
-episodes=20
+episodes=10
 steps=150
-compressions=(-1) #0 1 2 3 4 5 6 7 8 9 10) # -1)
+compressions=(0 1 2 3 4 5 6 7 8 9 10 -1)
 
 for compression in "${compressions[@]}"; do
     echo "Compression: $compression"
@@ -105,11 +105,6 @@ for compression in "${compressions[@]}"; do
     # Print the PID
     echo "JVM PID: $JVM_PID"
 
-    # args=($JVM_PID ${exp_folder}/)
-    # python python/cpu_monitor.py $JVM_PID ${exp_folder}/ &
-    # cpu_monitor_pid=$!
-
-
     # Example: Sleep until 60 seconds from now or until process with PID 123 is alive
     duration_seconds=$((duration / 1000))
     target_time=$(( $(get_current_time) + duration_seconds ))
@@ -124,25 +119,4 @@ for compression in "${compressions[@]}"; do
     ./scripts/stop_kafka.sh
     ./scripts/stop_kafka.sh
 
-    # pkill java
-    # pkill python
-        
-    echo "Creating extra stats"
-    grep -Eo '[0-9]+,[0-9]+,action [0-9]+' ${exp_folder}/episodes.csv | sed -E 's/,action /,/' | cut -d, -f1,3 > ${exp_folder}/actions.csv
-    awk '/^Got a new state\/reward pair: / {sub(/^Got a new state\/reward pair: /, ""); print int($1)} /^reward / {sub(/^reward /, ""); print $1}' ${exp_folder}/python_agent.log | paste -d, - -  > ${exp_folder}/rewards.csv
-    awk -F',' 'BEGIN {OFS=","; sum=0} {sum += $2; print $1, sum}' ${exp_folder}/rewards.csv > ${exp_folder}/cumulativereward.csv
-    awk -F',' 'NR > 1 { print $1 "," ($2 < 1000 ? 0 : 1) }' ${exp_folder}/latency.average.csv > ${exp_folder}/latency.violations.csv
-
-    echo "Creating plots"
-    python plotting/plot_experiment_stats_exp5.py --print_global_events ${exp_folder}/ ${exp_folder}/episodesstats.csv 
-
-    echo "Appending episodes stats to global csv"
-    python plotting/append_episodesstatscsv_to_global_one.py ${exp_folder}/episodesstats.csv ${base_folder}/compressionandepisodesstats.csv CCR-${compression}
-
 done
-
-# boxplot_stats=("rewards" "ratio.percent" "latency.average" "steps")
-
-# for boxplot_stat in "${boxplot_stats[@]}"; do
-#     python plotting/create_stat_episodes_boxplot_for_compressions.py ${base_folder}/compressionandepisodesstats.csv ${base_folder} ${boxplot_stat}
-# done
