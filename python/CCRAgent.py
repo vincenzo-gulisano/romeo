@@ -85,6 +85,9 @@ class SPEEnvironment(Env):
 
     def reset(self):
 
+        # reset latency counter
+        self.latency_counter = 0 
+
         # Send the reset
         self.producer.produce("reset")
 
