@@ -1,6 +1,6 @@
 #!/bin/bash
-base_exp_folder="./data/output/CCR-exp6/5/600"
-folders_to_explore=(0 1 2 3 4 5 6 7 8 9 10 r)
+base_exp_folder="./data/jingyu/exp7"
+folders_to_explore=(01)
 for folder_to_explore in "${folders_to_explore[@]}"; do
 
     exp_folder="${base_exp_folder}/${folder_to_explore}"
@@ -16,10 +16,10 @@ for folder_to_explore in "${folders_to_explore[@]}"; do
     grep -Eo '[0-9]+,[0-9]+,action [0-9]+' ${exp_folder}/episodes.csv | sed -E 's/,action /,/' | cut -d, -f1,3 > ${exp_folder}/actions.csv
     awk '/^Got a new state\/reward pair: / {sub(/^Got a new state\/reward pair: /, ""); print int($1)} /^reward / {sub(/^reward /, ""); print $1}' ${exp_folder}/python_agent.log | paste -d, - -  > ${exp_folder}/rewards.csv
     awk -F',' 'BEGIN {OFS=","; sum=0} {sum += $2; print $1, sum}' ${exp_folder}/rewards.csv > ${exp_folder}/cumulativereward.csv
-    awk -F',' 'NR > 1 { print $1 "," ($2 < 1000 ? 0 : 1) }' ${exp_folder}/latency.average.csv > ${exp_folder}/latency.violations.csv
+    awk -F',' 'NR > 1 { print $1 "," ($2 == -1 ? -1 : ($2 < 1000 ? 0 : 1)) }' ${exp_folder}/latency.average.csv > ${exp_folder}/latency.violations.csv
 
     echo "Creating plots"
-    python plotting/plot_experiment_stats_exp5.py ${exp_folder}/ ${exp_folder}/episodesstats.csv 
+    python plotting/plot_experiment_stats_exp7.py ${exp_folder}/ ${exp_folder}/episodesstats.csv 
 
     python plotting/append_episodesstatscsv_to_global_one.py ${exp_folder}/episodesstats.csv ${exp_folder}/compressionandepisodesstats.csv DQNAgent-exp7
 
