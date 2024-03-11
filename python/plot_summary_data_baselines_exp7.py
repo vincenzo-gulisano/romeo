@@ -1,0 +1,121 @@
+import argparse
+import pandas as pd
+import matplotlib.pyplot as plt
+import os
+
+def plot_graphs(base_folder):
+    # Read the baselines_data.csv file
+    file_path = os.path.join(base_folder, 'baselines_data.csv')
+    df = pd.read_csv(file_path)
+    
+    given_order = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'r']  # The desired order for baselines
+
+    # Define marker styles for different baselines to ensure uniqueness
+    markers = ['o', 's', '^', 'v', '<', '>', 'p', '*', 'h', 'H', 'D', 'd', '|', '_']
+        
+    # Sort unique_baselines according to the given order
+    unique_baselines = sorted(df['baseline'].unique(), key=lambda x: given_order.index(x))
+
+    if len(unique_baselines) > len(markers):
+        print("Warning: Not enough unique markers defined for the number of baselines.")
+    
+    # Plot 1: eventtime vs cum_reward (this is split in 2!)
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(10, 6), 
+                               gridspec_kw={'height_ratios': [1, 1], 'hspace': 0.05})
+
+    # Assume df, unique_baselines, and markers are defined earlier in your script
+
+    for i, baseline in enumerate(unique_baselines):
+        subset = df[df['baseline'] == baseline].sort_values(by='eventtime')
+        # Plot on first subplot for values > 140000
+        ax1.plot(subset['eventtime'], subset['cum_reward'], label=baseline, 
+                marker=markers[i % len(markers)], linewidth=0.5)
+        # Plot on second subplot for values < 40000
+        ax2.plot(subset['eventtime'], subset['cum_reward'], label=baseline, marker=markers[i % len(markers)], 
+                linewidth=0.5)
+
+    # Set limits for the Y-axis on both subplots to "cut out" values between 40000 and 140000
+    ax1.set_ylim(140000, max(df['cum_reward']) + 1000)  # Adjust upper limit as needed
+    ax2.set_ylim(min(df['cum_reward']) - 10000, 40000)  # Adjust lower limit as needed
+
+    # Hide the spines between ax and ax2
+    ax1.spines['bottom'].set_visible(False)
+    ax2.spines['top'].set_visible(False)
+    ax1.xaxis.tick_top()
+    ax1.tick_params(labeltop=False)  # Don't show tick labels at the top
+    ax2.xaxis.tick_bottom()
+
+    # Adding diagonal lines to indicate the break in Y axis
+    d = .01  # how big to make the diagonal lines in axes coordinates
+    kwargs = dict(transform=ax1.transAxes, color='k', clip_on=False)
+    ax1.plot((-d, +d), (-d, +d), **kwargs)        # top-left diagonal
+    ax1.plot((1 - d, 1 + d), (-d, +d), **kwargs)  # top-right diagonal
+
+    kwargs.update(transform=ax2.transAxes)  # switch to the bottom axes
+    ax2.plot((-d, +d), (1 - d, 1 + d), **kwargs)  # bottom-left diagonal
+    ax2.plot((1 - d, 1 + d), (1 - d, 1 + d), **kwargs)  # bottom-right diagonal
+
+    # Set labels and title
+    ax2.set_xlabel('Event Time')
+    ax2.set_ylabel('Cumulative Reward')
+    ax1.set_title('Event Time vs Cumulative Reward by Baseline')
+    ax1.legend(loc='upper right',ncol=2)
+
+    # Save the plot to the specified PDF file
+    plt.savefig(os.path.join(base_folder, 'eventtime_vs_cum_reward.pdf'))
+    plt.close()
+
+    # plt.figure(figsize=(10, 6))
+    # for i, baseline in enumerate(unique_baselines):
+    #     subset = df[df['baseline'] == baseline].sort_values(by='eventtime')
+    #     plt.plot(subset['eventtime'], subset['cum_reward'], label=baseline, marker=markers[i % len(markers)], linewidth=0.5)
+    # plt.xlabel('Event Time')
+    # plt.ylabel('Cumulative Reward')
+    # plt.legend()
+    # plt.title('Event Time vs Cumulative Reward by Baseline')
+    # plt.savefig(os.path.join(base_folder, 'eventtime_vs_cum_reward.pdf'))
+    # plt.close()
+    
+    # Plot 2: eventtime vs mean_ratio
+    plt.figure(figsize=(10, 6))
+    for i, baseline in enumerate(unique_baselines):
+        subset = df[df['baseline'] == baseline].sort_values(by='eventtime')
+        plt.plot(subset['eventtime'], subset['mean_ratio'], label=baseline, marker=markers[i % len(markers)], linewidth=0.5)
+    plt.xlabel('Event Time')
+    plt.ylabel('Mean Ratio')
+    plt.legend()
+    plt.title('Event Time vs Mean Ratio by Baseline')
+    plt.savefig(os.path.join(base_folder, 'eventtime_vs_mean_ratio.pdf'))
+    plt.close()
+    
+    # Plot 3: eventtime vs mean_violations
+    plt.figure(figsize=(10, 6))
+    for i, baseline in enumerate(unique_baselines):
+        subset = df[df['baseline'] == baseline].sort_values(by='eventtime')
+        plt.plot(subset['eventtime'], subset['mean_violations'], label=baseline, marker=markers[i % len(markers)], linewidth=0.5)
+    plt.xlabel('Event Time')
+    plt.ylabel('Mean Violations')
+    plt.legend()
+    plt.title('Event Time vs Mean Violations by Baseline')
+    plt.savefig(os.path.join(base_folder, 'eventtime_vs_mean_violations.pdf'))
+    plt.close()
+
+    # Plot 3: eventtime vs mean_violations
+    plt.figure(figsize=(10, 6))
+    for i, baseline in enumerate(unique_baselines):
+        subset = df[df['baseline'] == baseline].sort_values(by='eventtime')
+        plt.plot(subset['eventtime'], subset['steps'], label=baseline, marker=markers[i % len(markers)], linewidth=0.5)
+    plt.xlabel('Event Time')
+    plt.ylabel('Steps')
+    plt.legend()
+    plt.title('Event Time vs Steps by Baseline')
+    plt.savefig(os.path.join(base_folder, 'eventtime_vs_steps.pdf'))
+    plt.close()
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Generate plots from baselines_data.csv.')
+    parser.add_argument('base_folder', type=str, help='Input folder containing baselines_data.csv.')
+    
+    args = parser.parse_args()
+    
+    plot_graphs(args.base_folder)

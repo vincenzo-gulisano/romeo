@@ -3,12 +3,13 @@ import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
 
 def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_episode_events):
 
     valid_csv_files = []
 
-    csv_files_to_process = ['injectionrate.rate.csv','throughput.count.csv','actions.csv','CPU-agg.average.csv','latency.average.csv','ratio.percent.csv','rewards.csv','cumulativereward.csv','latency.violations.csv']
+    csv_files_to_process = ['injectionrate.rate.csv','throughput.count.csv','actions.csv','CPU-agg.average.csv','latency.average.csv','ratio.percent.csv','rewards.csv','cumulativereward.csv','latency.violations.csv','eventtime.max.csv']
 
     for file in csv_files_to_process:
         file_path = os.path.join(folder, file)
@@ -42,9 +43,6 @@ def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_epis
 
     # Set the size of the figure
     fig1, ax1 = plt.subplots(len(valid_csv_files),1,figsize=(highest_episode, len(valid_csv_files)*2), sharex=True)
-
-    # Set the size of the figure
-    # fig2, ax2 = plt.subplots(len(valid_csv_files),1,figsize=(highest_episode, len(valid_csv_files)*2), sharex=True)
 
     # Plot each valid CSV file
     for i,file_path in enumerate(valid_csv_files):
@@ -109,7 +107,7 @@ def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_epis
 
                 # Append the steps stat only for the first csv, no need to append it every time
                 if i == 0:
-                    stats.append({'episode': episode_value, 'stat': 'steps', 'mean': action_count,  'sum': action_count,  'max': action_count})
+                    stats.append({'episode': episode_value, 'stat': 'steps', 'min': action_count, 'mean': action_count,  'sum': action_count,  'max': action_count})
 
                 # Filter data based on the 'start' and 'stop' columns in episode_data
                 # for _, episode_entry in episode_data.iterrows(): ### COMMENTED THIS BECAUSE I THINK IT IS NOT NEEDED
@@ -119,27 +117,6 @@ def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_epis
                 # print('episode',episode_value,'start',start_time,'end',stop_time)
                 temp_df = df[(df.iloc[:, 0] >= start_time) & (df.iloc[:, 0] <= stop_time)]
 
-                # # Create X axis as a range from start_time to stop_time by increments of 1
-                # X = np.arange(start_time, stop_time + 1)
-
-                # # Create a DataFrame with X axis and initialize Y axis with NaN
-                # new_df = pd.DataFrame({'X': X, 'Y': np.nan})
-
-                # # Update Y values in new_df based on temp_df
-                # for x in X:
-                #     if x in temp_df.iloc[:, 0].values:
-                #         # Filter temp_df to find rows where the first column matches x
-                #         matching_rows = temp_df[temp_df.iloc[:, 0] == x]
-                #         if not matching_rows.empty:
-                #             # Extract the first matching row's index for clarity
-                #             first_matching_index = matching_rows.index[0]
-                #             # Ensure we access the row safely
-                #             y_value = matching_rows.at[first_matching_index, temp_df.columns[1]]
-                #             # print(x, first_matching_index, y_value)
-                #             # Update the Y value for this x
-                #             new_df.loc[new_df['X'] == x, 'Y'] = y_value
-
-
                 # Plot
                 ax2[i].plot(temp_df.iloc[:, 0]-start_time,temp_df.iloc[:, 1])
                 
@@ -148,26 +125,20 @@ def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_epis
 
                 ax2[i].set_xlabel(x_label)
                 ax2[i].set_ylabel(y_label)
+                
+                
+                # Filter out -1 values
+                filtered_values = temp_df.iloc[:, 1][temp_df.iloc[:, 1] != -1]
 
-                # adjust offset for x axes
-                # x_episode_offset+=stop_time-start_time
-
-                # Append episode statistics to the list
-                stats.append({'episode': episode_value, 'stat': os.path.splitext(os.path.basename(file_path))[0], 'mean': np.mean(temp_df.iloc[:, 1]),  'sum': np.sum(temp_df.iloc[:, 1]),  'max': np.max(temp_df.iloc[:, 1])})
-
-
-                    # Add vertical lines for each ts in episodes.csv
-                    # if print_episode_events:
-                    #     for _, row in episode_data.iterrows():
-                    #         axs[i].axvline(row['ts'], linestyle='--', color='red')
-                    #         axs[i].text(row['ts'], temp_df.iloc[:, 1].max(), f"{row['episode']}: {row['event']}", rotation=90, color='red')
-
-                    # ax.legend()
-                    # axs[i].set_title(f'Plot for {os.path.basename(file_path)} - Episode {episode_value}')
-
-                # plt.savefig(os.path.join(episode_folder, f"episode_{episode_value}.pdf"))
-                # plt.savefig(os.path.join(episode_folder, f"episode_{episode_value}.png"))
-                # plt.close()
+                # Append episode statistics to the list, excluding -1 from the calculations
+                stats.append({
+                    'episode': episode_value,
+                    'stat': os.path.splitext(os.path.basename(file_path))[0],
+                    'min': np.min(filtered_values) if not filtered_values.empty else np.nan,
+                    'mean': np.mean(filtered_values) if not filtered_values.empty else np.nan,
+                    'sum': np.sum(filtered_values) if not filtered_values.empty else np.nan,
+                    'max': np.max(filtered_values) if not filtered_values.empty else np.nan
+                })
 
                 # Convert the list of dictionaries to a DataFrame
                 stats_df = pd.DataFrame(stats)
