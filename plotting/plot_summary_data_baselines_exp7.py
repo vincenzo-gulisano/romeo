@@ -9,19 +9,28 @@ def plot_graphs(base_folder):
     file_path = os.path.join(base_folder, 'baselines_data.csv')
     df = pd.read_csv(file_path)
     
-    given_order = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'r', 'rl']  # The desired order for baselines
-
     # Define marker styles for different baselines to ensure uniqueness
     markers = ['s', '^', 'v', '<', '>', 'p', '*', 'h', 'H', 'D', 'd', '|', '_']
-        
-
+    
     min_size=50
     max_size=200
     min_opacity=0.1
     max_opacity=0.8
+
+    agent_plots = {
+        'rl': [50,150,0.1,0.6,'r'],
+        'rl2': [75,200,0.1,0.6,'g']}
        
-    # Sort unique_baselines according to the given order
-    unique_baselines = sorted(df['baseline'].unique(), key=lambda x: given_order.index(x))
+    # given_order = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'r', 'rl']  # The desired order for baselines
+    given_order = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'r']  # The desired order for baselines
+    # given_order = ['0', '1', '2', '3', '6', '10', 'r']  # The desired order for baselines
+    given_order = ['0', '1', '2', '3', '6', '10', 'r', 'rl','rl2']  # The desired order for baselines
+
+    # Create a set for faster membership tests
+    unique_baselines_set = set(df['baseline'].unique())
+
+    # Use list comprehension to filter given_order by items present in df['baseline'].unique()
+    unique_baselines = [baseline for baseline in given_order if baseline in unique_baselines_set]
 
     if len(unique_baselines) > len(markers):
         print("Warning: Not enough unique markers defined for the number of baselines.")
@@ -35,14 +44,14 @@ def plot_graphs(base_folder):
     for i, baseline in enumerate(unique_baselines):
         subset = df[df['baseline'] == baseline].sort_values(by='eventtime')
 
-        if baseline=='rl':
+        if baseline in agent_plots:
             # Determine sizes and opacities based on episode values
             num_points = len(subset['eventtime'])
-            sizes = np.geomspace(start=min_size, stop=max_size, num=num_points)
-            opacities = np.geomspace(start=min_opacity, stop=max_opacity, num=num_points)
-            for j, row in subset.iterrows():
-                ax1.scatter(row['eventtime'], row['cum_reward'], s=sizes[j], alpha=opacities[j], edgecolors='none', color='r')
-                ax2.scatter(row['eventtime'], row['cum_reward'], s=sizes[j], alpha=opacities[j], edgecolors='none', color='r')
+            sizes = np.geomspace(start=agent_plots[baseline][0], stop=agent_plots[baseline][1], num=num_points)
+            opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
+            for j, (index, row) in enumerate(subset.iterrows()):
+                ax1.scatter(row['eventtime'], row['cum_reward'], s=sizes[j], alpha=opacities[j], edgecolors='none', color=agent_plots[baseline][4])
+                ax2.scatter(row['eventtime'], row['cum_reward'], s=sizes[j], alpha=opacities[j], edgecolors='none', color=agent_plots[baseline][4])
             
         else:
             # Plot on first subplot for values > split_bottom
@@ -101,13 +110,13 @@ def plot_graphs(base_folder):
     for i, baseline in enumerate(unique_baselines):
         subset = df[df['baseline'] == baseline].sort_values(by='eventtime')
 
-        if baseline=='rl':
+        if baseline in agent_plots:
             # Determine sizes and opacities based on episode values
             num_points = len(subset['eventtime'])
-            sizes = np.geomspace(start=min_size, stop=max_size, num=num_points)
-            opacities = np.geomspace(start=min_opacity, stop=max_opacity, num=num_points)
-            for j, row in subset.iterrows():
-                plt.scatter(row['eventtime'], row['mean_ratio'], s=sizes[j], alpha=opacities[j], edgecolors='none', color='r')
+            sizes = np.geomspace(start=agent_plots[baseline][0], stop=agent_plots[baseline][1], num=num_points)
+            opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
+            for j, (index, row) in enumerate(subset.iterrows()):
+                plt.scatter(row['eventtime'], row['mean_ratio'], s=sizes[j], alpha=opacities[j], edgecolors='none', color=agent_plots[baseline][4])
             
         else:
             plt.plot(subset['eventtime'], subset['mean_ratio'], label=baseline, marker=markers[i % len(markers)], linewidth=0.5)
@@ -118,43 +127,43 @@ def plot_graphs(base_folder):
     plt.savefig(os.path.join(base_folder, 'eventtime_vs_mean_ratio.pdf'))
     plt.close()
     
+    # # Plot 3: eventtime vs mean_violations
+    # plt.figure(figsize=(10, 6))
+    # for i, baseline in enumerate(unique_baselines):
+    #     subset = df[df['baseline'] == baseline].sort_values(by='eventtime')
+
+    #     if baseline in agent_plots:
+    #         # Determine sizes and opacities based on episode values
+    #         num_points = len(subset['eventtime'])
+    #         sizes = np.geomspace(start=agent_plots[baseline][0], stop=agent_plots[baseline][1], num=num_points)
+    #         opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points))
+    #         for j, row in subset.iterrows():
+    #             plt.scatter(row['eventtime'], row['mean_violations'], s=sizes[j], alpha=opacities[j], edgecolors='none', color=agent_plots[baseline][4])
+            
+    #     else:
+    #         plt.plot(subset['eventtime'], subset['mean_violations'], label=baseline, marker=markers[i % len(markers)], linewidth=0.5)
+    # plt.xlabel('Event Time')
+    # plt.ylabel('Mean Violations')
+    # plt.legend()
+    # plt.title('Event Time vs Mean Violations by Baseline')
+    # plt.savefig(os.path.join(base_folder, 'eventtime_vs_mean_violations.pdf'))
+    # plt.close()
+
     # Plot 3: eventtime vs mean_violations
     plt.figure(figsize=(10, 6))
     for i, baseline in enumerate(unique_baselines):
         subset = df[df['baseline'] == baseline].sort_values(by='eventtime')
 
-        if baseline=='rl':
+        if baseline in agent_plots:
             # Determine sizes and opacities based on episode values
             num_points = len(subset['eventtime'])
-            sizes = np.geomspace(start=min_size, stop=max_size, num=num_points)
-            opacities = np.geomspace(start=min_opacity, stop=max_opacity, num=num_points)
-            for j, row in subset.iterrows():
-                plt.scatter(row['eventtime'], row['mean_violations'], s=sizes[j], alpha=opacities[j], edgecolors='none', color='r')
+            sizes = np.geomspace(start=agent_plots[baseline][0], stop=agent_plots[baseline][1], num=num_points)
+            opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
+            for j, (index, row) in enumerate(subset.iterrows()):
+                plt.scatter(row['eventtime'], row['sum_violations']/row['steps'], s=sizes[j], alpha=opacities[j], edgecolors='none', color=agent_plots[baseline][4])
             
         else:
-            plt.plot(subset['eventtime'], subset['mean_violations'], label=baseline, marker=markers[i % len(markers)], linewidth=0.5)
-    plt.xlabel('Event Time')
-    plt.ylabel('Mean Violations')
-    plt.legend()
-    plt.title('Event Time vs Mean Violations by Baseline')
-    plt.savefig(os.path.join(base_folder, 'eventtime_vs_mean_violations.pdf'))
-    plt.close()
-
-    # Plot 3: eventtime vs mean_violations
-    plt.figure(figsize=(10, 6))
-    for i, baseline in enumerate(unique_baselines):
-        subset = df[df['baseline'] == baseline].sort_values(by='eventtime')
-
-        if baseline=='rl':
-            # Determine sizes and opacities based on episode values
-            num_points = len(subset['eventtime'])
-            sizes = np.geomspace(start=min_size, stop=max_size, num=num_points)
-            opacities = np.geomspace(start=min_opacity, stop=max_opacity, num=num_points)
-            for j, row in subset.iterrows():
-                plt.scatter(row['eventtime'], row['sum_violations'], s=sizes[j], alpha=opacities[j], edgecolors='none', color='r')
-            
-        else:
-            plt.plot(subset['eventtime'], subset['sum_violations'], label=baseline, marker=markers[i % len(markers)], linewidth=0.5)
+            plt.plot(subset['eventtime'], subset['sum_violations']/subset['steps'], label=baseline, marker=markers[i % len(markers)], linewidth=0.5)
     plt.xlabel('Event Time')
     plt.ylabel('Sum Violations')
     plt.legend()
@@ -167,13 +176,13 @@ def plot_graphs(base_folder):
     for i, baseline in enumerate(unique_baselines):
         subset = df[df['baseline'] == baseline].sort_values(by='eventtime')
         
-        if baseline=='rl':
+        if baseline in agent_plots:
             # Determine sizes and opacities based on episode values
             num_points = len(subset['eventtime'])
-            sizes = np.geomspace(start=min_size, stop=max_size, num=num_points)
-            opacities = np.geomspace(start=min_opacity, stop=max_opacity, num=num_points)
-            for j, row in subset.iterrows():
-                plt.scatter(row['eventtime'], row['steps'], s=sizes[j], alpha=opacities[j], edgecolors='none', color='r')
+            sizes = np.geomspace(start=agent_plots[baseline][0], stop=agent_plots[baseline][1], num=num_points)
+            opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
+            for j, (index, row) in enumerate(subset.iterrows()):
+                plt.scatter(row['eventtime'], row['steps'], s=sizes[j], alpha=opacities[j], edgecolors='none', color=agent_plots[baseline][4])
             
         else:
             plt.plot(subset['eventtime'], subset['steps'], label=baseline, marker=markers[i % len(markers)], linewidth=0.5)

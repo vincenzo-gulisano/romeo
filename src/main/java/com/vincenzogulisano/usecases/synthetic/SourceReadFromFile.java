@@ -1,4 +1,4 @@
-package com.vincenzogulisano.usecases.linearroad;
+package com.vincenzogulisano.usecases.synthetic;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -13,6 +13,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.vincenzogulisano.javapythoncommunicator.StatReporter;
+import com.vincenzogulisano.usecases.linearroad.InjectorType;
+
 import common.metrics.Metric;
 import common.util.Util;
 import component.source.SourceFunction;
@@ -31,7 +33,7 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
     private long firstInvocationTs;
     private long firstTupleTs;
     private long lastSendNano;
-    private long nanoSleep;
+    // private long nanoSleep;
 
     private long startingTS;
     private ConcurrentLinkedQueue<Long> startingTSUpdates;
@@ -53,11 +55,11 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
     // The name of this Logger will be "org.apache.logging.Child"
     public Logger logger = LogManager.getLogger();
 
-    public SourceReadFromFile(String path, InjectorType type, long nanoSleep, long startingTS, long WS) {
+    public SourceReadFromFile(String path, InjectorType type, long startingTS, long WS) {
         Validate.notBlank(path, "path");
         this.path = path;
         this.type = type;
-        this.nanoSleep = nanoSleep;
+        // this.nanoSleep = nanoSleep;
         this.startingTS = startingTS;
         this.startingTSUpdates = new ConcurrentLinkedQueue<>();
         this.WS = WS;
@@ -85,8 +87,8 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         startingTSUpdates.add(startingTS);
     }
 
-    public SourceReadFromFile(String path, InjectorType type, long nanoSleep) {
-        this(path, type, nanoSleep, 0, 0);
+    public SourceReadFromFile(String path, InjectorType type) {
+        this(path, type, 0, 0);
     }
 
     private void initializeReader() {
@@ -192,10 +194,8 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
 
         switch (type) {
             case FIXEDRATE:
-                while (System.nanoTime() - lastSendNano < nanoSleep) {
-                }
-                lastSendNano = System.nanoTime();
-                break;
+                throw new RuntimeException("This injector does not support FIXEDRATE");
+                // break;
             case REALRATE:
                 while ((System.currentTimeMillis() - firstInvocationTs) < (result.getTimestamp() - firstTupleTs)
                         * 1000) {
@@ -228,11 +228,11 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
                                     "Source - ack received");
                             waitingForSPEGreenlightToStartSendingRealRateTuples = false;
                         }
-                        logger.debug("Sleeping " + QueryCountConsecutiveStops.sleepBeforeRealRate
+                        logger.debug("Sleeping " + QuerySynthetic.sleepBeforeRealRate
                                 + " ms before starting for real");
                         firstTupleAtRealRate = false;
                         try {
-                            Thread.sleep(QueryCountConsecutiveStops.sleepBeforeRealRate);
+                            Thread.sleep(QuerySynthetic.sleepBeforeRealRate);
                         } catch (InterruptedException e) {
                             logger.warn("Thread sleep Interrupted Exception");
                         }

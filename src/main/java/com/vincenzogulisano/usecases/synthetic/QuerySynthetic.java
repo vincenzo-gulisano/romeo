@@ -1,4 +1,4 @@
-package com.vincenzogulisano.usecases.linearroad;
+package com.vincenzogulisano.usecases.synthetic;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,6 +19,9 @@ import org.apache.logging.log4j.Logger;
 import com.vincenzogulisano.javapythoncommunicator.Actionable;
 import com.vincenzogulisano.javapythoncommunicator.EnvironmentMonitor;
 import com.vincenzogulisano.javapythoncommunicator.StatReporter;
+import com.vincenzogulisano.usecases.linearroad.SinkLogAndLatency;
+import com.vincenzogulisano.usecases.linearroad.TupleCarStops;
+import com.vincenzogulisano.usecases.linearroad.InjectorType;
 import com.vincenzogulisano.util.EpisodesLogger;
 import com.vincenzogulisano.util.ThreadCPUMonitor;
 import com.vincenzogulisano.woost.WoostAggregateWithCompression;
@@ -32,13 +35,13 @@ import component.source.Source;
 import query.LiebreContext;
 import query.Query;
 
-public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonitor {
+public class QuerySynthetic implements Actionable, EnvironmentMonitor {
 
     private Query q = new Query();
     private long experimentLength;
-    private WoostAggregateWithCompression<TupleInput, TupleCarStops> woostAgg;
+    private WoostAggregateWithCompression<TupleInput, TupleInput> woostAgg;
     private SourceReadFromFile sourceFunction;
-    private SinkLogAndLatency<TupleCarStops> sink;
+    private SinkLogAndLatency<TupleInput> sink;
     private ThreadCPUMonitor threadCPUMonitor;
     private long compressionThreshold;
     private String statsFolder;
@@ -57,6 +60,53 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
     // The name of this Logger will be "org.apache.logging.Child"
     public Logger logger = LogManager.getLogger();
 
+    public static void main(String[] args) throws ParseException, IOException {
+        QuerySynthetic q = new QuerySynthetic();
+        q.createQuery(args);
+        q.setStatReporter(new StatReporter() {
+
+            @Override
+            public void report(long ts, String id, double value) {
+
+            }
+
+            @Override
+            public void setResetRequest() {
+
+            }
+
+            @Override
+            public boolean getResetAcknowledged() {
+                return true;
+            }
+
+            @Override
+            public void setResetCompleted() {
+
+            }
+
+            @Override
+            public void addSendStateToken(long clockTimeBarrier, long eventTimeBarrier) {
+
+            }
+
+            @Override
+            public void registerLogger(EpisodesLogger logger) {
+
+            }
+
+            @Override
+            public void close() {
+
+            }
+
+        });
+        q.activateQuery();
+        Util.sleep(q.experimentLength);
+        q.close();
+
+    }
+
     public void createQuery(String[] args)
             throws ParseException, IOException {
 
@@ -69,12 +119,15 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         options.addOption("ws", "windowSize", true, "Aggregate's window size");
         options.addOption("o", "outputFile", true, "File to output tuples");
         options.addOption("t", "injectorType", true, "Type of injector");
-        options.addOption("n", "nanoSleep", true, "Sleeptime between sends in nanoseconds");
-        options.addOption("stmin", "startingTimeMinimum", true, "minimum starting time for RL");
-        options.addOption("stmax", "startingTimeMaximum", true, "maximum starting time for RL");
-        options.addOption("log4j", "log4jConfigFile", true, "log4j config file");
-        options.addOption("rer", "randomizeEpisodeRate", true,
-                "If true, each episode resets the random seed to the current time");
+        // options.addOption("n", "nanoSleep", true, "Sleeptime between sends in
+        // nanoseconds");
+        // options.addOption("stmin", "startingTimeMinimum", true, "minimum starting
+        // time for RL");
+        // options.addOption("stmax", "startingTimeMaximum", true, "maximum starting
+        // time for RL");
+        // options.addOption("log4j", "log4jConfigFile", true, "log4j config file");
+        // options.addOption("rer", "randomizeEpisodeRate", true,
+        // "If true, each episode resets the random seed to the current time");
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
@@ -88,22 +141,24 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         String outPath = cmd.getOptionValue("o", "");
         boolean writeOut = outPath.equals("") ? false : true;
         InjectorType type = InjectorType.valueOf(cmd.getOptionValue("t", String.valueOf(InjectorType.FIXEDRATE)));
-        long nanoSleep = Long.valueOf(cmd.getOptionValue("n", String.valueOf(0)));
-        startingTimeMinimum = Long.valueOf(cmd.getOptionValue("stmin", String.valueOf(0)));
-        startingTimeMaximum = Long.valueOf(cmd.getOptionValue("stmax", String.valueOf(0)));
-        randomizeSeed = Boolean.valueOf(cmd.getOptionValue("rer", "False"));
+        // long nanoSleep = Long.valueOf(cmd.getOptionValue("n", String.valueOf(0)));
+        // startingTimeMinimum = Long.valueOf(cmd.getOptionValue("stmin",
+        // String.valueOf(0)));
+        // startingTimeMaximum = Long.valueOf(cmd.getOptionValue("stmax",
+        // String.valueOf(0)));
+        // randomizeSeed = Boolean.valueOf(cmd.getOptionValue("rer", "False"));
 
         r = new Random(0);
 
         episodesLogger = new EpisodesLogger(statsFolder + File.separator + "episodes.csv");
         firstEpisodeStarted = false;
 
-        sourceFunction = new SourceReadFromFile(inputFile, type, nanoSleep, startingTimeMinimum, ws);
+        sourceFunction = new SourceReadFromFile(inputFile, type, startingTimeMinimum, ws);
 
-        sink = new SinkLogAndLatency("out", new SinkFunction<TupleCarStops>() {
+        sink = new SinkLogAndLatency<>("out", new SinkFunction<TupleInput>() {
 
             @Override
-            public void accept(TupleCarStops arg0) {
+            public void accept(TupleInput arg0) {
             }
 
         }, writeOut, outPath);
@@ -111,11 +166,11 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         Source<TupleInput> s = q.addBaseSource("in", sourceFunction);
 
         woostAgg = new WoostAggregateWithCompression<>("agg",
-                0, 1, ws, wa, new WindowCountStops(), compressionThreshold, statsFolder);
+                0, 1, ws, wa, new WindowSynthetic(), compressionThreshold, statsFolder);
 
-        Operator<TupleInput, TupleCarStops> agg = q.addOperator(woostAgg);
+        Operator<TupleInput, TupleInput> agg = q.addOperator(woostAgg);
 
-        Sink<TupleCarStops> o1 = q.addSink(sink);
+        Sink<TupleInput> o1 = q.addSink(sink);
 
         q.connect(s, agg).connect(agg, o1);
 

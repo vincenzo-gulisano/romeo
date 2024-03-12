@@ -16,12 +16,13 @@ import com.vincenzogulisano.javapythoncommunicator.StatReporter;
 
 import common.metrics.Metric;
 import common.metrics.TimeMetric;
+import common.tuple.RichTuple;
 import common.util.Util;
 import component.sink.BaseSink;
 import component.sink.SinkFunction;
 import query.LiebreContext;
 
-public class SinkLogAndLatency extends BaseSink<TupleCarStops> {
+public class SinkLogAndLatency<T extends RichTuple> extends BaseSink<T> {
 
     private Metric outrateMetric;
     private TimeMetric latencyMetric;
@@ -35,7 +36,7 @@ public class SinkLogAndLatency extends BaseSink<TupleCarStops> {
     // private volatile boolean resetAck;
     // private Lock resetLock;
 
-    public SinkLogAndLatency(String id, SinkFunction<TupleCarStops> function, boolean writeOut, String outPath) {
+    public SinkLogAndLatency(String id, SinkFunction<T> function, boolean writeOut, String outPath) {
         super(id, function);
         this.writeOut = writeOut;
         this.outPath = outPath;
@@ -113,7 +114,7 @@ public class SinkLogAndLatency extends BaseSink<TupleCarStops> {
     }
 
     @Override
-    public void processTuple(TupleCarStops t) {
+    public void processTuple(T t) {
 
         // if (resetRequest) {
         // logger.debug("Processing reset request");
