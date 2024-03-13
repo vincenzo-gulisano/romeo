@@ -1,0 +1,78 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Current File",
+            "request": "launch",
+            "mainClass": "${file}"
+        },
+        {
+            "type": "java",
+            "name": "JPComm",
+            "request": "launch",
+            "mainClass": "com.vincenzogulisano.javapythoncommunicator.JPComm",
+            "projectName": "romeo_java"
+        },
+        {
+            "type": "java",
+            "name": "DataGenerator",
+            "request": "launch",
+            "mainClass": "com.vincenzogulisano.usecases.synthetic.DataGenerator",
+            "projectName": "romeo_java"
+        },
+        {
+            "type": "java",
+            "name": "LinkedListOverheadTest",
+            "request": "launch",
+            "mainClass": "com.vincenzogulisano.usecases.synthetic.LinkedListOverheadTest",
+            "projectName": "romeo_java",
+            "vmArgs": "-javaagent:/home/vincenzo/.m2/repository/com/github/jbellis/jamm/0.3.0/jamm-0.3.0.jar --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED"
+        },
+        {
+            "type": "java",
+            "name": "QuerySynthetic",
+            "request": "launch",
+            "mainClass": "com.vincenzogulisano.usecases.synthetic.QuerySynthetic",
+            "projectName": "romeo_java"
+        },
+        {
+            "type": "java",
+            "name": "InputDataParser",
+            "request": "launch",
+            "mainClass": "com.vincenzogulisano.util.InputDataParser",
+            "projectName": "romeo_java"
+        },
+        {
+            "type": "java",
+            "name": "LiebreTest",
+            "request": "launch",
+            "mainClass": "com.vincenzogulisano.util.LiebreTest",
+            "projectName": "romeo_java"
+        },
+        {
+            "type": "java",
+            "name": "LinkedListOverheadTest(1)",
+            "request": "launch",
+            "mainClass": "com.vincenzogulisano.util.LinkedListOverheadTest",
+            "projectName": "romeo_java"
+        },
+        {
+            "type": "java",
+            "name": "OutputComparator",
+            "request": "launch",
+            "mainClass": "com.vincenzogulisano.util.OutputComparator",
+            "projectName": "romeo_java"
+        },
+        {
+            "type": "java",
+            "name": "SnappyExample",
+            "request": "launch",
+            "mainClass": "com.vincenzogulisano.util.SnappyExample",
+            "projectName": "romeo_java"
+        }
+    ]
+}

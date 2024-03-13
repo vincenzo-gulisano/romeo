@@ -9,12 +9,12 @@ public class TupleInput implements RichTuple, Serializable {
 
   private long timestamp;
   private long stimulus;
-  private String key;
+  private long key;
   public static final Pattern DELIMITER_PATTERN = Pattern.compile(",");
   private long value;
 
   public long getSize() {
-    throw new RuntimeException("getSize of TupleInput for synthetic has not been computed yet!");
+    return 72;
   }
 
   public TupleInput() {
@@ -31,18 +31,17 @@ public class TupleInput implements RichTuple, Serializable {
   }
 
   protected TupleInput(String[] readings) {
-    this(Integer
-        .valueOf(readings[0]), readings[1], Long.valueOf(readings[2]), System.currentTimeMillis());
+    this(Long.valueOf(readings[0]), Long.valueOf(readings[1]), Long.valueOf(readings[2]), System.currentTimeMillis());
   }
 
-  protected TupleInput(long time, String key, long value, long stimulus) {
+  protected TupleInput(long time, long key, long value, long stimulus) {
     this.stimulus = stimulus;
     this.timestamp = time;
     this.key = key;
     this.value = value;
   }
 
-  public void setKey(String key) {
+  public void setKey(long key) {
     this.key = key;
   }
 
@@ -59,7 +58,7 @@ public class TupleInput implements RichTuple, Serializable {
     final int prime = 31;
     int result = 1;
     result = prime * result + (int) (timestamp ^ (timestamp >>> 32));
-    result = prime * result + ((key == null) ? 0 : key.hashCode());
+    result = prime * result + (int) (key ^ (key >>> 32));
     result = prime * result + (int) (value ^ (value >>> 32));
     return result;
   }
@@ -75,10 +74,7 @@ public class TupleInput implements RichTuple, Serializable {
     TupleInput other = (TupleInput) obj;
     if (timestamp != other.timestamp)
       return false;
-    if (key == null) {
-      if (other.key != null)
-        return false;
-    } else if (!key.equals(other.key))
+    if (key != other.key)
       return false;
     if (value != other.value)
       return false;
@@ -95,7 +91,7 @@ public class TupleInput implements RichTuple, Serializable {
   }
 
   public String getKey() {
-    return this.key;
+    return String.valueOf(key);
   }
 
   public long getStimulus() {

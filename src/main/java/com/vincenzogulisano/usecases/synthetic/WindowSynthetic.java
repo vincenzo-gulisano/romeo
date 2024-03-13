@@ -17,7 +17,7 @@ public class WindowSynthetic implements WoostTimeWindow<TupleInput, TupleInput>,
 
     Queue<TupleInput> tuples;
     long currentWinLeftBoundary;
-    String key;
+    long key;
     transient int instanceNumber;
     transient int parallelismDegree;
     long tuplesSize;
@@ -74,12 +74,12 @@ public class WindowSynthetic implements WoostTimeWindow<TupleInput, TupleInput>,
     @Override
     public TupleInput getAggregatedResult() {
         
-        return new TupleInput(currentWinLeftBoundary, key, squaresSum, latestStimulus);
+        return new TupleInput(currentWinLeftBoundary, Long.valueOf(key), squaresSum, latestStimulus);
     }
 
     @Override
     public void setKey(String key) {
-        this.key = key;
+        this.key = Long.valueOf(key);
     }
 
     @Override
@@ -99,7 +99,7 @@ public class WindowSynthetic implements WoostTimeWindow<TupleInput, TupleInput>,
 
     @Override
     public long getSizeInBytes() {
-        return tuplesSize + 144;
+        return tuplesSize + 104;
     }
 
     // @Override
