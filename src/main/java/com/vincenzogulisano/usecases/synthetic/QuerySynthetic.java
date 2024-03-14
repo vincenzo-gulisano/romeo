@@ -23,6 +23,7 @@ import com.vincenzogulisano.usecases.linearroad.SinkLogAndLatency;
 import com.vincenzogulisano.usecases.linearroad.TupleCarStops;
 import com.vincenzogulisano.usecases.linearroad.InjectorType;
 import com.vincenzogulisano.util.EpisodesLogger;
+import com.vincenzogulisano.util.ExperimentOptions;
 import com.vincenzogulisano.util.ThreadCPUMonitor;
 import com.vincenzogulisano.woost.WoostAggregateWithCompression;
 
@@ -104,49 +105,30 @@ public class QuerySynthetic implements Actionable, EnvironmentMonitor {
         q.activateQuery();
         Util.sleep(q.experimentLength);
         q.close();
+        q.q.deActivate();
 
     }
 
     public void createQuery(String[] args)
             throws ParseException, IOException {
 
-        Options options = new Options();
-        options.addOption("i", "inputFile", true, "Input file path");
-        options.addOption("s", "statsFolder", true, "Output folder for stats");
-        options.addOption("d", "compressionThreshold", true, "Defines the compression threshold");
-        options.addOption("l", "experimentLength", true, "Length of the experiment in milliseconds");
-        options.addOption("wa", "windowAdvance", true, "Aggregate's window advance");
-        options.addOption("ws", "windowSize", true, "Aggregate's window size");
-        options.addOption("o", "outputFile", true, "File to output tuples");
-        options.addOption("t", "injectorType", true, "Type of injector");
-        // options.addOption("n", "nanoSleep", true, "Sleeptime between sends in
-        // nanoseconds");
-        // options.addOption("stmin", "startingTimeMinimum", true, "minimum starting
-        // time for RL");
-        // options.addOption("stmax", "startingTimeMaximum", true, "maximum starting
-        // time for RL");
-        // options.addOption("log4j", "log4jConfigFile", true, "log4j config file");
-        // options.addOption("rer", "randomizeEpisodeRate", true,
-        // "If true, each episode resets the random seed to the current time");
+        ExperimentOptions expOps = new ExperimentOptions(args);
 
-        CommandLineParser parser = new DefaultParser();
-        CommandLine cmd = parser.parse(options, args);
-
-        statsFolder = cmd.getOptionValue("s");
-        String inputFile = cmd.getOptionValue("i");
-        compressionThreshold = Long.parseLong(cmd.getOptionValue("d", String.valueOf(Long.MAX_VALUE)));
-        experimentLength = Long.parseLong(cmd.getOptionValue("l"));
-        wa = Long.parseLong(cmd.getOptionValue("wa"));
-        ws = Long.parseLong(cmd.getOptionValue("ws"));
-        String outPath = cmd.getOptionValue("o", "");
+        statsFolder = expOps.commandLine().getOptionValue("s");
+        String inputFile = expOps.commandLine().getOptionValue("i");
+        compressionThreshold = Long.parseLong(expOps.commandLine().getOptionValue("d", String.valueOf(Long.MAX_VALUE)));
+        experimentLength = Long.parseLong(expOps.commandLine().getOptionValue("l"));
+        wa = Long.parseLong(expOps.commandLine().getOptionValue("wa"));
+        ws = Long.parseLong(expOps.commandLine().getOptionValue("ws"));
+        String outPath = expOps.commandLine().getOptionValue("o", "");
         boolean writeOut = outPath.equals("") ? false : true;
-        InjectorType type = InjectorType.valueOf(cmd.getOptionValue("t", String.valueOf(InjectorType.FIXEDRATE)));
-        // long nanoSleep = Long.valueOf(cmd.getOptionValue("n", String.valueOf(0)));
-        // startingTimeMinimum = Long.valueOf(cmd.getOptionValue("stmin",
+        InjectorType type = InjectorType.valueOf(expOps.commandLine().getOptionValue("t", String.valueOf(InjectorType.FIXEDRATE)));
+        // long nanoSleep = Long.valueOf(expOps.commandLine().getOptionValue("n", String.valueOf(0)));
+        // startingTimeMinimum = Long.valueOf(expOps.commandLine().getOptionValue("stmin",
         // String.valueOf(0)));
-        // startingTimeMaximum = Long.valueOf(cmd.getOptionValue("stmax",
+        // startingTimeMaximum = Long.valueOf(expOps.commandLine().getOptionValue("stmax",
         // String.valueOf(0)));
-        // randomizeSeed = Boolean.valueOf(cmd.getOptionValue("rer", "False"));
+        // randomizeSeed = Boolean.valueOf(expOps.commandLine().getOptionValue("rer", "False"));
 
         r = new Random(0);
 

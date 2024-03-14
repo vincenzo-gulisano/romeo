@@ -16,9 +16,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.vincenzogulisano.usecases.linearroad.IRLRCPUMatrix_ESC;
-import com.vincenzogulisano.usecases.linearroad.IRLRCPU_ESC;
-import com.vincenzogulisano.usecases.linearroad.LatencyAndRatioDeltaESC;
 import com.vincenzogulisano.usecases.linearroad.QueryCountConsecutiveStops;
+import com.vincenzogulisano.usecases.synthetic.QuerySynthetic;
+import com.vincenzogulisano.util.ExperimentOptions;
 
 public class JPComm {
 
@@ -30,7 +30,7 @@ public class JPComm {
 
     public Logger logger = LogManager.getLogger();
 
-    private JPComm(Actionable actionable) {
+    private JPComm(Actionable actionable, long latencyTreshold, long CPUThreshold) {
         this.actionable = actionable;
 
         properties = new Properties();
@@ -50,13 +50,14 @@ public class JPComm {
         consumer.subscribe(Collections.singletonList("dchanges"));
         // esc = new LatencyAndRatioDeltaESC(20, producer, "/");
         // esc = new IRLRCPU_ESC(10,producer, "/");
-        esc = new IRLRCPUMatrix_ESC(7,producer, "/",7);
+        esc = new IRLRCPUMatrix_ESC(7, producer, "/", 7, latencyTreshold, CPUThreshold);
         // esc.addSendStateToken();
 
     }
 
-    public static JPComm createInstance(Actionable actionable, EnvironmentMonitor monitor) {
-        JPComm jpc = new JPComm(actionable);
+    public static JPComm createInstance(Actionable actionable, EnvironmentMonitor monitor, long latencyTreshold,
+            long CPUThreshold) {
+        JPComm jpc = new JPComm(actionable, latencyTreshold, CPUThreshold);
         monitor.setStatReporter(jpc.esc);
         return jpc;
     }
@@ -125,13 +126,38 @@ public class JPComm {
 
     public static void main(String[] args) throws InterruptedException, ParseException, IOException {
 
-        QueryCountConsecutiveStops q = new QueryCountConsecutiveStops();
-        q.createQuery(args);
-        JPComm jpc = JPComm.createInstance(q, q);
+        ExperimentOptions expOps = new ExperimentOptions(args);
 
-        jpc.startInternalThread();
+        String usecase = expOps.commandLine().getOptionValue("usecase", "LinearRoad");
 
-        q.activateQuery();
+        long latencyThreshold = Long.valueOf(expOps.commandLine().getOptionValue("latencyTreshold", "1000"));
+        long CPUThreshold = Long.valueOf(expOps.commandLine().getOptionValue("CPUTreshold", "80"));
+
+        switch (usecase) {
+            case "LinearRoad":
+
+                QueryCountConsecutiveStops q = new QueryCountConsecutiveStops();
+                q.createQuery(args);
+                JPComm jpc = JPComm.createInstance(q, q, latencyThreshold, CPUThreshold);
+                jpc.startInternalThread();
+                q.activateQuery();
+
+                break;
+
+            case "Synthetic":
+
+                QuerySynthetic q2 = new QuerySynthetic();
+                q2.createQuery(args);
+                JPComm jpc2 = JPComm.createInstance(q2, q2, latencyThreshold, CPUThreshold);
+                jpc2.startInternalThread();
+                q2.activateQuery();
+
+                break;
+
+            default:
+                throw new RuntimeException("Unkown usecase " + usecase);
+        }
+
         // Util.sleep(q.getQueryDuration());
         // q.deactivateQuery();
     }

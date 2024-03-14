@@ -35,13 +35,15 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
     private long lastReportedStateMaxTS;
     List<String> relevantMetrics;
     private long valuesPerObservation;
-    private final long latencyThreshold = 1000;
-    private final long CPUThreshold = 80;
+    private final long latencyThreshold;
+    private final long CPUThreshold;
 
     public IRLRCPUMatrix_ESC(long monitoringPeriod, Producer<String, String> producer, String separator,
-            long valuesPerObservation) {
+            long valuesPerObservation, long latencyThreshold, long CPUThreshold) {
         super(monitoringPeriod, producer, separator, false);
         this.valuesPerObservation = valuesPerObservation;
+        this.latencyThreshold = latencyThreshold;
+        this.CPUThreshold = CPUThreshold;
         relevantMetrics = new ArrayList<>(
                 Arrays.asList("injectionrate", "throughput", "outrate", "latency", "ratio", "comp", "dec",
                         "CPU-in", "CPU-agg", "CPU-out", "eventtime"));

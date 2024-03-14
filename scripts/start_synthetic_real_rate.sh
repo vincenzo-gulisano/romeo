@@ -38,9 +38,9 @@ input_file="/home/vincenzo/romeo/data/input/synthetic.csv"
 
 # Define lists of values
 wa=1
-ws=300
-duration=100000000
-d=601
+ws=900
+duration=7201000
+d=901
 # rate=25000
 # repetition=0
 # starting_time_min=900

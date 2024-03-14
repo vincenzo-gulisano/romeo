@@ -57,14 +57,14 @@ public class WindowSynthetic implements WoostTimeWindow<TupleInput, TupleInput>,
             TupleInput t = tuples.poll();
             // 20 has been estimated using LinedListOverheadTest
             tuplesSize -= t.getSize();
-            squaresSum -=  Math.pow(t.getValue(), 2);
+            squaresSum -=  Math.sqrt(Math.pow(t.getValue(), 2));
         }
         currentWinLeftBoundary = ts;
     }
 
     @Override
     public void add(TupleInput t) {
-        squaresSum += Math.pow(t.getValue(), 2);
+        squaresSum += Math.sqrt(Math.pow(t.getValue(), 2));
         tuples.add(t);
         // 20 has been estimated using LinedListOverheadTest
         tuplesSize += t.getSize();
