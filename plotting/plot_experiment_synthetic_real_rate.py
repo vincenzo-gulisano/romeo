@@ -55,7 +55,7 @@ def plot_files_in_folder(folder):
         df.iloc[:, 0] -= min_value
 
         # Plotting for fig 1
-        ax1[i].plot(df.iloc[:, 0], df.iloc[:, 1], label=y_label)
+        ax1[i].plot(df.iloc[:, 0], df.iloc[:, 1].replace(-1, np.nan), label=y_label)
         ax1[i].set_xlabel(x_label)
         # ax1[i].set_xlim([0,7200])
         ax1[i].set_ylabel(y_label)

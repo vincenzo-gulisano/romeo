@@ -124,11 +124,11 @@ public class QuerySynthetic implements Actionable, EnvironmentMonitor {
         boolean writeOut = outPath.equals("") ? false : true;
         InjectorType type = InjectorType.valueOf(expOps.commandLine().getOptionValue("t", String.valueOf(InjectorType.FIXEDRATE)));
         // long nanoSleep = Long.valueOf(expOps.commandLine().getOptionValue("n", String.valueOf(0)));
-        // startingTimeMinimum = Long.valueOf(expOps.commandLine().getOptionValue("stmin",
-        // String.valueOf(0)));
-        // startingTimeMaximum = Long.valueOf(expOps.commandLine().getOptionValue("stmax",
-        // String.valueOf(0)));
-        // randomizeSeed = Boolean.valueOf(expOps.commandLine().getOptionValue("rer", "False"));
+        startingTimeMinimum = Long.valueOf(expOps.commandLine().getOptionValue("stmin",
+        String.valueOf(0)));
+        startingTimeMaximum = Long.valueOf(expOps.commandLine().getOptionValue("stmax",
+        String.valueOf(0)));
+        randomizeSeed = Boolean.valueOf(expOps.commandLine().getOptionValue("rer", "False"));
 
         r = new Random(0);
 

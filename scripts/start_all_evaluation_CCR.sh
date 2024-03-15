@@ -58,7 +58,7 @@ usecase="Synthetic"
 duration=100000000
 episodes=10
 steps=150
-compressions=(0 1 2 3 4 5 6 7 8 9 10 -1)
+compressions=(0 1 2 3 4 5 6 7 8 9 10 -1) # 0
 
 for compression in "${compressions[@]}"; do
     echo "Compression: $compression"

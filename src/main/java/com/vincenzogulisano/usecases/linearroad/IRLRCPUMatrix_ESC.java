@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.apache.kafka.clients.producer.Producer;
@@ -265,15 +266,23 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         // Notice I set lastTS + 1 to make sure I send the state when all the
         // measurements for the same second have been received
 
-        long lastEventTime = (long) (lastReportedState.lastEntry().getValue().containsKey("eventtime")
-                ? lastReportedState.lastEntry().getValue().get("eventtime")
-                : -1);
+        // long lastEventTime = (long)
+        // (lastReportedState.lastEntry().getValue().containsKey("eventtime")
+        // ? lastReportedState.lastEntry().getValue().get("eventtime")
+        // : -1);
+        double lastEventTimeDouble = -1;
+        for (Entry<Long, HashMap<String, Double>> entry : lastReportedState.entrySet()) {
+            if (entry.getValue().containsKey("eventtime")) {
+                lastEventTimeDouble = Math.max(entry.getValue().get("eventtime"), lastEventTimeDouble);
+            }
+        }
+        long lastEventTime = (long) lastEventTimeDouble;
         boolean ready = lastReportedState.lastKey() >= clockTimeBarrier && lastEventTime >= eventTimeBarrier;
         logger.debug(
-                    "State ready based on barriers (>=)? {} - clock time:{} clock time barrier:{} event time:{} event time barrier:{}",
-                    ready, lastReportedState.lastKey(), clockTimeBarrier, lastEventTime, eventTimeBarrier);
+                "State ready based on barriers (>=)? {} - clock time:{} clock time barrier:{} event time:{} event time barrier:{}",
+                ready, lastReportedState.lastKey(), clockTimeBarrier, lastEventTime, eventTimeBarrier);
         if (ready) {
-            
+
             logger.debug("This is the resulting matrix\n{}",
                     stateFormatter(lastReportedState, null));
             // logger.debug("This is the reward\n{}",

@@ -82,11 +82,13 @@ class SPEEnvironment(Env):
         # track latency
         self.latency_threshold = 2500
         self.latency_counter = 0
+        self.latency_last_eventts = -1;
 
     def reset(self):
 
         # reset latency counter
         self.latency_counter = 0 
+        self.latency_last_eventts = -1;
 
         # Send the reset
         self.producer.produce("reset")
@@ -140,10 +142,13 @@ class SPEEnvironment(Env):
                     state_measurement_available = True
         
         # upfate latency counter
-        if self.consumer.tracker.state[3, -1] > self.latency_threshold:
-            self.latency_counter += 1
-            print(f"High latency observed: {self.consumer.tracker.state[3, -1]} ms at step {(150 - self.remaingSteps) + 1}")
-        
+        for event_time, latency in zip(self.consumer.tracker.state[10], self.consumer.tracker.state[3]):
+            if event_time > self.latency_last_eventts:
+                self.latency_last_eventts = event_time
+                if latency > self.latency_threshold:
+                    self.latency_counter += 1
+                    print(f"High latency observed: {event_time,latency} ms at step {(150 - self.remaingSteps) + 1}")
+                
         # check if latency is greater than 2.5s in three steps for every episode
         if self.latency_counter >= 3:
             done = True
