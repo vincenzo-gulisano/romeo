@@ -1,6 +1,6 @@
 #!/bin/bash
 base_exp_folder="./data/jingyu/exp7"
-folders_to_explore=(01)
+folders_to_explore=(rl2)
 for folder_to_explore in "${folders_to_explore[@]}"; do
 
     exp_folder="${base_exp_folder}/${folder_to_explore}"

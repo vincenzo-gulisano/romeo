@@ -16,6 +16,9 @@
         <Logger name="com.vincenzogulisano.usecases.linearroad.QueryCountConsecutiveStops" level="debug" additivity="false" includeLocation="true">
             <AppenderRef ref="Console" />
         </Logger>
+        <Logger name="com.vincenzogulisano.usecases.synthetic.QuerySynthetic" level="debug" additivity="false" includeLocation="true">
+            <AppenderRef ref="Console" />
+        </Logger>
         <Logger name="com.vincenzogulisano.usecases.linearroad.SinkLogAndLatency" level="debug" additivity="false" includeLocation="true">
             <AppenderRef ref="Console" />
         </Logger>
