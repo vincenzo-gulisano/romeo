@@ -19,16 +19,20 @@ import torch.optim as optim
 from collections import namedtuple
 import math
 import os
+import pickle
 
 
 GAMMA = 0.99
 lr = 0.1
-EPSION = 0.1
+# EPSILON = 0.1
 buffer_size = 10000  # replay buffer size
 batch_size = 128
 #episodes = 50
 target_update = 1  # copy frequency from net to target_net
 #steps = 100
+EPSILON_START = 0.1
+EPSILON_END = 0.01
+EPSILON_DECAY = 500 # the higher value, the slower decay
 
 
 # define neural network
@@ -87,6 +91,7 @@ class DQN(object):
         self.buffer = ReplayMemory(buffer_size)
         self.loss_func = nn.MSELoss()
         self.steps_done = 0
+        self.sample_count = 0
 
     def put(self, s0, a0, r, t, s1):
         self.buffer.push(s0, a0, r, t, s1)
@@ -94,17 +99,25 @@ class DQN(object):
     def select_action(self, state):
         eps_threshold = random.random()
         #action = self.net(torch.Tensor(state))
+        self.sample_count += 1
+        self.epsilon = EPSILON_END + (EPSILON_START - EPSILON_END) * math.exp(-1 * self.sample_count / EPSILON_DECAY)
         # reshape state to 1D vector
         state = torch.Tensor(state).view(-1)
         action = self.net(state)
         action_time = time.time()
-        if eps_threshold > EPSION:
+        # if eps_threshold > EPSION:
+        #     choice = torch.argmax(action).numpy()
+        #     action_type = "exploitation"
+        # else:
+        #     choice = np.random.randint(0, action.shape[0])  # random sampling
+        #     action_type = "exploration"
+        if eps_threshold > self.epsilon:
             choice = torch.argmax(action).numpy()
             action_type = "exploitation"
         else:
             choice = np.random.randint(0, action.shape[0])  # random sampling
             action_type = "exploration"
-        return choice, action_type, action_time
+        return choice, action_type, action_time, self.epsilon
 
     def update_parameters(self):
         if self.buffer.__len__() < batch_size:
@@ -308,7 +321,7 @@ class SPEEnvironment(Env):
         # upfate latency counter
         if self.consumer.tracker.state[3, -1] > self.latency_threshold:
             self.latency_counter += 1
-            print(f"High latency observed: {self.consumer.tracker.state[3, -1]} ms at step {(150 - self.remaingSteps) + 1}")
+            print(f"High latency observed: {self.consumer.tracker.state[3, -1]} ms at step {(self.stepsPerEpisode - self.remaingSteps) + 1}")
         
         # check if latency is greater than 2.5s in three steps for every episode
         if self.latency_counter >= 3:
@@ -433,11 +446,17 @@ if __name__ == "__main__":
     input_shape = (11, 7)
     Agent = DQN(input_shape, 256, env.action_space.n)
 
-    # load saved net's paras after 50 episodes
-    # model_file = 'image/Exp3/Exp3_paras/dqn_model_episode_260.pth'
-    # if os.path.exists(model_file):
-    #     Agent.net.load_state_dict(torch.load(model_file))
-    #     print("loaded net's paras...")
+    # load saved net's paras
+    model_file = 'image/Exp7.2/Exp7.2_paras (101-150)/exp7.2_dqn_model_episode_150.pth'
+    if os.path.exists(model_file):
+        Agent.net.load_state_dict(torch.load(model_file))
+        print("loaded net's paras...")
+
+    # load replay buffer from last episode
+    replay_buffer = f'image/Exp7.2/buffer_after_150_episodes.pkl'
+    with open (replay_buffer, 'rb') as f:
+      Agent.buffer = pickle.load(f)
+    print('loaded replay buffer from last round...')
    
     if args.agentstate is not None:
         Agent.net.load_state_dict(torch.load(args.agentstate))
@@ -445,16 +464,16 @@ if __name__ == "__main__":
     average_reward = 0  # average reward of all episodes
 
     # create folder to store paras
-    paras_folder_name = 'data/output/5/600/5000000000/0/25000/601/Exp7_paras (1-100)'
+    paras_folder_name = 'data/output/5/600/5000000000/0/25000/601/Exp7.2_paras (151-200)'
     if not os.path.exists(paras_folder_name):
         os.makedirs(paras_folder_name) 
 
     # create folder to store q value plots
-    q_value_folder_name = 'data/output/5/600/5000000000/0/25000/601/Exp7_q_value_plots (1-100)'
+    q_value_folder_name = 'data/output/5/600/5000000000/0/25000/601/Exp7.2_q_value_plots (151-200)'
     if not os.path.exists(q_value_folder_name):
         os.makedirs(q_value_folder_name)
 
-    for i_episode in range(0, int(args.episodes)):
+    for i_episode in range(150, 150 + int(args.episodes)):
         print('starting episode',i_episode + 1)
         s0 = env.reset()
         s0 = s0.reshape(-1)
@@ -468,10 +487,10 @@ if __name__ == "__main__":
         q_values_history = [[] for _ in range(env.action_space.n)]
 
         while True:
-            a0, action_type, action_time = Agent.select_action(s0)
+            a0, action_type, action_time, epsilon = Agent.select_action(s0)
             #s1, r, done, _ = env.step(a0)
             q_values = Agent.net(torch.Tensor(s0)).detach().numpy().squeeze()
-            print(f"Step {step_count + 1}, Action {a0}, Action type: {action_type}, Q values: {q_values}, Action time: {action_time}") 
+            print(f"Episode {i_episode + 1}, Step {step_count + 1}, Action {a0}, Action type: {action_type}, Epsilon: {epsilon:.6f}, Q values: {q_values}, Action time: {action_time}") 
 
             steps.append(step_count)
 
@@ -508,10 +527,13 @@ if __name__ == "__main__":
             Agent.target_net.load_state_dict(Agent.net.state_dict())
 
         plt.figure()
+        colors = ['red', 'green', 'blue', 'cyan', 'magenta', 'yellow', 'black', 'orange', 'purple', 'brown', 'pink']
+        # markers = ['o', 'v', '^', '<', '>', 's', 'p', '*', 'h', 'H', 'D']
         for i, action_q_values in enumerate(q_values_history):
                 if len(steps) == len(action_q_values):
                     action_q_values = [val[0] if isinstance(val, np.ndarray) and len(val) == 1 else val for val in action_q_values]
-                    plt.plot(steps, action_q_values, label = f'Action {i}')
+                    # plt.plot(steps, action_q_values, label = f'Action {i}', color = colors[i % len(colors)], marker = markers[i % len(markers)])
+                    plt.plot(steps, action_q_values, label = f'Action {i}', color = colors[i % len(colors)])
                 else:
                     print(f"Error: Mismatch in lengths for Action {i}")
 
@@ -521,16 +543,22 @@ if __name__ == "__main__":
         plt.ylabel('Q Values')
         plt.title(f'Q Values Over Episodes (Episode {i_episode + 1})')
         plt.legend()
-        q_value_file_path = os.path.join(q_value_folder_name, f'exp7_q_values_plot_{i_episode + 1}.png')
+        q_value_file_path = os.path.join(q_value_folder_name, f'exp7.2_q_values_plot_{i_episode + 1}.png')
         plt.savefig(q_value_file_path)
         plt.close()
             
-
         # saving paras per 10 episodes
         if (i_episode + 1) % 10 == 0: 
             # save model paras every 10 episodes
-            paras_file_path = os.path.join(paras_folder_name, f'exp7_dqn_model_episode_{i_episode + 1}.pth')
-            torch.save(Agent.net.state_dict(), paras_file_path)        
+            paras_file_path = os.path.join(paras_folder_name, f'exp7.2_dqn_model_episode_{i_episode + 1}.pth')
+            torch.save(Agent.net.state_dict(), paras_file_path)
+
+        # store the replay buffer when reaching the last episode of this round
+        if (i_episode + 1) == 150 + int(args.episodes):
+            replay_buffer = f'data/output/5/600/5000000000/0/25000/601/buffer_after_{i_episode + 1}_episodes.pkl'
+            with open (replay_buffer, 'wb') as f:
+                pickle.dump(Agent.buffer, f)
+            print(f'Saved replay buffer after {i_episode + 1} episodes ...')              
 
     print('closing')
     env.close()
