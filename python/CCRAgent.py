@@ -142,13 +142,22 @@ class SPEEnvironment(Env):
                     state_measurement_available = True
         
         # upfate latency counter
+
+        print(f"Checking high latency based on latency values")
+        checkAlsoBasedOnReward = True
         for event_time, latency in zip(self.consumer.tracker.state[10], self.consumer.tracker.state[3]):
             if event_time > self.latency_last_eventts:
                 self.latency_last_eventts = event_time
                 if latency > self.latency_threshold:
+                    checkAlsoBasedOnReward = False
                     self.latency_counter += 1
                     print(f"High latency observed: {event_time,latency} ms at step {(150 - self.remaingSteps) + 1}")
-                
+        if checkAlsoBasedOnReward:
+            print(f"Checking high latency based on actual reward")
+            if self.consumer.tracker.reward < -150:
+                self.latency_counter += 1
+                print(f"High latency observed because of reward at step {(150 - self.remaingSteps) + 1}")
+                    
         # check if latency is greater than 2.5s in three steps for every episode
         if self.latency_counter >= 3:
             done = True
@@ -197,7 +206,10 @@ class MeasurementTracker:
             doubles_list = [float(x) for x in parts[0].split(',')]
 
             # Convert the list to a NumPy array of float32 and reshape it to 4x5
-            self.state = np.array(doubles_list, dtype=np.float32).reshape(11, self.valuesPerObservation)
+            try:
+                self.state = np.array(doubles_list, dtype=np.float32).reshape(11, self.valuesPerObservation)
+            except Exception as e:
+                raise RuntimeError("An error occurred parsing "+input_str) from e
             self.reward = int(parts[1])
 
 class KafkaActionsProducer:
@@ -269,7 +281,7 @@ if __name__ == "__main__":
 
         while True:
             
-            if int(args.compression) != -1:
+            if args.compression != 'r':
                 action = int(args.compression)
             else:
                 action = env.action_space.sample()

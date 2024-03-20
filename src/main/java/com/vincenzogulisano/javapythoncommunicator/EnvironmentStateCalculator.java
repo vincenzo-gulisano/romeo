@@ -39,7 +39,7 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
         }
     }
 
-    private final long monitoringPeriod;
+    protected final long monitoringPeriod;
     protected final Producer<String, String> producer;
 
     protected Map<String, LinkedList<Pair<Long, Double>>> measurements;
@@ -59,9 +59,10 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
     protected ReentrantLock lock;
 
     protected boolean resetAllMeasurementsAfterReport;
+    protected boolean keepOnlyMonitoringPeriodData;
 
     public EnvironmentStateCalculator(long monitoringPeriod, Producer<String, String> producer, String separator,
-            boolean resetAllMeasurementsAfterReport) {
+            boolean resetAllMeasurementsAfterReport, boolean keepOnlyMonitoringPeriodData) {
         this.monitoringPeriod = monitoringPeriod;
         this.producer = producer;
         this.measurements = new HashMap<>();
@@ -72,10 +73,11 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
         this.sendStateTokens = new AtomicInteger();
         this.lock = new ReentrantLock();
         this.resetAllMeasurementsAfterReport = resetAllMeasurementsAfterReport;
+        this.keepOnlyMonitoringPeriodData = keepOnlyMonitoringPeriodData;
     }
 
     public EnvironmentStateCalculator(long monitoringPeriod, Producer<String, String> producer, String separator) {
-        this(monitoringPeriod, producer, separator, true);
+        this(monitoringPeriod, producer, separator, true, true);
     }
 
     public void close() {
@@ -166,15 +168,27 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
         // Check if there's something older than the monitoring period. If that is the
         // case, remove old stuff, report, and empty
         boolean dataSpansAtLeastTheMonitoringPeriod = false;
+
         HashSet<String> keysToRemove = new HashSet<>();
+
+        // Checking if we have enought measurements
+        // If more than enough and keepOnlyMonitoringPeriodData, removing them
         if (!measurements.isEmpty()) {
             for (String id_ : measurements.keySet()) {
                 while (!measurements.get(id_).isEmpty()
                         && measurements.get(id_).peek().getTimestamp() < ts - monitoringPeriod) {
                     dataSpansAtLeastTheMonitoringPeriod = true;
-                    measurements.get(id_).poll();
+
+                    if (keepOnlyMonitoringPeriodData) {
+                        measurements.get(id_).poll();
+                    } else {
+                        // Notice that if we keep all the data, we need to break
+                        // Otherwise we stay in this loop forever
+                        break;
+                    }
+
                 }
-                if (measurements.get(id_).isEmpty()) {
+                if (keepOnlyMonitoringPeriodData && measurements.get(id_).isEmpty()) {
                     keysToRemove.add(id_);
                 }
             }
@@ -183,7 +197,9 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
             measurements.remove(keyToRemove);
         }
 
-        if (dataSpansAtLeastTheMonitoringPeriod) {
+        if (dataSpansAtLeastTheMonitoringPeriod)
+
+        {
 
             logger.debug(
                     "Checking if state measurement is available and there is at least one token to send the state...");

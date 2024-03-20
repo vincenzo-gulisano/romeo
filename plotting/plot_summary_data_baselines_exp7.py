@@ -24,7 +24,7 @@ def plot_graphs(base_folder):
     # given_order = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'r', 'rl']  # The desired order for baselines
     given_order = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'r']  # The desired order for baselines
     # given_order = ['0', '1', '2', '3', '6', '10', 'r']  # The desired order for baselines
-    given_order = ['0', '1', '2', '3', '6', '10', 'r', 'rl','rl2']  # The desired order for baselines
+    # given_order = ['0', '1', '2', '3', '6', '10', 'r', 'rl','rl2']  # The desired order for baselines
 
     # Create a set for faster membership tests
     unique_baselines_set = set(df['baseline'].unique())
@@ -61,8 +61,8 @@ def plot_graphs(base_folder):
             ax2.plot(subset['eventtime'], subset['cum_reward'], label=baseline, marker=markers[i % len(markers)], 
                     linewidth=0.5)
 
-    split_bottom=20000
-    split_upper=140000
+    split_bottom=40000
+    split_upper=40000
     # Set limits for the Y-axis on both subplots to "cut out" values between split_bottom and split_upper
     ax1.set_ylim(split_upper, max(df['cum_reward']) + 100)  # Adjust upper limit as needed
     ax2.set_ylim(min(df['cum_reward']) - 100, split_bottom)  # Adjust lower limit as needed

@@ -3,6 +3,7 @@ package com.vincenzogulisano.usecases.linearroad;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -13,24 +14,9 @@ import org.apache.logging.log4j.Logger;
 
 import com.vincenzogulisano.javapythoncommunicator.EnvironmentStateCalculator;
 
-/**
- * This is the one that has been used since Exp3
- */
-
 public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
 
     public Logger logger = LogManager.getLogger();
-
-    // private long IR; // Input Rate
-    // private long L; // Latency
-    // private long lastLTimestamp;
-    // private double R; // Rate
-    // private double CPU;
-    // private long lastTS;
-    // private long ts;
-
-    // private double[][] measurement;
-    // private TreeMap<Long, HashMap<String, Double>> prevReportedState;
 
     private TreeMap<Long, HashMap<String, Double>> lastReportedState;
     private long lastReportedStateMaxTS;
@@ -41,48 +27,68 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
 
     public IRLRCPUMatrix_ESC(long monitoringPeriod, Producer<String, String> producer, String separator,
             long valuesPerObservation, long latencyThreshold, long CPUThreshold) {
-        super(monitoringPeriod, producer, separator, false);
+        super(monitoringPeriod, producer, separator, false, false);
         this.valuesPerObservation = valuesPerObservation;
         this.latencyThreshold = latencyThreshold;
         this.CPUThreshold = CPUThreshold;
         relevantMetrics = new ArrayList<>(
                 Arrays.asList("injectionrate", "throughput", "outrate", "latency", "ratio", "comp", "dec",
                         "CPU-in", "CPU-agg", "CPU-out", "eventtime"));
+        lastReportedState = new TreeMap<>();
         resetVariables();
 
     }
 
     protected void resetVariables() {
-        // IR = -1;
-        // L = -1;
-        // lastLTimestamp = -1;
-        // R = -1;
-        // CPU = -1;
-        // prevReportedState = new TreeMap<>();
-        lastReportedState = new TreeMap<>();
+        lastReportedState.clear();
         lastReportedStateMaxTS = -1;
     }
 
     @Override
     public String getStateMeasurementAsString() {
+
+        logger.debug("Preparing the state measurement as string.");
+        logger.debug("These are the latest reports\n{}",
+                stateFormatter(lastReportedState));
+        // if (lastReportedStateMaxTS == -1) {
+        //     lastReportedStateMaxTS = lastReportedState.firstKey() - 1;
+        //     logger.debug("Set lastReportedStateMaxTS to {} because it was -1", lastReportedStateMaxTS);
+        // }
+        long thresholdTS = lastReportedState.firstKey();
+        logger.debug("The state will contains readings for state from ts {}.", thresholdTS);
+        if (lastReportedState.lastKey() - (thresholdTS + 1) > monitoringPeriod) {
+            for(long ts : lastReportedState.keySet()) {
+                thresholdTS = ts;
+                if (lastReportedState.lastKey() - thresholdTS <= monitoringPeriod) {
+                    break;
+                }
+            }
+            logger.debug(
+                    "Actually, the state will contain readings for state from {} to avoid having more than {} entries",
+                    thresholdTS, monitoringPeriod);
+        }
+
         String logMsg = "";
         for (String metric : relevantMetrics) {
             for (long ts : lastReportedState.keySet()) {
-                if (lastReportedState.get(ts).containsKey(metric)) {
-                    logMsg += String.format("%.2f", lastReportedState.get(ts).get(metric)) + ",";
-                } else {
-                    logMsg += "-1.0,";
+                if (ts > thresholdTS) {
+                    if (lastReportedState.get(ts).containsKey(metric)) {
+                        logMsg += String.format("%.2f", lastReportedState.get(ts).get(metric)) + ",";
+                    } else {
+                        logMsg += "-1.0,";
+                    }
                 }
             }
         }
         // Remove the last comma
-        return logMsg.substring(0, logMsg.length() - 2);
+        logger.debug("serialized state:\n{}", logMsg.substring(0, logMsg.length() - 1));
+        return logMsg.substring(0, logMsg.length() - 1);
     }
 
     @Override
     public long getReward() {
 
-        logger.debug("\nComputing Reward (for timestamps from {})", lastReportedStateMaxTS + 1);
+        logger.debug("\nComputing Reward (for timestamps greater than {})", lastReportedStateMaxTS);
 
         long reward = 0;
 
@@ -141,6 +147,31 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         logger.debug("Reward computed, lastReportedStateMaxTS updated to {}", lastReportedStateMaxTS);
         logger.debug("\n*************\n* Reward: {}\n*************\n", reward);
 
+        HashSet<String> keysToRemove = new HashSet<>();
+
+        // Checking if we have enought measurements
+        // If more than enough and keepOnlyMonitoringPeriodData, removing them
+        logger.debug("cleaning measurements");
+        if (!measurements.isEmpty()) {
+            for (String id_ : measurements.keySet()) {
+                while (!measurements.get(id_).isEmpty()
+                        && measurements.get(id_).peek().getTimestamp() <= lastReportedStateMaxTS - monitoringPeriod) {
+                    measurements.get(id_).poll();
+                }
+                if (measurements.get(id_).isEmpty()) {
+                    keysToRemove.add(id_);
+                }
+            }
+        }
+        for (String keyToRemove : keysToRemove) {
+            measurements.remove(keyToRemove);
+        }
+        while (!lastReportedState.isEmpty()
+                && lastReportedState.firstKey() <= lastReportedStateMaxTS - monitoringPeriod) {
+            Entry<Long, HashMap<String, Double>> firstEntry = lastReportedState.pollFirstEntry();
+            logger.debug("Removed entry with ts {} from lastReportedState", firstEntry.getKey());
+        }
+
         return reward;
     }
 
@@ -152,55 +183,6 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
     @Override
     public boolean computeStateMeasurementAndReward() {
 
-        // logger.debug("Checking if state measurement and reward are available");
-
-        lastReportedState = new TreeMap<>();
-
-        // logger.debug("Trying to find the min and max timestamps of the relevant
-        // metrics {}", relevantMetrics);
-        // long minTS = Long.MAX_VALUE;
-        // long maxTS = Long.MIN_VALUE;
-        // for (String metric : relevantMetrics) {
-        // if (measurements.containsKey(metric)) {
-        // logger.debug("Relevant measuremet: {}", measurements.get(metric));
-        // minTS = measurements.get(metric).getFirst().getTimestamp() < minTS
-        // ? measurements.get(metric).getFirst().getTimestamp()
-        // : minTS;
-        // maxTS = measurements.get(metric).getLast().getTimestamp() > maxTS
-        // ? measurements.get(metric).getLast().getTimestamp()
-        // : maxTS;
-        // }
-        // }
-        // if (minTS == Long.MAX_VALUE || maxTS == Long.MIN_VALUE) {
-        // logger.fatal("Trying to find the min and max timestamps of the relevant
-        // metrics {}", relevantMetrics);
-        // throw new RuntimeException("Could not find a single statistic for the
-        // relevant metrics " + relevantMetrics);
-        // }
-        // if (maxTS - minTS < valuesPerObservation - 1) {
-        // // logger.debug("Cannot produce measurements, since I do not have {} values
-        // per
-        // // observation",
-        // // valuesPerObservation);
-        // return false;
-        // }
-
-        // if (minTS <= maxTS - valuesPerObservation) {
-        // minTS = maxTS - valuesPerObservation + 1;
-        // // logger.debug("There are more values than needed, changed minTS to {}",
-        // // minTS);
-        // }
-
-        // logger.debug("MinTS={} MaxTS={}", minTS, maxTS);
-        // logger.debug("Creating a 2d matrix of {}x{} entries and populating it",
-        // relevantMetrics.size(),
-        // (int) (maxTS - minTS + 1));
-        // measurement = new double[relevantMetrics.size()][(int) (maxTS - minTS + 1)];
-        // for (int i = 0; i < measurement.length; i++) {
-        // for (int j = 0; j < measurement[i].length; j++) {
-        // measurement[i][j] = -1;
-        // }
-        // }
         for (String metric : relevantMetrics) {
             if (measurements.containsKey(metric)) {
                 for (Pair<Long, Double> measurement : measurements.get(metric)) {
@@ -213,63 +195,13 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         }
 
         // Remove extra values
-        if (!lastReportedState.isEmpty()) {
-            while (lastReportedState.lastKey() - lastReportedState.firstKey() > valuesPerObservation) {
-                lastReportedState.pollFirstEntry();
-            }
-        }
-
-        // for (String id_ : measurements.keySet()) {
-        // if (id_.equals("injectionrate") || id_.equals("ratio") ||
-        // id_.equals("CPU-agg")) {
-        // double sum = 0.0;
-        // double count = 0.0;
-        // for (Pair<Long, Double> v : measurements.get(id_)) {
-        // if (v.getValue() != -1) {
-        // sum += v.getValue();
-        // count++;
-        // }
-        // }
-        // double avg = count > 0 ? sum / count : -1;
-        // switch (id_) {
-        // case "injectionrate":
-        // IR = (long) avg;
-        // // logger.debug("registered injectionrate {}", IR);
-        // break;
-        // case "ratio":
-        // R = avg;
-        // // logger.debug("registered ratio {}", R);
-        // break;
-        // case "CPU-agg":
-        // CPU = avg;
-        // // logger.debug("registered cpu {}", CPU);
-        // break;
-        // default:
-        // break;
-        // }
-        // }
-        // if (id_.equals("latency")) {
-        // L = -1;
-        // for (Pair<Long, Double> v : measurements.get(id_)) {
-        // if (v.getTimestamp() > lastLTimestamp) {
-        // L = (long) (v.getValue() > L ? v.getValue() : L);
-        // lastLTimestamp = v.getTimestamp();
-        // // logger.debug("Found a newer latency for ts:{} and value:{}",
-        // lastLTimestamp,
-        // // L);
-        // }
-        // }
-        // // logger.debug("registered latency {}", L);
+        // if (!lastReportedState.isEmpty()) {
+        // while (lastReportedState.lastKey() - lastReportedState.firstKey() >
+        // valuesPerObservation) {
+        // lastReportedState.pollFirstEntry();
         // }
         // }
 
-        // Notice I set lastTS + 1 to make sure I send the state when all the
-        // measurements for the same second have been received
-
-        // long lastEventTime = (long)
-        // (lastReportedState.lastEntry().getValue().containsKey("eventtime")
-        // ? lastReportedState.lastEntry().getValue().get("eventtime")
-        // : -1);
         double lastEventTimeDouble = -1;
         for (Entry<Long, HashMap<String, Double>> entry : lastReportedState.entrySet()) {
             if (entry.getValue().containsKey("eventtime")) {
@@ -277,26 +209,18 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
             }
         }
         long lastEventTime = (long) lastEventTimeDouble;
-        boolean ready = lastReportedState.lastKey() >= clockTimeBarrier && lastEventTime >= eventTimeBarrier;
+        boolean ready = lastReportedState.lastKey() >= clockTimeBarrier && lastEventTime >= eventTimeBarrier
+                && lastReportedState.lastKey() > lastReportedStateMaxTS && lastReportedState.size() >= monitoringPeriod;
         logger.debug(
-                "State ready based on barriers (>=)? {} - clock time:{} clock time barrier:{} event time:{} event time barrier:{}",
-                ready, lastReportedState.lastKey(), clockTimeBarrier, lastEventTime, eventTimeBarrier);
-        if (ready) {
+                "State ready based on barriers (>=)? {} - clock time:{} clock time barrier:{} event time:{} event time barrier:{} lastReportedStateMaxTS:{}, lastReportedState.size():{}",
+                ready, lastReportedState.lastKey(), clockTimeBarrier, lastEventTime, eventTimeBarrier,
+                lastReportedStateMaxTS, lastReportedState.size());
 
-            logger.debug("This is the resulting matrix\n{}",
-                    stateFormatter(lastReportedState, null));
-            // logger.debug("This is the reward\n{}",
-            // getReward());
-            // prevReportedState = lastReportedState;
-        } else {
-
-        }
         return ready;
 
     }
 
-    private String stateFormatter(TreeMap<Long, HashMap<String, Double>> newState,
-            TreeMap<Long, HashMap<String, Double>> prevState) {
+    private String stateFormatter(TreeMap<Long, HashMap<String, Double>> newState) {
 
         String formattedState = "";
 
@@ -311,16 +235,6 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
             for (int i = 0; i < relevantMetrics.size(); i++) {
                 String metric = relevantMetrics.get(i);
                 data[i + 1][0] = metric;
-                // if (prevState.containsKey(ts)) {
-                // if (prevState.get(ts).containsKey(metric)
-                // && prevState.get(ts).get(metric) != newState.get(ts).get(metric)) {
-                // data[i + 1][column] = "! ";
-                // } else {
-                // data[i + 1][column] = "- ";
-                // }
-                // } else {
-                // data[i + 1][column] = "* ";
-                // }
                 if (newState.get(ts).containsKey(metric)) {
                     data[i + 1][column] = String.format("%.2f", newState.get(ts).get(metric));
                 } else {

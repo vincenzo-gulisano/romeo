@@ -1,5 +1,6 @@
 #!/bin/bash
-base_exp_folder="./data/output/CCR-exp7/5/600"
+base_exp_folder=$1
+echo "base_exp_folder=${base_exp_folder}"
 folders_to_explore=(0 1 2 3 4 5 6 7 8 9 10 r)
 for folder_to_explore in "${folders_to_explore[@]}"; do
 

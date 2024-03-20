@@ -35,7 +35,7 @@ sleep_until_time_or_pid() {
 # Define base folder and input file
 
 # This is for Linear Road
-base_folder="/home/vincenzo/romeo/data/output/CCR-exp7"
+base_folder="/home/vincenzo/romeo/data/output/08/linearroad-CCR"
 input_file="/home/vincenzo/woost/data/input/input.txt"
 wa=5
 ws=600
@@ -44,21 +44,21 @@ starting_time_min=900
 starting_time_max=9900
 usecase="LinearRoad"
 
-# This is for the synthetic query
-base_folder="/home/vincenzo/romeo/data/output/synthetic-CCR"
-input_file="/home/vincenzo/romeo/data/input/synthetic.csv"
-wa=1
-ws=900
-d=901
-starting_time_min=1200
-starting_time_max=6800
-usecase="Synthetic"
+# # This is for the synthetic query
+# base_folder="/home/vincenzo/romeo/data/output/08/synthetic-CCR"
+# input_file="/home/vincenzo/romeo/data/input/synthetic.csv"
+# wa=1
+# ws=900
+# d=901
+# starting_time_min=1200
+# starting_time_max=6800
+# usecase="Synthetic"
 
 # Define lists of values
 duration=100000000
 episodes=10
 steps=150
-compressions=(0 1 2 3 4 5 6 7 8 9 10 -1) # 0
+compressions=(2 3 4 5 6 7 8 9 10 r) # 
 
 for compression in "${compressions[@]}"; do
     echo "Compression: $compression"
