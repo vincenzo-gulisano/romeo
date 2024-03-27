@@ -18,11 +18,11 @@ def plot_graphs(base_folder):
     max_opacity=0.8
 
     agent_plots = {
-        'rl': [50,150,0.1,0.6,'r'],
-        'rl2': [75,200,0.1,0.6,'g']}
+        'agent-1-100': [50,250,0.1,1,'r'],
+        'agent-101-300': [75,200,0.1,0.6,'g']}
        
     # given_order = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'r', 'rl']  # The desired order for baselines
-    given_order = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'r']  # The desired order for baselines
+    given_order = ['agent-101-300']  # The desired order for baselines
     # given_order = ['0', '1', '2', '3', '6', '10', 'r']  # The desired order for baselines
     # given_order = ['0', '1', '2', '3', '6', '10', 'r', 'rl','rl2']  # The desired order for baselines
 
@@ -35,14 +35,68 @@ def plot_graphs(base_folder):
     if len(unique_baselines) > len(markers):
         print("Warning: Not enough unique markers defined for the number of baselines.")
     
-    # Plot 1: eventtime vs cum_reward (this is split in 2!)
-    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(10, 6), 
-                               gridspec_kw={'height_ratios': [1, 1], 'hspace': 0.05})
+    # # Plot 1: eventtime vs cum_reward (this is split in 2!)
+    # fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(10, 6), 
+    #                            gridspec_kw={'height_ratios': [1, 1], 'hspace': 0.05})
 
-    # Assume df, unique_baselines, and markers are defined earlier in your script
+    # # Assume df, unique_baselines, and markers are defined earlier in your script
 
+    # for i, baseline in enumerate(unique_baselines):
+    #     subset = df[df['baseline'] == baseline].sort_values(by='eventtime')
+
+    #     if baseline in agent_plots:
+    #         # Determine sizes and opacities based on episode values
+    #         num_points = len(subset['eventtime'])
+    #         sizes = np.geomspace(start=agent_plots[baseline][0], stop=agent_plots[baseline][1], num=num_points)
+    #         opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
+    #         for j, (index, row) in enumerate(subset.iterrows()):
+    #             ax1.scatter(row['eventtime'], row['cum_reward'], s=sizes[j], alpha=opacities[j], edgecolors='none', color=agent_plots[baseline][4])
+    #             ax2.scatter(row['eventtime'], row['cum_reward'], s=sizes[j], alpha=opacities[j], edgecolors='none', color=agent_plots[baseline][4])
+            
+    #     else:
+    #         # Plot on first subplot for values > split_bottom
+    #         ax1.plot(subset['eventtime'], subset['cum_reward'], label=baseline, 
+    #                 marker=markers[i % len(markers)], linewidth=0.5)
+    #         # Plot on second subplot for values < split_upper
+    #         ax2.plot(subset['eventtime'], subset['cum_reward'], label=baseline, marker=markers[i % len(markers)], 
+    #                 linewidth=0.5)
+
+    # split_bottom=40000
+    # split_upper=40000
+    # # Set limits for the Y-axis on both subplots to "cut out" values between split_bottom and split_upper
+    # ax1.set_ylim(split_upper, max(df['cum_reward']) + 100)  # Adjust upper limit as needed
+    # ax2.set_ylim(min(df['cum_reward']) - 100, split_bottom)  # Adjust lower limit as needed
+
+    # # Hide the spines between ax and ax2
+    # ax1.spines['bottom'].set_visible(False)
+    # ax2.spines['top'].set_visible(False)
+    # ax1.xaxis.tick_top()
+    # ax1.tick_params(labeltop=False)  # Don't show tick labels at the top
+    # ax2.xaxis.tick_bottom()
+
+    # # Adding diagonal lines to indicate the break in Y axis
+    # d = .01  # how big to make the diagonal lines in axes coordinates
+    # kwargs = dict(transform=ax1.transAxes, color='k', clip_on=False)
+    # ax1.plot((-d, +d), (-d, +d), **kwargs)        # top-left diagonal
+    # ax1.plot((1 - d, 1 + d), (-d, +d), **kwargs)  # top-right diagonal
+
+    # kwargs.update(transform=ax2.transAxes)  # switch to the bottom axes
+    # ax2.plot((-d, +d), (1 - d, 1 + d), **kwargs)  # bottom-left diagonal
+    # ax2.plot((1 - d, 1 + d), (1 - d, 1 + d), **kwargs)  # bottom-right diagonal
+
+    # # Set labels and title
+    # ax2.set_xlabel('Event Time')
+    # ax2.set_ylabel('Cumulative Reward')
+    # ax1.set_title('Event Time vs Cumulative Reward by Baseline')
+    # ax1.legend(loc='upper right',ncol=2)
+
+    # # Save the plot to the specified PDF file
+    # plt.savefig(os.path.join(base_folder, 'eventtime_vs_cum_reward.pdf'))
+    # plt.close()
+
+    plt.figure(figsize=(10, 6))
     for i, baseline in enumerate(unique_baselines):
-        subset = df[df['baseline'] == baseline].sort_values(by='eventtime')
+        subset = df[df['baseline'] == baseline] #.sort_values(by='eventtime')
 
         if baseline in agent_plots:
             # Determine sizes and opacities based on episode values
@@ -50,65 +104,21 @@ def plot_graphs(base_folder):
             sizes = np.geomspace(start=agent_plots[baseline][0], stop=agent_plots[baseline][1], num=num_points)
             opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
             for j, (index, row) in enumerate(subset.iterrows()):
-                ax1.scatter(row['eventtime'], row['cum_reward'], s=sizes[j], alpha=opacities[j], edgecolors='none', color=agent_plots[baseline][4])
-                ax2.scatter(row['eventtime'], row['cum_reward'], s=sizes[j], alpha=opacities[j], edgecolors='none', color=agent_plots[baseline][4])
+                plt.scatter(row['eventtime'], row['cum_reward'], s=sizes[j], alpha=opacities[j], edgecolors='none', color=agent_plots[baseline][4])
             
         else:
-            # Plot on first subplot for values > split_bottom
-            ax1.plot(subset['eventtime'], subset['cum_reward'], label=baseline, 
-                    marker=markers[i % len(markers)], linewidth=0.5)
-            # Plot on second subplot for values < split_upper
-            ax2.plot(subset['eventtime'], subset['cum_reward'], label=baseline, marker=markers[i % len(markers)], 
-                    linewidth=0.5)
-
-    split_bottom=40000
-    split_upper=40000
-    # Set limits for the Y-axis on both subplots to "cut out" values between split_bottom and split_upper
-    ax1.set_ylim(split_upper, max(df['cum_reward']) + 100)  # Adjust upper limit as needed
-    ax2.set_ylim(min(df['cum_reward']) - 100, split_bottom)  # Adjust lower limit as needed
-
-    # Hide the spines between ax and ax2
-    ax1.spines['bottom'].set_visible(False)
-    ax2.spines['top'].set_visible(False)
-    ax1.xaxis.tick_top()
-    ax1.tick_params(labeltop=False)  # Don't show tick labels at the top
-    ax2.xaxis.tick_bottom()
-
-    # Adding diagonal lines to indicate the break in Y axis
-    d = .01  # how big to make the diagonal lines in axes coordinates
-    kwargs = dict(transform=ax1.transAxes, color='k', clip_on=False)
-    ax1.plot((-d, +d), (-d, +d), **kwargs)        # top-left diagonal
-    ax1.plot((1 - d, 1 + d), (-d, +d), **kwargs)  # top-right diagonal
-
-    kwargs.update(transform=ax2.transAxes)  # switch to the bottom axes
-    ax2.plot((-d, +d), (1 - d, 1 + d), **kwargs)  # bottom-left diagonal
-    ax2.plot((1 - d, 1 + d), (1 - d, 1 + d), **kwargs)  # bottom-right diagonal
-
-    # Set labels and title
-    ax2.set_xlabel('Event Time')
-    ax2.set_ylabel('Cumulative Reward')
-    ax1.set_title('Event Time vs Cumulative Reward by Baseline')
-    ax1.legend(loc='upper right',ncol=2)
-
-    # Save the plot to the specified PDF file
+            plt.plot(subset['eventtime'], subset['cum_reward'], label=baseline, marker=markers[i % len(markers)], linewidth=0.5)
+    plt.xlabel('Event Time')
+    plt.ylabel('Cumulative Reward')
+    plt.legend()
+    plt.title('Event Time vs Cumulative Reward by Baseline')
     plt.savefig(os.path.join(base_folder, 'eventtime_vs_cum_reward.pdf'))
     plt.close()
-
-    # plt.figure(figsize=(10, 6))
-    # for i, baseline in enumerate(unique_baselines):
-    #     subset = df[df['baseline'] == baseline].sort_values(by='eventtime')
-    #     plt.plot(subset['eventtime'], subset['cum_reward'], label=baseline, marker=markers[i % len(markers)], linewidth=0.5)
-    # plt.xlabel('Event Time')
-    # plt.ylabel('Cumulative Reward')
-    # plt.legend()
-    # plt.title('Event Time vs Cumulative Reward by Baseline')
-    # plt.savefig(os.path.join(base_folder, 'eventtime_vs_cum_reward.pdf'))
-    # plt.close()
     
     # Plot 2: eventtime vs mean_ratio
     plt.figure(figsize=(10, 6))
     for i, baseline in enumerate(unique_baselines):
-        subset = df[df['baseline'] == baseline].sort_values(by='eventtime')
+        subset = df[df['baseline'] == baseline] #.sort_values(by='eventtime')
 
         if baseline in agent_plots:
             # Determine sizes and opacities based on episode values
@@ -152,7 +162,7 @@ def plot_graphs(base_folder):
     # Plot 3: eventtime vs mean_violations
     plt.figure(figsize=(10, 6))
     for i, baseline in enumerate(unique_baselines):
-        subset = df[df['baseline'] == baseline].sort_values(by='eventtime')
+        subset = df[df['baseline'] == baseline] #.sort_values(by='eventtime')
 
         if baseline in agent_plots:
             # Determine sizes and opacities based on episode values
@@ -174,7 +184,7 @@ def plot_graphs(base_folder):
     # Plot 3: eventtime vs mean_violations
     plt.figure(figsize=(10, 6))
     for i, baseline in enumerate(unique_baselines):
-        subset = df[df['baseline'] == baseline].sort_values(by='eventtime')
+        subset = df[df['baseline'] == baseline] #.sort_values(by='eventtime')
         
         if baseline in agent_plots:
             # Determine sizes and opacities based on episode values

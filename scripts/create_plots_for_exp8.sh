@@ -1,13 +1,12 @@
 #!/bin/bash
-base_exp_folder="./data/jingyu/exp7"
-folders_to_explore=(rl2)
+base_exp_folder="./data/output/08"
+folders_to_explore=(synthetic-agent-1-100)
+episodes=100
 for folder_to_explore in "${folders_to_explore[@]}"; do
 
     exp_folder="${base_exp_folder}/${folder_to_explore}"
 
     echo "Processing folder ${exp_folder}"
-
-    episodes=10
 
     rm ${exp_folder}/episodesstats.csv 
     rm ${exp_folder}/compressionandepisodesstats.csv
@@ -27,8 +26,8 @@ for folder_to_explore in "${folders_to_explore[@]}"; do
     python plotting/create_stat_episodes_boxplot_for_compressions.py ${exp_folder}/compressionandepisodesstats.csv ${exp_folder}/ ratio.percent,mean,,
     python plotting/create_stat_episodes_boxplot_for_compressions.py ${exp_folder}/compressionandepisodesstats.csv ${exp_folder}/ latency.violations,sum,,
     python plotting/create_stat_episodes_boxplot_for_compressions.py ${exp_folder}/compressionandepisodesstats.csv ${exp_folder}/ steps,sum,,
-    python plotting/plot_scatter.py ${exp_folder}/ ${exp_folder}/cum_reward_vs_mean_rate.pdf --stat_X=injectionrate.rate --stat_Y=rewards --aggregation_X=mean --aggregation_Y=sum
-    python plotting/plot_scatter.py ${exp_folder}/ ${exp_folder}/ratio_vs_mean_rate.pdf --stat_X=injectionrate.rate --stat_Y=ratio.percent --aggregation_X=mean --aggregation_Y=mean
-    python plotting/plot_scatter.py ${exp_folder}/ ${exp_folder}/violations_vs_mean_rate.pdf --stat_X=injectionrate.rate --stat_Y=latency.violations --aggregation_X=mean --aggregation_Y=sum
+    python plotting/plot_scatter.py ${exp_folder}/ ${exp_folder}/cum_reward_vs_event_time.pdf --stat_X=eventtime.max --stat_Y=rewards --aggregation_X=min --aggregation_Y=sum
+    python plotting/plot_scatter.py ${exp_folder}/ ${exp_folder}/ratio_vs_event_time.pdf --stat_X=eventtime.max --stat_Y=ratio.percent --aggregation_X=min --aggregation_Y=mean
+    python plotting/plot_scatter.py ${exp_folder}/ ${exp_folder}/violations_vs_event_time.pdf --stat_X=eventtime.max --stat_Y=latency.violations --aggregation_X=min --aggregation_Y=sum
 
 done
