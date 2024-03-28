@@ -18,12 +18,13 @@ def plot_graphs(base_folder):
     min_opacity=0.1
     max_opacity=0.8
 
+    # The values represent: initial size, fine size, initial opacity, final opacity, color, prob. of selection
     agent_plots = {
-        'agent-1-100': [1,50,0.1,1,'red'],
-        'agent-101-300': [1,50,0.1,1,'green']}
+        'agent-1-100': [1,30,0.1,1,'red',0.4],
+        'agent-101-300': [1,30,0.1,1,'green',0.4]}
        
     # given_order = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'r', 'rl']  # The desired order for baselines
-    given_order = ['agent-101-300']  # The desired order for baselines
+    given_order = ['agent-1-100','agent-101-300']  # The desired order for baselines
     # given_order = ['0', '1', '2', '3', '6', '10', 'r']  # The desired order for baselines
     # given_order = ['0', '1', '2', '3', '6', '10', 'r', 'rl','rl2']  # The desired order for baselines
 
@@ -105,7 +106,8 @@ def plot_graphs(base_folder):
             sizes = np.geomspace(start=agent_plots[baseline][0], stop=agent_plots[baseline][1], num=num_points)
             opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
             for j, (index, row) in enumerate(subset.iterrows()):
-                plt.plot(row['eventtime'], row['cum_reward'], ls='none', ms=sizes[j], marker='o', mfc='none', mec=agent_plots[baseline][4])
+                if np.random.rand()<=agent_plots[baseline][5]:
+                    plt.plot(row['eventtime'], row['cum_reward'], ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
                 # plt.scatter(row['eventtime'], row['cum_reward'], s=sizes[j],  edgecolors=agent_plots[baseline][4], facecolors='none')
             
         else:
