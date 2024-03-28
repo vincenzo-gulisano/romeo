@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
+import plotly.tools as tls
 
 def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_episode_events):
 
@@ -111,7 +112,7 @@ def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_epis
 
                 # Filter data based on the 'start' and 'stop' columns in episode_data
                 # for _, episode_entry in episode_data.iterrows(): ### COMMENTED THIS BECAUSE I THINK IT IS NOT NEEDED
-                start_time = episode_data[episode_data['event'] == 'start'].iloc[:, 0].values[0]
+                start_time = episode_data[episode_data['event'] == 'start'].iloc[:, 0].values[0] + 5
                 stop_time = episode_data[episode_data['event'] == 'end'].iloc[:, 0].values[0]
             
                 # print('episode',episode_value,'start',start_time,'end',stop_time)
@@ -120,8 +121,8 @@ def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_epis
                 # Plot
                 ax2[i].plot(temp_df.iloc[:, 0]-start_time,temp_df.iloc[:, 1])
                 
-                ax2[i].axvline(0, linestyle='--', color='red')
-                ax2[i].text(0, (temp_df.iloc[:, 1].min()+temp_df.iloc[:, 1].max())/2, f"Episode {episode_value}", rotation=90, color='red')
+                # ax2[i].axvline(0, linestyle='--', color='red')
+                # ax2[i].text(0, (temp_df.iloc[:, 1].min()+temp_df.iloc[:, 1].max())/2, f"Episode {episode_value}", rotation=90, color='red')
 
                 ax2[i].set_xlabel(x_label)
                 ax2[i].set_ylabel(y_label)
@@ -157,6 +158,13 @@ def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_epis
         # Ensure subplots are close to each other and adjust left and right margins
     fig1.subplots_adjust(hspace=0, left=0.07, right=0.93)
     fig1.savefig(os.path.join(folder, 'stats_global.pdf'))
+
+    # Convert to Plotly figure
+    fig1 = tls.mpl_to_plotly(plt.gcf())
+
+    # Save the figure as an HTML file
+    fig1.write_html(os.path.join(folder, 'stats_global.html'))
+
     plt.close()
 
     print("Plots saved successfully.")

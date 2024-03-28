@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 import numpy as np
+import plotly.tools as tls
 
 def plot_graphs(base_folder):
     # Read the baselines_data.csv file
@@ -18,8 +19,8 @@ def plot_graphs(base_folder):
     max_opacity=0.8
 
     agent_plots = {
-        'agent-1-100': [50,250,0.1,1,'r'],
-        'agent-101-300': [75,200,0.1,0.6,'g']}
+        'agent-1-100': [1,50,0.1,1,'red'],
+        'agent-101-300': [1,50,0.1,1,'green']}
        
     # given_order = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'r', 'rl']  # The desired order for baselines
     given_order = ['agent-101-300']  # The desired order for baselines
@@ -50,8 +51,8 @@ def plot_graphs(base_folder):
     #         sizes = np.geomspace(start=agent_plots[baseline][0], stop=agent_plots[baseline][1], num=num_points)
     #         opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
     #         for j, (index, row) in enumerate(subset.iterrows()):
-    #             ax1.scatter(row['eventtime'], row['cum_reward'], s=sizes[j], alpha=opacities[j], edgecolors='none', color=agent_plots[baseline][4])
-    #             ax2.scatter(row['eventtime'], row['cum_reward'], s=sizes[j], alpha=opacities[j], edgecolors='none', color=agent_plots[baseline][4])
+    #             ax1.scatter(row['eventtime'], row['cum_reward'], s=sizes[j],  edgecolors='none', color=agent_plots[baseline][4])
+    #             ax2.scatter(row['eventtime'], row['cum_reward'], s=sizes[j],  edgecolors='none', color=agent_plots[baseline][4])
             
     #     else:
     #         # Plot on first subplot for values > split_bottom
@@ -104,7 +105,8 @@ def plot_graphs(base_folder):
             sizes = np.geomspace(start=agent_plots[baseline][0], stop=agent_plots[baseline][1], num=num_points)
             opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
             for j, (index, row) in enumerate(subset.iterrows()):
-                plt.scatter(row['eventtime'], row['cum_reward'], s=sizes[j], alpha=opacities[j], edgecolors='none', color=agent_plots[baseline][4])
+                plt.plot(row['eventtime'], row['cum_reward'], ls='none', ms=sizes[j], marker='o', mfc='none', mec=agent_plots[baseline][4])
+                # plt.scatter(row['eventtime'], row['cum_reward'], s=sizes[j],  edgecolors=agent_plots[baseline][4], facecolors='none')
             
         else:
             plt.plot(subset['eventtime'], subset['cum_reward'], label=baseline, marker=markers[i % len(markers)], linewidth=0.5)
@@ -113,6 +115,12 @@ def plot_graphs(base_folder):
     plt.legend()
     plt.title('Event Time vs Cumulative Reward by Baseline')
     plt.savefig(os.path.join(base_folder, 'eventtime_vs_cum_reward.pdf'))
+
+    # Convert to Plotly figure
+    # fig1 = tls.mpl_to_plotly(plt.gcf())
+    # Save the figure as an HTML file
+    # fig1.write_html(os.path.join(base_folder, 'eventtime_vs_cum_reward.html'))
+
     plt.close()
     
     # Plot 2: eventtime vs mean_ratio
@@ -126,7 +134,7 @@ def plot_graphs(base_folder):
             sizes = np.geomspace(start=agent_plots[baseline][0], stop=agent_plots[baseline][1], num=num_points)
             opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
             for j, (index, row) in enumerate(subset.iterrows()):
-                plt.scatter(row['eventtime'], row['mean_ratio'], s=sizes[j], alpha=opacities[j], edgecolors='none', color=agent_plots[baseline][4])
+                plt.scatter(row['eventtime'], row['mean_ratio'], s=sizes[j],  edgecolors=agent_plots[baseline][4], color='none')
             
         else:
             plt.plot(subset['eventtime'], subset['mean_ratio'], label=baseline, marker=markers[i % len(markers)], linewidth=0.5)
@@ -135,6 +143,12 @@ def plot_graphs(base_folder):
     plt.legend()
     plt.title('Event Time vs Mean Ratio by Baseline')
     plt.savefig(os.path.join(base_folder, 'eventtime_vs_mean_ratio.pdf'))
+
+    # Convert to Plotly figure
+    # fig1 = tls.mpl_to_plotly(plt.gcf())
+    # Save the figure as an HTML file
+    # fig1.write_html(os.path.join(base_folder, 'eventtime_vs_mean_ratio.html'))
+
     plt.close()
     
     # # Plot 3: eventtime vs mean_violations
@@ -148,7 +162,7 @@ def plot_graphs(base_folder):
     #         sizes = np.geomspace(start=agent_plots[baseline][0], stop=agent_plots[baseline][1], num=num_points)
     #         opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points))
     #         for j, row in subset.iterrows():
-    #             plt.scatter(row['eventtime'], row['mean_violations'], s=sizes[j], alpha=opacities[j], edgecolors='none', color=agent_plots[baseline][4])
+    #             plt.scatter(row['eventtime'], row['mean_violations'], s=sizes[j],  edgecolors='none', color=agent_plots[baseline][4])
             
     #     else:
     #         plt.plot(subset['eventtime'], subset['mean_violations'], label=baseline, marker=markers[i % len(markers)], linewidth=0.5)
@@ -170,7 +184,7 @@ def plot_graphs(base_folder):
             sizes = np.geomspace(start=agent_plots[baseline][0], stop=agent_plots[baseline][1], num=num_points)
             opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
             for j, (index, row) in enumerate(subset.iterrows()):
-                plt.scatter(row['eventtime'], row['sum_violations']/row['steps'], s=sizes[j], alpha=opacities[j], edgecolors='none', color=agent_plots[baseline][4])
+                plt.scatter(row['eventtime'], row['sum_violations']/row['steps'], s=sizes[j],  edgecolors=agent_plots[baseline][4], color='none')
             
         else:
             plt.plot(subset['eventtime'], subset['sum_violations']/subset['steps'], label=baseline, marker=markers[i % len(markers)], linewidth=0.5)
@@ -179,6 +193,12 @@ def plot_graphs(base_folder):
     plt.legend()
     plt.title('Event Time vs Sum Violations by Baseline')
     plt.savefig(os.path.join(base_folder, 'eventtime_vs_sum_violations.pdf'))
+
+    # Convert to Plotly figure
+    # fig1 = tls.mpl_to_plotly(plt.gcf())
+    # Save the figure as an HTML file
+    # fig1.write_html(os.path.join(base_folder, 'eventtime_vs_sum_violations.html'))
+
     plt.close()
 
     # Plot 3: eventtime vs mean_violations
@@ -192,7 +212,7 @@ def plot_graphs(base_folder):
             sizes = np.geomspace(start=agent_plots[baseline][0], stop=agent_plots[baseline][1], num=num_points)
             opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
             for j, (index, row) in enumerate(subset.iterrows()):
-                plt.scatter(row['eventtime'], row['steps'], s=sizes[j], alpha=opacities[j], edgecolors='none', color=agent_plots[baseline][4])
+                plt.scatter(row['eventtime'], row['steps'], s=sizes[j],  edgecolors=agent_plots[baseline][4], color='none')
             
         else:
             plt.plot(subset['eventtime'], subset['steps'], label=baseline, marker=markers[i % len(markers)], linewidth=0.5)
@@ -201,6 +221,12 @@ def plot_graphs(base_folder):
     plt.legend()
     plt.title('Event Time vs Steps by Baseline')
     plt.savefig(os.path.join(base_folder, 'eventtime_vs_steps.pdf'))
+
+    # Convert to Plotly figure
+    # fig1 = tls.mpl_to_plotly(plt.gcf())
+    # Save the figure as an HTML file
+    # fig1.write_html(os.path.join(base_folder, 'eventtime_vs_steps.html'))
+
     plt.close()
 
 if __name__ == '__main__':
