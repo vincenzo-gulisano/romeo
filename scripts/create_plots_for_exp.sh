@@ -1,6 +1,6 @@
 #!/bin/bash
-base_exp_folder="./data/output/08/synthetic-agent"
-folders_to_explore=(agent-101-300)
+base_exp_folder="./data/output/09/linearroad-CCR/5/600"
+folders_to_explore=(0 1 2 3 4 5 6 7 8 9 10 r)
 for folder_to_explore in "${folders_to_explore[@]}"; do
 
     exp_folder="${base_exp_folder}/${folder_to_explore}"

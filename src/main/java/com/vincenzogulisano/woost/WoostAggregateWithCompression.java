@@ -251,7 +251,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
             if (d != null) {
                 compressionTimeThreshold = d;
                 logger.debug("\n************\n* Compression threshold updated to {} at {}\n************",
-                        compressionTimeThreshold,System.currentTimeMillis()/1000);
+                        compressionTimeThreshold, System.currentTimeMillis() / 1000);
             }
             // Util.sleep(500);
         }
@@ -299,6 +299,12 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
                     decompressions++;
                 } catch (ClassNotFoundException | IOException e1) {
                     e1.printStackTrace();
+                }
+
+                // TEMP
+                if (wToDecompress == null) {
+                    logger.warn("Trying to decompress window for {} but it's null! The byte[] length is {}",
+                            e1.getKey(), e1.getValue().length);
                 }
 
                 // Get output

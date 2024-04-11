@@ -159,11 +159,13 @@ class SPEEnvironment(Env):
                 print(f"High latency observed because of reward at step {(150 - self.remaingSteps) + 1}")
                     
         # check if latency is greater than 2.5s in three steps for every episode
-        if self.latency_counter >= 3:
-            done = True
-        else:
-            done = False
-        
+        # if self.latency_counter >= 3:
+        #     done = True
+        # else:
+        #     done = False
+        # Just letting the episode run for as long as needed
+        done = False
+
         # check if there has remainig steps
         if self.remaingSteps <= 0:
             done = True

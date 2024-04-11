@@ -8,6 +8,9 @@ import plotly.tools as tls
 
 def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_episode_events):
 
+    # Font size used in the per-episode plots
+    fs = 6
+
     valid_csv_files = []
 
     csv_files_to_process = ['injectionrate.rate.csv','throughput.count.csv','actions.csv','CPU-agg.average.csv','latency.average.csv','ratio.percent.csv','rewards.csv','cumulativereward.csv','latency.violations.csv','eventtime.max.csv']
@@ -79,6 +82,7 @@ def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_epis
 
         # Set the size of the figure
         fig2, ax2 = plt.subplots(len(valid_csv_files),1,figsize=(4, len(valid_csv_files)), sharex=True)
+        somethingPlotted = False
 
         # Plot each valid CSV file
         for i,file_path in enumerate(valid_csv_files):
@@ -103,6 +107,8 @@ def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_epis
 
             if has_start and has_end:
 
+                somethingPlotted = True
+
                 # Count the number of entries that start with 'action' in the 'event' column
                 action_count = episode_data[episode_data['event'].str.startswith('action')].shape[0]
 
@@ -117,15 +123,24 @@ def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_epis
             
                 # print('episode',episode_value,'start',start_time,'end',stop_time)
                 temp_df = df[(df.iloc[:, 0] >= start_time) & (df.iloc[:, 0] <= stop_time)]
+                filtered_df = temp_df[temp_df.iloc[:, 1] != -1]
 
                 # Plot
-                ax2[i].plot(temp_df.iloc[:, 0]-start_time,temp_df.iloc[:, 1])
+                ax2[i].plot(filtered_df.iloc[:, 0]-start_time,filtered_df.iloc[:, 1])
                 
                 # ax2[i].axvline(0, linestyle='--', color='red')
                 # ax2[i].text(0, (temp_df.iloc[:, 1].min()+temp_df.iloc[:, 1].max())/2, f"Episode {episode_value}", rotation=90, color='red')
 
-                ax2[i].set_xlabel(x_label)
-                ax2[i].set_ylabel(y_label)
+                # Get the last x, y values from the filtered DataFrame
+                # first_x = temp_df.iloc[0, 0]
+                # first_y = temp_df.iloc[0, 1]
+
+                # # Add text annotation at the last x, y value with the size of original df
+                # ax2[i].text(first_x, first_y, f'Size: {len(temp_df)}', fontsize=6)
+                y_label = y_label + f' {len(temp_df)}'
+                ax2[i].set_xlabel(x_label, fontsize=fs)
+                ax2[i].set_ylabel(y_label, fontsize=fs)
+                ax2[i].tick_params(axis='both', labelsize=fs)   
                 
                 
                 # Filter out -1 values
@@ -147,10 +162,12 @@ def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_epis
                 # Append the DataFrame to the output CSV file
                 stats_df.to_csv(episodesstatsfile, mode='a', index=False, header=not os.path.exists(episodesstatsfile))
 
-        fig2.tight_layout()
+
+        if somethingPlotted:
+            fig2.tight_layout()
             # Ensure subplots are close to each other and adjust left and right margins
-        fig2.subplots_adjust(hspace=0)
-        fig2.savefig(os.path.join(episode_folder, f'episode{episode_value:03}.pdf'))
+            fig2.subplots_adjust(hspace=0)
+            fig2.savefig(os.path.join(episode_folder, f'episode{episode_value:03}.pdf'))
         plt.close()
 
         

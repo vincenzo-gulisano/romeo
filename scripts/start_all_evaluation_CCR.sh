@@ -35,7 +35,7 @@ sleep_until_time_or_pid() {
 # Define base folder and input file
 
 # This is for Linear Road
-base_folder="/home/vincenzo/romeo/data/output/08/linearroad-CCR"
+base_folder="/home/vincenzo/romeo/data/output/09/linearroad-CCR"
 input_file="/home/vincenzo/woost/data/input/input.txt"
 wa=5
 ws=600
@@ -56,9 +56,9 @@ usecase="LinearRoad"
 
 # Define lists of values
 duration=100000000
-episodes=10
-steps=150
-compressions=(2 3 4 5 6 7 8 9 10 r) # 
+episodes=100
+steps=15
+compressions=(8 9 10 r) #0 1 2 3 4 5 6 7 8 9 10 r) # 
 
 for compression in "${compressions[@]}"; do
     echo "Compression: $compression"
