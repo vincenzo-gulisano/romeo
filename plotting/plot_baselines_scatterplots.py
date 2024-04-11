@@ -5,27 +5,27 @@ import os
 import numpy as np
 import plotly.tools as tls
 
-def set_share_axes(axs, target=None, sharex=False, sharey=False):
-    if target is None:
-        target = axs.flat[0]
-    # Manage share using grouper objects
-    for ax in axs.flat:
-        if sharex:
-            target._shared_axes['x'].join(target, ax)
-        if sharey:
-            target._shared_axes['y'].join(target, ax)
-    # Turn off x tick labels and offset text for all but the bottom row
-    if sharex and axs.ndim > 1:
-        for ax in axs[:-1,:].flat:
-            ax.xaxis.set_tick_params(which='both', labelbottom=False, labeltop=False)
-            ax.xaxis.offsetText.set_visible(False)
-    # Turn off y tick labels and offset text for all but the left most column
-    if sharey and axs.ndim > 1:
-        for ax in axs[:,1:].flat:
-            ax.yaxis.set_tick_params(which='both', labelleft=False, labelright=False)
-            ax.yaxis.offsetText.set_visible(False)
+# def set_share_axes(axs, target=None, sharex=False, sharey=False):
+#     if target is None:
+#         target = axs.flat[0]
+#     # Manage share using grouper objects
+#     for ax in axs.flat:
+#         if sharex:
+#             target._shared_axes['x'].join(target, ax)
+#         if sharey:
+#             target._shared_axes['y'].join(target, ax)
+#     # Turn off x tick labels and offset text for all but the bottom row
+#     if sharex and axs.ndim > 1:
+#         for ax in axs[:-1,:].flat:
+#             ax.xaxis.set_tick_params(which='both', labelbottom=False, labeltop=False)
+#             ax.xaxis.offsetText.set_visible(False)
+#     # Turn off y tick labels and offset text for all but the left most column
+#     if sharey and axs.ndim > 1:
+#         for ax in axs[:,1:].flat:
+#             ax.yaxis.set_tick_params(which='both', labelleft=False, labelright=False)
+#             ax.yaxis.offsetText.set_visible(False)
 
-def plot_graphs(base_folder):
+def plot_graphs(base_folder,rate_file_path):
     # Read the baselines_data.csv file
     file_path = os.path.join(base_folder, 'baselines_data.csv')
     df = pd.read_csv(file_path)
@@ -34,7 +34,7 @@ def plot_graphs(base_folder):
     markers = ['s', '^', 'v', '<', '>', 'p', '*', 'h', 'H', 'D', 'd', '|', '_']
     
     given_order = ['10', '9', '8', '7', '6', '5', '4', '3', '2', '1', '0', 'r']  # The desired order for baselines
-    xtick_labels = ['D1.0', 'D0.9', 'D0.8', 'D0.7', 'D0.6', 'D0.5', 'D0.4', 'D0.3', 'D0.2', 'D0.1', 'D0.0', r'D^*']
+    xtick_labels = [r'$D1.0$',r'$D0.9$',r'$D0.8$',r'$D0.7$',r'$D0.6$',r'$D0.5$',r'$D0.4$',r'$D0.3$',r'$D0.2$', r'$D0.1$', r'$D0.0$', r'$D^*$']
     # Create a set for faster membership tests
     unique_baselines_set = set(df['baseline'].unique())
 
@@ -52,29 +52,38 @@ def plot_graphs(base_folder):
     
     max_latency=1
 
-    # Generate some random data for the new top axes
-    x_data = np.arange(len(unique_baselines))
-    y_data = np.random.rand(len(unique_baselines))
+    # Read the first and second columns from the CSV
+    dfrate = pd.read_csv(rate_file_path, usecols=[0, 1], header=None)
+    dfrate.columns = ['x', 'y']
+
+    # Adjust x_data to start at 0
+    dfrate['x'] = dfrate['x'] - dfrate['x'].min()
+
+    # Now, df['x'] and df['y'] are your x_data and y_data
+    x_data = dfrate['x']
+    y_data = dfrate['y']
+
+    plt.rcParams.update({'font.size': 8})  # Set global font size to 10
 
     # Create a figure and a set of subplots, now with 4 rows
     fig, axs = plt.subplots(5, 1, figsize=(5, 6),gridspec_kw={'hspace': 0,'height_ratios': [1, 0.5, 1, 1, 1]})
 
     # Plot random data on the new top axes (axs[0])
     axs[0].plot(x_data, y_data, linestyle='-', color='blue')
-    axs[0].set_ylabel(r'Input rate (10^3 t/s)')
-    axs[0].set_xlabel('Time (s)')
+    axs[0].set_ylabel(r'Input rate ($10^3$ t/s)', fontsize=text_fontsize)
+    axs[0].set_xlabel('Time (s)', fontsize=text_fontsize)
 
     # Adjust the indices for the other axes since we added a new one at the top
     # mean_ratio, divided by 100
     data_mean_ratio = [df[df['baseline'] == baseline]['mean_ratio'].dropna() / 100 for baseline in unique_baselines]
     axs[2].boxplot(data_mean_ratio, labels=unique_baselines)
-    axs[2].set_ylabel('Compression (%)')
+    axs[2].set_ylabel('Compression (%)', fontsize=text_fontsize)
     axs[2].set_yticks([0, 1])
 
     # latency, divided by 1000
     data_latency = [df[df['baseline'] == baseline]['latency'].dropna() / 1000 for baseline in unique_baselines]
     axs[3].boxplot(data_latency, labels=unique_baselines)
-    axs[3].set_ylabel('Latency (s)')
+    axs[3].set_ylabel('Latency (s)', fontsize=text_fontsize)
     axs[3].axhline(y=max_latency, color='r', linestyle='--')  # Horizontal line at max_latency
     # Add text for threshold latency
     axs[3].text(0.5, max_latency*1.05, 'Threshold latency', color='red', verticalalignment='bottom', horizontalalignment='left', fontsize=8, transform=axs[3].transData)
@@ -82,9 +91,10 @@ def plot_graphs(base_folder):
     # cpu, divided by 100
     data_cpu = [df[df['baseline'] == baseline]['cpu'].dropna() / 100 for baseline in unique_baselines]
     axs[4].boxplot(data_cpu, labels=unique_baselines)
-    axs[4].set_ylabel('CPU (%)')
+    axs[4].set_ylabel('CPU (%)', fontsize=text_fontsize)
     axs[4].set_yticks([0, 1])
-    axs[4].set_xlabel('Baseline')  # Only the last subplot needs the x-axis label
+    axs[4].set_xlabel('Baseline', fontsize=text_fontsize)  # Only the last subplot needs the x-axis label
+    axs[4].set_xticklabels(xtick_labels, fontsize=text_fontsize)
 
     # Add vertical lines in all axes for each X value in boundaries (adjusting index for axs)
     for ax in axs[2:]:
@@ -154,7 +164,8 @@ def plot_graphs(base_folder):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate plots from baselines_data.csv.')
     parser.add_argument('base_folder', type=str, help='Input folder containing baselines_data.csv.')
-    
+    parser.add_argument('rate_file_path', type=str, help='Input file containing per second input rate of the input data.')
+
     args = parser.parse_args()
     
-    plot_graphs(args.base_folder)
+    plot_graphs(args.base_folder,args.rate_file_path)
