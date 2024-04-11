@@ -23,8 +23,8 @@ def plot_graphs(base_folder):
         'agent-1-100': [1,30,0.1,1,'red',0.4],
         'agent-101-300': [1,30,0.1,1,'green',0.4]}
        
-    # given_order = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'r', 'rl']  # The desired order for baselines
-    given_order = ['agent-1-100','agent-101-300']  # The desired order for baselines
+    given_order = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'r']  # The desired order for baselines
+    # given_order = ['agent-1-100','agent-101-300']  # The desired order for baselines
     # given_order = ['0', '1', '2', '3', '6', '10', 'r']  # The desired order for baselines
     # given_order = ['0', '1', '2', '3', '6', '10', 'r', 'rl','rl2']  # The desired order for baselines
 
@@ -98,7 +98,10 @@ def plot_graphs(base_folder):
 
     plt.figure(figsize=(10, 6))
     for i, baseline in enumerate(unique_baselines):
-        subset = df[df['baseline'] == baseline] #.sort_values(by='eventtime')
+        subset = df[df['baseline'] == baseline] 
+        
+        # If a baseline is being plotted, you can sort the values
+        subset = subset.sort_values(by='eventtime')
 
         if baseline in agent_plots:
             # Determine sizes and opacities based on episode values
@@ -129,6 +132,9 @@ def plot_graphs(base_folder):
     plt.figure(figsize=(10, 6))
     for i, baseline in enumerate(unique_baselines):
         subset = df[df['baseline'] == baseline] #.sort_values(by='eventtime')
+
+        # If a baseline is being plotted, you can sort the values
+        subset = subset.sort_values(by='eventtime')
 
         if baseline in agent_plots:
             # Determine sizes and opacities based on episode values
@@ -180,6 +186,9 @@ def plot_graphs(base_folder):
     for i, baseline in enumerate(unique_baselines):
         subset = df[df['baseline'] == baseline] #.sort_values(by='eventtime')
 
+        # If a baseline is being plotted, you can sort the values
+        subset = subset.sort_values(by='eventtime')
+
         if baseline in agent_plots:
             # Determine sizes and opacities based on episode values
             num_points = len(subset['eventtime'])
@@ -208,6 +217,9 @@ def plot_graphs(base_folder):
     for i, baseline in enumerate(unique_baselines):
         subset = df[df['baseline'] == baseline] #.sort_values(by='eventtime')
         
+        # If a baseline is being plotted, you can sort the values
+        subset = subset.sort_values(by='eventtime')
+
         if baseline in agent_plots:
             # Determine sizes and opacities based on episode values
             num_points = len(subset['eventtime'])

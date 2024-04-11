@@ -23,6 +23,8 @@ def process_subfolder(subfolder):
         mean_ratio = episode_data[episode_data['stat'] == 'ratio.percent']['mean'].values[0]
         mean_violations = episode_data[episode_data['stat'] == 'latency.violations']['mean'].values[0]
         sum_violations = episode_data[episode_data['stat'] == 'latency.violations']['sum'].values[0]
+        latency = episode_data[episode_data['stat'] == 'latency.average']['mean'].values[0]
+        cpu = episode_data[episode_data['stat'] == 'CPU-agg.average']['mean'].values[0]
         steps = episode_data[episode_data['stat'] == 'steps']['sum'].values[0]
         eventtime = episode_data[episode_data['stat'] == 'eventtime.max']['min'].values[0]
         
@@ -35,6 +37,8 @@ def process_subfolder(subfolder):
             'mean_ratio': mean_ratio,
             'mean_violations': mean_violations,
             'sum_violations': sum_violations,
+            'latency': latency,
+            'cpu': cpu,
             'steps': steps,
             'eventtime': eventtime
         })
@@ -42,7 +46,7 @@ def process_subfolder(subfolder):
     return pd.DataFrame(data)
 
 def aggregate_data(base_folder):
-    baselines_data = pd.DataFrame(columns=['baseline', 'episode', 'mean_rate', 'cum_reward', 'mean_ratio', 'mean_violations','sum_violations','steps','eventtime'])
+    baselines_data = pd.DataFrame(columns=['baseline', 'episode', 'mean_rate', 'cum_reward', 'mean_ratio', 'mean_violations','sum_violations','latency','cpu','steps','eventtime'])
     
     for subfolder in os.listdir(base_folder):
         subfolder_path = os.path.join(base_folder, subfolder)
