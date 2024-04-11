@@ -2,9 +2,9 @@ import csv
 from collections import OrderedDict
 
 # Path to the input CSV file
-input_csv_path = 'input.csv'
+input_csv_path = '/home/vincenzo/woost/data/input/input.txt'
 # Path to the output CSV file
-output_csv_path = 'output.csv'
+output_csv_path = '/home/vincenzo/romeo/data/lr_rate.csv'
 
 # Initialize an ordered dictionary to store the count of each unique value in the second column
 value_counts = OrderedDict()
