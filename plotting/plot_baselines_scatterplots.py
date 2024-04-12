@@ -41,8 +41,16 @@ def plot_graphs(base_folder,rate_file_path):
     # Use list comprehension to filter given_order by items present in df['baseline'].unique()
     unique_baselines = [baseline for baseline in given_order if baseline in unique_baselines_set]
 
+    # This config are for LinearRoad
     boundaries = [0.5,7.5,10.5,11.5]
     boundary_text = ['safe','worth','unsafe']
+    latency_y_scale = 'linear'
+    # This config are for LinearRoad
+    boundaries = [0.5,4.5,7.5,11.5]
+    boundary_text = ['safe','worth','unsafe']
+    latency_y_scale = 'log'
+    
+    
     # Specify color and font size
     text_color = 'green'  # Example color
     text_fontsize = 8  # Example font size
@@ -78,24 +86,33 @@ def plot_graphs(base_folder,rate_file_path):
     data_mean_ratio = [df[df['baseline'] == baseline]['mean_ratio'].dropna() / 100 for baseline in unique_baselines]
     axs[2].boxplot(data_mean_ratio, labels=unique_baselines)
     axs[2].set_ylabel('Compression (%)', fontsize=text_fontsize)
-    axs[2].set_yticks([0, 1])
+    # Set specific tick positions
+    axs[2].set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
+    axs[2].set_yticklabels(['0', '', '', '', '', '1'])
+    # Enable the grid
+    axs[2].grid(True, which='major', axis='y', linestyle='-', color='gray', linewidth=0.5)
 
     # latency, divided by 1000
     data_latency = [df[df['baseline'] == baseline]['latency'].dropna() / 1000 for baseline in unique_baselines]
     axs[3].boxplot(data_latency, labels=unique_baselines)
     axs[3].set_ylabel('Latency (s)', fontsize=text_fontsize)
+    axs[3].set_yscale(latency_y_scale)
     axs[3].axhline(y=max_latency, color='r', linestyle='--')  # Horizontal line at max_latency
     # Add text for threshold latency
     axs[3].text(0.5, max_latency*1.05, 'Threshold latency', color='red', verticalalignment='bottom', horizontalalignment='left', fontsize=8, transform=axs[3].transData)
+    # axs[3].grid(True, which='both', axis='y', linestyle='--', linewidth=0.5, color='gray')  # Enable y-axis grid
 
     # cpu, divided by 100
     data_cpu = [df[df['baseline'] == baseline]['cpu'].dropna() / 100 for baseline in unique_baselines]
     axs[4].boxplot(data_cpu, labels=unique_baselines)
     axs[4].set_ylabel('CPU (%)', fontsize=text_fontsize)
-    axs[4].set_yticks([0, 1])
     axs[4].set_xlabel('Baseline', fontsize=text_fontsize)  # Only the last subplot needs the x-axis label
     axs[4].set_xticklabels(xtick_labels, fontsize=text_fontsize)
-
+    axs[4].set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
+    axs[4].set_yticklabels(['0', '', '', '', '', '1'])
+    # Enable the grid
+    axs[4].grid(True, which='major', axis='y', linestyle='-', color='gray', linewidth=0.5)
+    
     # Add vertical lines in all axes for each X value in boundaries (adjusting index for axs)
     for ax in axs[2:]:
         for boundary in boundaries:
