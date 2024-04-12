@@ -45,20 +45,20 @@ starting_time_max=9900
 usecase="LinearRoad"
 
 # # This is for the synthetic query
-# base_folder="/home/vincenzo/romeo/data/output/08/synthetic-CCR"
-# input_file="/home/vincenzo/romeo/data/input/synthetic.csv"
-# wa=1
-# ws=900
-# d=901
-# starting_time_min=1200
-# starting_time_max=6800
-# usecase="Synthetic"
+base_folder="/home/vincenzo/romeo/data/output/09/synthetic-CCR"
+input_file="/home/vincenzo/romeo/data/input/synthetic.csv"
+wa=1
+ws=900
+d=901
+starting_time_min=1200
+starting_time_max=6800
+usecase="Synthetic"
 
 # Define lists of values
 duration=100000000
-episodes=100
+episodes=30
 steps=15
-compressions=(8 9 10 r) #0 1 2 3 4 5 6 7 8 9 10 r) # 
+compressions=(0 1 2 3 4 5 6 7 8 9 10 r) # 
 
 for compression in "${compressions[@]}"; do
     echo "Compression: $compression"
