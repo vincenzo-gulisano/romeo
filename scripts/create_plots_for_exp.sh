@@ -1,6 +1,6 @@
 #!/bin/bash
-base_exp_folder="./data/synthetic-CCR/900"
-folders_to_explore=(0 1 2 3 4 5 6 7 8 9 10 r)
+base_exp_folder="./data/10"
+folders_to_explore=(linearroad-RL)
 for folder_to_explore in "${folders_to_explore[@]}"; do
 
     exp_folder="${base_exp_folder}/${folder_to_explore}"
