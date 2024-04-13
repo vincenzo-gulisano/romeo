@@ -7,27 +7,24 @@ import plotly.tools as tls
 
 def plot_graphs(base_folder):
     # Read the baselines_data.csv file
-    file_path = os.path.join(base_folder, 'baselines_data.csv')
-    df = pd.read_csv(file_path)
+    baseline_file_path = os.path.join(base_folder, 'baselines_data.csv')
+    baseline_df = pd.read_csv(baseline_file_path)
     
     
     # The values represent: initial size, fine size, initial opacity, final opacity, color, prob. of selection
-    agent_plots = {
-        'linearroad-RL': [1,30,0.1,1,'red',1]}
-    # ,
-        # 'agent-101-300': [1,30,0.1,1,'green',0.4]}
+    agent_plots = {'linearroad-RL': [1,30,0.1,1,'red',1]}
        
     given_order = ['linearroad-RL']  # The desired order for baselines
     
     # Create a set for faster membership tests
-    unique_baselines_set = set(df['baseline'].unique())
+    unique_baselines_set = set(baseline_df['baseline'].unique())
 
     # Use list comprehension to filter given_order by items present in df['baseline'].unique()
     unique_baselines = [baseline for baseline in given_order if baseline in unique_baselines_set]
 
     plt.figure(figsize=(10, 6))
     for i, baseline in enumerate(unique_baselines):
-        subset = df[df['baseline'] == baseline] 
+        subset = baseline_df[baseline_df['baseline'] == baseline] 
         if baseline in agent_plots:
             # Determine sizes and opacities based on episode values
             num_points = len(subset['eventtime'])
@@ -47,7 +44,7 @@ def plot_graphs(base_folder):
     # Plot 2: eventtime vs mean_ratio
     plt.figure(figsize=(10, 6))
     for i, baseline in enumerate(unique_baselines):
-        subset = df[df['baseline'] == baseline] #.sort_values(by='eventtime')
+        subset = baseline_df[baseline_df['baseline'] == baseline] #.sort_values(by='eventtime')
         if baseline in agent_plots:
             # Determine sizes and opacities based on episode values
             num_points = len(subset['eventtime'])
@@ -66,7 +63,7 @@ def plot_graphs(base_folder):
     # Plot 3: eventtime vs mean_violations
     plt.figure(figsize=(10, 6))
     for i, baseline in enumerate(unique_baselines):
-        subset = df[df['baseline'] == baseline] #.sort_values(by='eventtime')
+        subset = baseline_df[baseline_df['baseline'] == baseline] #.sort_values(by='eventtime')
         if baseline in agent_plots:
             # Determine sizes and opacities based on episode values
             num_points = len(subset['eventtime'])
@@ -85,7 +82,7 @@ def plot_graphs(base_folder):
     # Plot 3: eventtime vs mean_violations
     plt.figure(figsize=(10, 6))
     for i, baseline in enumerate(unique_baselines):
-        subset = df[df['baseline'] == baseline] #.sort_values(by='eventtime')
+        subset = baseline_df[baseline_df['baseline'] == baseline] #.sort_values(by='eventtime')
         if baseline in agent_plots:
             # Determine sizes and opacities based on episode values
             num_points = len(subset['eventtime'])

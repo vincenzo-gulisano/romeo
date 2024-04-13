@@ -5,27 +5,7 @@ import os
 import numpy as np
 import plotly.tools as tls
 
-# def set_share_axes(axs, target=None, sharex=False, sharey=False):
-#     if target is None:
-#         target = axs.flat[0]
-#     # Manage share using grouper objects
-#     for ax in axs.flat:
-#         if sharex:
-#             target._shared_axes['x'].join(target, ax)
-#         if sharey:
-#             target._shared_axes['y'].join(target, ax)
-#     # Turn off x tick labels and offset text for all but the bottom row
-#     if sharex and axs.ndim > 1:
-#         for ax in axs[:-1,:].flat:
-#             ax.xaxis.set_tick_params(which='both', labelbottom=False, labeltop=False)
-#             ax.xaxis.offsetText.set_visible(False)
-#     # Turn off y tick labels and offset text for all but the left most column
-#     if sharey and axs.ndim > 1:
-#         for ax in axs[:,1:].flat:
-#             ax.yaxis.set_tick_params(which='both', labelleft=False, labelright=False)
-#             ax.yaxis.offsetText.set_visible(False)
-
-def plot_graphs(base_folder,rate_file_path):
+def plot_graphs(base_folder,rate_file_path,agent_data):
     # Read the baselines_data.csv file
     file_path = os.path.join(base_folder, 'baselines_data.csv')
     df = pd.read_csv(file_path)
@@ -65,7 +45,7 @@ def plot_graphs(base_folder,rate_file_path):
     dfrate.columns = ['x', 'y']
 
     # Adjust x_data to start at 0
-    dfrate['x'] = dfrate['x'] - dfrate['x'].min()
+    # dfrate['x'] = dfrate['x'] - dfrate['x'].min()
 
     # Now, df['x'] and df['y'] are your x_data and y_data
     x_data = dfrate['x']
@@ -74,47 +54,50 @@ def plot_graphs(base_folder,rate_file_path):
     plt.rcParams.update({'font.size': 8})  # Set global font size to 10
 
     # Create a figure and a set of subplots, now with 4 rows
-    fig, axs = plt.subplots(5, 1, figsize=(5, 6),gridspec_kw={'hspace': 0,'height_ratios': [1, 0.5, 1, 1, 1]})
+    fig, axs = plt.subplots(5, 2, figsize=(10, 6), gridspec_kw={'hspace': 0, 'height_ratios': [1, 0.5, 1, 1, 1]}, sharey='row')
 
     # Plot random data on the new top axes (axs[0])
-    axs[0].plot(x_data, y_data, linestyle='-', color='blue')
-    axs[0].set_ylabel(r'Input rate ($10^3$ t/s)', fontsize=text_fontsize)
-    axs[0].set_xlabel('Time (s)', fontsize=text_fontsize)
+    axs[0,1].plot(x_data - dfrate['x'].min(), y_data, linestyle='-', color='blue')
+    axs[0,1].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
+    axs[0,1].set_ylabel(r'Input rate ($10^3$ t/s)', fontsize=text_fontsize)
+    # axs[0,1].set_xlabel('Time (s)', fontsize=text_fontsize)
 
     # Adjust the indices for the other axes since we added a new one at the top
     # mean_ratio, divided by 100
     data_mean_ratio = [df[df['baseline'] == baseline]['mean_ratio'].dropna() / 100 for baseline in unique_baselines]
-    axs[2].boxplot(data_mean_ratio, labels=unique_baselines)
-    axs[2].set_ylabel('Compression (%)', fontsize=text_fontsize)
+    axs[2,0].boxplot(data_mean_ratio, labels=unique_baselines)
+    axs[2,0].set_ylabel('Compression (%)', fontsize=text_fontsize)
     # Set specific tick positions
-    axs[2].set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
-    axs[2].set_yticklabels(['0', '', '', '', '', '1'])
+    axs[2,0].set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
+    axs[2,0].set_yticklabels(['0', '', '', '', '', '1'])
     # Enable the grid
-    axs[2].grid(True, which='major', axis='y', linestyle='-', color='gray', linewidth=0.5)
+    axs[2,0].grid(True, which='major', axis='y', linestyle='-', color='gray', linewidth=0.5)
+    axs[2,1].grid(True, which='major', axis='y', linestyle='-', color='gray', linewidth=0.5)
 
     # latency, divided by 1000
     data_latency = [df[df['baseline'] == baseline]['latency'].dropna() / 1000 for baseline in unique_baselines]
-    axs[3].boxplot(data_latency, labels=unique_baselines)
-    axs[3].set_ylabel('Latency (s)', fontsize=text_fontsize)
-    axs[3].set_yscale(latency_y_scale)
-    axs[3].axhline(y=max_latency, color='r', linestyle='--')  # Horizontal line at max_latency
+    axs[3,0].boxplot(data_latency, labels=unique_baselines)
+    axs[3,0].set_ylabel('Latency (s)', fontsize=text_fontsize)
+    axs[3,0].set_yscale(latency_y_scale)
+    axs[3,0].axhline(y=max_latency, color='r', linestyle='--')  # Horizontal line at max_latency
     # Add text for threshold latency
-    axs[3].text(0.5, max_latency*1.05, 'Threshold latency', color='red', verticalalignment='bottom', horizontalalignment='left', fontsize=8, transform=axs[3].transData)
+    axs[3,0].text(0.5, max_latency*1.05, 'Threshold latency', color='red', verticalalignment='bottom', horizontalalignment='left', fontsize=8, transform=axs[3,0].transData)
     # axs[3].grid(True, which='both', axis='y', linestyle='--', linewidth=0.5, color='gray')  # Enable y-axis grid
 
     # cpu, divided by 100
     data_cpu = [df[df['baseline'] == baseline]['cpu'].dropna() / 100 for baseline in unique_baselines]
-    axs[4].boxplot(data_cpu, labels=unique_baselines)
-    axs[4].set_ylabel('CPU (%)', fontsize=text_fontsize)
-    axs[4].set_xlabel('Baseline', fontsize=text_fontsize)  # Only the last subplot needs the x-axis label
-    axs[4].set_xticklabels(xtick_labels, fontsize=text_fontsize)
-    axs[4].set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
-    axs[4].set_yticklabels(['0', '', '', '', '', '1'])
+    axs[4,0].boxplot(data_cpu, labels=unique_baselines)
+    axs[4,0].set_ylabel('CPU (%)', fontsize=text_fontsize)
+    axs[4,0].set_xlabel('Baseline', fontsize=text_fontsize)  # Only the last subplot needs the x-axis label
+    axs[4,0].set_xticklabels(xtick_labels, fontsize=text_fontsize)
+    axs[4,0].set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
+    axs[4,0].set_yticklabels(['0', '', '', '', '', '1'])
     # Enable the grid
-    axs[4].grid(True, which='major', axis='y', linestyle='-', color='gray', linewidth=0.5)
+    axs[4,0].grid(True, which='major', axis='y', linestyle='-', color='gray', linewidth=0.5)
+    axs[4,1].grid(True, which='major', axis='y', linestyle='-', color='gray', linewidth=0.5)
     
     # Add vertical lines in all axes for each X value in boundaries (adjusting index for axs)
-    for ax in axs[2:]:
+    for ax in axs[2:,0]:
         for boundary in boundaries:
             ax.axvline(x=boundary, color='g', linestyle='--')
 
@@ -123,10 +106,72 @@ def plot_graphs(base_folder,rate_file_path):
         # Calculate the position to place the text (middle between boundaries)
         x_pos = (boundaries[i] + boundaries[i + 1]) / 2
         # Place the text at the calculated position, with a slight offset upwards
-        axs[2].text(x_pos, 1.01, text, transform=axs[2].get_xaxis_transform(), ha='center', va='bottom', color=text_color, fontsize=text_fontsize)
+        axs[2,0].text(x_pos, 1.01, text, transform=axs[2,0].get_xaxis_transform(), ha='center', va='bottom', color=text_color, fontsize=text_fontsize)
 
     # set_share_axes(axs[1:], sharex=True)
-    axs[1].set_visible(False)
+    axs[1,0].set_visible(False)
+    # Disable y-axis labels and tick marks on the right-side axes
+    for ax in axs[1:, 1]:  # Loop through second column axes
+        ax.yaxis.set_tick_params(labelleft=False)  # Disable y-axis tick labels
+        ax.set_ylabel('')  # Clear y-axis label
+    axs[0,0].set_visible(False)
+    axs[1,1].set_visible(False)
+    
+    # Now the part about the RL agent
+    # Read the baselines_data.csv file
+    baseline_file_path = os.path.join(agent_data)
+    baseline_df = pd.read_csv(baseline_file_path)
+    
+    
+    # The values represent: initial size, fine size, initial opacity, final opacity, color, prob. of selection
+    agent_plots = {'linearroad-RL': [1,5,0.1,0.8,'red',1]}
+       
+    given_order = ['linearroad-RL']  # The desired order for baselines
+    
+    # Create a set for faster membership tests
+    unique_baselines_set = set(baseline_df['baseline'].unique())
+
+    # Use list comprehension to filter given_order by items present in df['baseline'].unique()
+    unique_baselines = [baseline for baseline in given_order if baseline in unique_baselines_set]
+
+    for i, baseline in enumerate(unique_baselines):
+        subset = baseline_df[baseline_df['baseline'] == baseline] 
+        if baseline in agent_plots:
+            # Determine sizes and opacities based on episode values
+            num_points = len(subset['eventtime'])
+            sizes = np.geomspace(start=agent_plots[baseline][0], stop=agent_plots[baseline][1], num=num_points)
+            opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
+            for j, (index, row) in enumerate(subset.iterrows()):
+                if np.random.rand()<=agent_plots[baseline][5]:
+                    axs[2,1].plot(row['eventtime']- dfrate['x'].min(), row['mean_ratio']/100, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
+    axs[2,1].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
+    
+    for i, baseline in enumerate(unique_baselines):
+        subset = baseline_df[baseline_df['baseline'] == baseline] 
+        if baseline in agent_plots:
+            # Determine sizes and opacities based on episode values
+            num_points = len(subset['eventtime'])
+            sizes = np.geomspace(start=agent_plots[baseline][0], stop=agent_plots[baseline][1], num=num_points)
+            opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
+            for j, (index, row) in enumerate(subset.iterrows()):
+                if np.random.rand()<=agent_plots[baseline][5]:
+                    axs[3,1].plot(row['eventtime']- dfrate['x'].min(), row['latency']/1000, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
+    axs[3,1].axhline(y=max_latency, color='r', linestyle='--')  # Horizontal line at max_latency
+    axs[3,1].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
+
+    for i, baseline in enumerate(unique_baselines):
+        subset = baseline_df[baseline_df['baseline'] == baseline] 
+        if baseline in agent_plots:
+            # Determine sizes and opacities based on episode values
+            num_points = len(subset['eventtime'])
+            sizes = np.geomspace(start=agent_plots[baseline][0], stop=agent_plots[baseline][1], num=num_points)
+            opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
+            for j, (index, row) in enumerate(subset.iterrows()):
+                if np.random.rand()<=agent_plots[baseline][5]:
+                    axs[4,1].plot(row['eventtime']- dfrate['x'].min(), row['cpu']/100, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
+    
+    axs[4,1].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
+    axs[4,1].set_xlabel('Event Time (s)', fontsize=text_fontsize)  # Only the last subplot needs the x-axis label
     
     # Adjust layout
     fig.tight_layout()
@@ -135,54 +180,12 @@ def plot_graphs(base_folder,rate_file_path):
     plt.savefig(os.path.join(base_folder, 'baselines.pdf'))
     plt.close()
 
-    # # Create a figure and a set of subplots
-    # fig, axs = plt.subplots(3, 1, figsize=(5, 5), sharex=True, gridspec_kw={'hspace': 0})
-
-    # # mean_ratio, divided by 100
-    # data_mean_ratio = [df[df['baseline'] == baseline]['mean_ratio'].dropna() / 100 for baseline in unique_baselines]
-    # axs[0].boxplot(data_mean_ratio, labels=unique_baselines)
-    # axs[0].set_ylabel('Compression (%)')
-    # axs[0].set_yticks([0, 1])
-
-    # # latency, divided by 1000
-    # data_latency = [df[df['baseline'] == baseline]['latency'].dropna() / 1000 for baseline in unique_baselines]
-    # axs[1].boxplot(data_latency, labels=unique_baselines)
-    # axs[1].set_ylabel('Latency (s)')
-    # axs[1].axhline(y=max_latency, color='r', linestyle='--')  # Horizontal line at max_latency
-    # # Add text
-    # axs[1].text(0.5, max_latency*1.05, 'Threshold latency', color='red', verticalalignment='bottom', horizontalalignment='left', fontsize=8, transform=axs[1].transData)
-
-    # # cpu, divided by 100
-    # data_cpu = [df[df['baseline'] == baseline]['cpu'].dropna() / 100 for baseline in unique_baselines]
-    # axs[2].boxplot(data_cpu, labels=unique_baselines)
-    # axs[2].set_ylabel('CPU (%)')
-    # axs[2].set_yticks([0, 1])
-    # axs[2].set_xlabel('Baseline')  # Only the last subplot needs the x-axis label
-    # # axs[2].set_xticklabels(xtick_labels)
-
-    # for ax in axs:
-    #     for boundary in boundaries:
-    #         ax.axvline(x=boundary, color='g', linestyle='--')
-                
-    # # Add text on top of the first axes in between consecutive pairs of boundaries
-    # for i, text in enumerate(boundary_text):
-    #     # Calculate the position to place the text (middle between boundaries)
-    #     x_pos = (boundaries[i] + boundaries[i + 1]) / 2
-    #     # Place the text at the calculated position, with a slight offset upwards (y=1.05, in axes fraction coordinates)
-    #     axs[0].text(x_pos, 1.01, text, transform=axs[0].get_xaxis_transform(), ha='center', va='bottom', color=text_color, fontsize=text_fontsize)
-
-    # # Adjust layout to remove vertical space between axes
-    # fig.tight_layout(pad=0.4, h_pad=0.0, w_pad=0.0)
-
-    # # Save the figure
-    # plt.savefig(os.path.join(base_folder, 'baselines.pdf'))
-    # plt.close()
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate plots from baselines_data.csv.')
     parser.add_argument('base_folder', type=str, help='Input folder containing baselines_data.csv.')
     parser.add_argument('rate_file_path', type=str, help='Input file containing per second input rate of the input data.')
+    parser.add_argument('agent_data', type=str, help='Input file containing the RL agent stats.')
 
     args = parser.parse_args()
     
-    plot_graphs(args.base_folder,args.rate_file_path)
+    plot_graphs(args.base_folder,args.rate_file_path,args.agent_data)
