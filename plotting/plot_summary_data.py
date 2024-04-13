@@ -13,7 +13,7 @@ def plot_graphs(base_folder):
     
     # The values represent: initial size, fine size, initial opacity, final opacity, color, prob. of selection
     agent_plots = {
-        'linearroad-RL': [1,30,0.1,1,'red',0.5]}
+        'linearroad-RL': [1,30,0.1,1,'red',1]}
     # ,
         # 'agent-101-300': [1,30,0.1,1,'green',0.4]}
        

@@ -44,7 +44,7 @@ def plot_graphs(base_folder,rate_file_path):
     # This config are for LinearRoad
     boundaries = [0.5,7.5,10.5,11.5]
     boundary_text = ['safe','worth','unsafe']
-    latency_y_scale = 'linear'
+    latency_y_scale = 'log'
     # This config are for LinearRoad
     boundaries = [0.5,4.5,7.5,11.5]
     boundary_text = ['safe','worth','unsafe']
