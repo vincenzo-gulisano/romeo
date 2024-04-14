@@ -2,8 +2,10 @@ package com.vincenzogulisano.usecases.linearroad;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -51,13 +53,14 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         logger.debug("These are the latest reports\n{}",
                 stateFormatter(lastReportedState));
         // if (lastReportedStateMaxTS == -1) {
-        //     lastReportedStateMaxTS = lastReportedState.firstKey() - 1;
-        //     logger.debug("Set lastReportedStateMaxTS to {} because it was -1", lastReportedStateMaxTS);
+        // lastReportedStateMaxTS = lastReportedState.firstKey() - 1;
+        // logger.debug("Set lastReportedStateMaxTS to {} because it was -1",
+        // lastReportedStateMaxTS);
         // }
         long thresholdTS = lastReportedState.firstKey();
         logger.debug("The state will contains readings for state from ts {}.", thresholdTS);
         if (lastReportedState.lastKey() - (thresholdTS + 1) > monitoringPeriod) {
-            for(long ts : lastReportedState.keySet()) {
+            for (long ts : lastReportedState.keySet()) {
                 thresholdTS = ts;
                 if (lastReportedState.lastKey() - thresholdTS <= monitoringPeriod) {
                     break;
@@ -85,6 +88,47 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         return logMsg.substring(0, logMsg.length() - 1);
     }
 
+    // This is the version that computes the rewards based on the latest
+    // value that is not -1. If no reward can be computed, the function returns -1
+    private long computeRewardBasedOnLatestCompressionValues(List<Double> values) {
+        logger.debug("Computing reward based on the latest ratio value...");
+        long reward = -1;
+        for (double value : values) {
+            if (value != -1) {
+                reward = (long) Math.round(Math.pow(100 - value, 1.5));
+            }
+        }
+        return reward;
+    }
+
+    // This is the version that first computes the deltas and then sets the reward
+    // based on the largest negative delta. If no reward can be computed, the
+    // function returns -1
+
+    private List<Double> calculateDeltas(List<Double> values) {
+        List<Double> deltas = new ArrayList<>();
+        Double previousValue = null; // Initialize with null to handle the first element
+
+        for (Double currentValue : values) {
+            // Check if the previous value exists and neither is -1
+            if (previousValue != null && previousValue != -1.0 && currentValue != -1.0) {
+                deltas.add(currentValue - previousValue);
+            }
+            previousValue = currentValue; // Update previousValue to the current value for the next iteration
+        }
+
+        return deltas;
+    }
+
+    // private long computeRewardBasedOnLatestCompressionValues(List<Double> values) {
+    //     logger.debug("Computing reward based on deltas and whether the compression increased...");
+    //     List<Double> deltaValues =calculateDeltas(values);
+    //     if (!deltaValues.isEmpty() && Collections.min(deltaValues)<=0) {
+    //         return (long) Math.round(Math.pow(100 - Collections.min(deltaValues), 1.5));
+    //     }
+    //     return -1;
+    // }
+
     @Override
     public long getReward() {
 
@@ -105,15 +149,16 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
             reward = Math.min(-1 * ((latency - 1000) / 10), -1);
             logger.debug("... they do! reporting {}", reward);
         } else {
-            logger.debug("Retrieving the latest ratio value...");
+            List<Double> latestCompressionValues = new LinkedList<>();
             for (long ts : lastReportedState.keySet()) {
                 if (ts > lastReportedStateMaxTS && lastReportedState.get(ts).containsKey("ratio")
                         && lastReportedState.get(ts).get("ratio") != -1) {
-                    ratio = lastReportedState.get(ts).get("ratio");
+                    latestCompressionValues.add(lastReportedState.get(ts).get("ratio"));
                 }
             }
-            if (ratio != Double.MAX_VALUE) {
-                reward = (long) Math.round(Math.pow(100 - ratio, 1.5));
+            long rewardFromCompression = computeRewardBasedOnLatestCompressionValues(latestCompressionValues);
+            if (rewardFromCompression != -1) {
+                reward = rewardFromCompression;
                 logger.debug("... which is {} and means reward {}", String.format("%.2f", ratio), reward);
             }
         }
