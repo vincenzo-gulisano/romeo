@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 import java.util.TreeMap;
 
 import org.apache.kafka.clients.producer.Producer;
@@ -101,30 +102,15 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         return reward;
     }
 
-    // This is the version that first computes the deltas and then sets the reward
-    // based on the largest negative delta. If no reward can be computed, the
-    // function returns -1
-
-    private List<Double> calculateDeltas(List<Double> values) {
-        List<Double> deltas = new ArrayList<>();
-        Double previousValue = null; // Initialize with null to handle the first element
-
-        for (Double currentValue : values) {
-            // Check if the previous value exists and neither is -1
-            if (previousValue != null && previousValue != -1.0 && currentValue != -1.0) {
-                deltas.add(currentValue - previousValue);
-            }
-            previousValue = currentValue; // Update previousValue to the current value for the next iteration
-        }
-
-        return deltas;
-    }
-
+    // This is the version that first computes the delta between first and last non
+    // -1 value and if it is negative returns the respective reward. If no reward
+    // can be computed, the function returns -1
     // private long computeRewardBasedOnLatestCompressionValues(List<Double> values) {
     //     logger.debug("Computing reward based on deltas and whether the compression increased...");
-    //     List<Double> deltaValues =calculateDeltas(values);
-    //     if (!deltaValues.isEmpty() && Collections.min(deltaValues)<=0) {
-    //         return (long) Math.round(Math.pow(100 - Collections.min(deltaValues), 1.5));
+    //     List<Double> filteredValues = values.stream().filter(v -> v != -1).collect(Collectors.toList());
+
+    //     if (filteredValues.size() >= 2 && filteredValues.getLast() - filteredValues.getFirst() <= 0) {
+    //         return (long) Math.round(Math.pow(100 - (filteredValues.getLast() - filteredValues.getFirst()), 1.5));
     //     }
     //     return -1;
     // }
