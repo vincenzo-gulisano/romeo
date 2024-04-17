@@ -22,15 +22,15 @@ import os
 import pickle
 
 
-GAMMA = 0.99
+GAMMA = 0.9
 lr = 0.1
 # EPSILON = 0.1
 buffer_size = 10000  # replay buffer size
 batch_size = 128
 #episodes = 50
-target_update = 1  # copy frequency from net to target_net
+target_update = 4  # the frequency for copying parameters from net to target_net
 #steps = 100
-EPSILON_START = 0.1
+EPSILON_START = 0.01
 EPSILON_END = 0.01
 EPSILON_DECAY = 500 # the higher value, the slower decay
 
@@ -187,18 +187,20 @@ class SPEEnvironment(Env):
         self.valuesPerObservation = 7
         # metrics = 11
         # Define a 2-D observation space
-        # states: injectionrate, throughput, outrate, latency, ratio, comp, dec, CPU-in, CPU-agg, CPU-out, event time
+        # states: injectionrate, throughput, outrate, latency, compression ratio, comp, dec, CPU-in, CPU-agg, CPU-out, event time
+        # metrics = 7
+        # states: injectionrate, throughput, outrate, latency, compression ratio, CPU-agg, event time
         self.observation_space = spaces.Box(low = np.array(
                                                 [np.full(self.valuesPerObservation, -1),
                                                 np.full(self.valuesPerObservation, -1),
                                                 np.full(self.valuesPerObservation, -1),
                                                 np.full(self.valuesPerObservation, -1),
                                                 np.full(self.valuesPerObservation, -1),
+                                                # np.full(self.valuesPerObservation, -1),
+                                                # np.full(self.valuesPerObservation, -1),
+                                                # np.full(self.valuesPerObservation, -1),
                                                 np.full(self.valuesPerObservation, -1),
-                                                np.full(self.valuesPerObservation, -1),
-                                                np.full(self.valuesPerObservation, -1),
-                                                np.full(self.valuesPerObservation, -1),
-                                                np.full(self.valuesPerObservation, -1),
+                                                # np.full(self.valuesPerObservation, -1),
                                                 np.full(self.valuesPerObservation, -1)]), 
                                             high = np.array(
                                                 [np.full(self.valuesPerObservation, np.inf),
@@ -206,11 +208,11 @@ class SPEEnvironment(Env):
                                                  np.full(self.valuesPerObservation, np.inf),
                                                  np.full(self.valuesPerObservation, np.inf),
                                                  np.full(self.valuesPerObservation, 100),
-                                                 np.full(self.valuesPerObservation, np.inf),
-                                                 np.full(self.valuesPerObservation, np.inf),
+                                                 # np.full(self.valuesPerObservation, np.inf),
+                                                 # np.full(self.valuesPerObservation, np.inf),
+                                                 # np.full(self.valuesPerObservation, 100),
                                                  np.full(self.valuesPerObservation, 100),
-                                                 np.full(self.valuesPerObservation, 100),
-                                                 np.full(self.valuesPerObservation, 100),
+                                                 # np.full(self.valuesPerObservation, 100),
                                                  np.full(self.valuesPerObservation, np.inf)]),
                                             dtype = np.float32)
         # self.observation_space = spaces.Box(low = np.array([0,0,0,0]), 
@@ -222,7 +224,10 @@ class SPEEnvironment(Env):
         # 1 means set compression to 10%
         # ...
         # 10 means set compression to 100%
-        self.action_space = spaces.Discrete(11,)
+        # self.action_space = spaces.Discrete(11,)
+
+        # 3 actions: reduce compression by 10, no change, increase compression by 10
+        self.action_space = spaces.Discrete(3,)
 
         self.consumer = KafkaStatsConsumer(self.valuesPerObservation)
         self.producer = KafkaActionsProducer(self.consumer)
@@ -244,6 +249,14 @@ class SPEEnvironment(Env):
         # track latency
         self.latency_threshold = 2500
         self.latency_counter = 0
+        self.latency_last_events = -1
+
+        # define thresholds for negative reward and latency violtions
+        self.negative_reward_threshold = -150
+        self.latency_violations_per_episode = 3
+
+        # define initial compression ratio
+        self.current_compression = 100
 
 
     def reset(self):
@@ -253,6 +266,8 @@ class SPEEnvironment(Env):
 
         # reset latency counter
         self.latency_counter = 0 
+        # reset initial compressionn ratio
+        self.current_compression = 100
 
         # Send the reset
         self.producer.produce("reset")
@@ -289,8 +304,15 @@ class SPEEnvironment(Env):
         # Assert that it is a valid action 
         assert self.action_space.contains(action), "Invalid action"
 
+        # select ccompression ratio based on the action
+        if action == 0:
+            self.current_compression = max(0, self.current_compression - 10)
+        elif action == 2:
+            self.current_compression = min(100, self.current_compression + 10)
+
         # print('Transmitting action',action)
-        self.producer.produce("changeD,"+str(action))
+        # self.producer.produce("changeD,"+str(action))
+        self.producer.produce("changeD," + str(int(self.current_compression/10)))
 
         # Wait for the state and reward measurement
         self.prev_stat_time = time.time()
@@ -318,18 +340,33 @@ class SPEEnvironment(Env):
         # else:
         #     done = False
         
-        # upfate latency counter
-        if self.consumer.tracker.state[3, -1] > self.latency_threshold:
-            self.latency_counter += 1
-            print(f"High latency observed: {self.consumer.tracker.state[3, -1]} ms at step {(self.stepsPerEpisode - self.remaingSteps) + 1}")
+        # update latency counter
+        print(f"Checking high latency based on latency values")
+        checkAlsoBasedReward = True
+        # for event_time, latency in zip(self.consumer.tracker.state[10], self.consumer.tracker.state[3]):
+        for event_time, latency in zip(self.consumer.tracker.state[6], self.consumer.tracker.state[3]):
+            if event_time > self.latency_last_events:
+                self.latency_last_events = event_time
+                if latency > self.latency_threshold:
+                    checkAlsoBasedReward = False
+                    self.latency_counter += 1
+                    # print(f"High latency observed: {event_time, latency} ms at step {(self.stepsPerEpisode - self.remaingSteps) + 1}")
+                    print(f"High latency observed: {event_time, latency} ms at step {(self.stepsPerEpisode - self.remaingSteps)}")
+            
+        if checkAlsoBasedReward:
+            print(f"Checking high latency based on actual reward")
+            if self.consumer.tracker.reward < self.negative_reward_threshold:
+                self.latency_counter += 1
+                # print(f"High latency observed because of reward at step {(self.stepsPerEpisode - self.remaingSteps) + 1}")
+                print(f"High latency observed because of reward at step {(self.stepsPerEpisode - self.remaingSteps)}")
         
         # check if latency is greater than 2.5s in three steps for every episode
-        if self.latency_counter >= 3:
+        if self.latency_counter >= self.latency_violations_per_episode:
             done = True
         else:
             done = False
         
-        # check if there has remainig steps
+        # check if there has remaining steps
         if self.remaingSteps <= 0:
             done = True
         
@@ -337,7 +374,7 @@ class SPEEnvironment(Env):
         self.ep_return += 1
 
         # TODO There's something missing, the SPE itself could be done if it runs out of data. This is not being checked as of now...
-        return self.consumer.tracker.state.copy(), self.consumer.tracker.reward, done, []
+        return self.consumer.tracker.state.copy(), self.consumer.tracker.reward, done, self.current_compression, []
     
     def close(self):
         super(SPEEnvironment, self).close()
@@ -369,7 +406,23 @@ class MeasurementTracker:
             # Convert the string to a list of floats without replacing -1.0 with np.nan
             doubles_list = [float(x) for x in parts[0].split(',')]
             # Convert the list to a NumPy array of float32 and reshape it to 11x7
-            self.state = np.array(doubles_list, dtype=np.float32).reshape(11, self.valuesPerObservation)
+            # self.state = np.array(doubles_list, dtype=np.float32).reshape(11, self.valuesPerObservation)
+            try:
+                # select indices for specific 7 states
+                indices = [
+                    i for j in [
+                        range(0 * self.valuesPerObservation, 5 * self.valuesPerObservation), # select indices for 'injectionrate, throughput, outrate, latency, compression ratio'
+                        range(8 * self.valuesPerObservation, 9 * self.valuesPerObservation), # select indices for 'CPU-agg'
+                        range(10 * self.valuesPerObservation, 11 * self.valuesPerObservation) # select indices for 'event time'
+                    ] for i in j
+                ]
+                # select state_data corresponding to specific 7 states
+                selected_state = [doubles_list[i] for i in indices]
+                # self.state = np.array(doubles_list, dtype=np.float32).reshape(11, self.valuesPerObservation)
+                # Convert the list to a NumPy array of float32 and reshape it to 7x7
+                self.state = np.array(selected_state, dtype=np.float32).reshape(7, self.valuesPerObservation)
+            except Exception as e:
+                raise RuntimeError("An error occured parsing " + input_str) from e
             # state_matrix = np.array(doubles_list, dtype=np.float32).reshape(-1, self.valuesPerObservation)
             # self.state = state_matrix.T
             self.reward = int(parts[1])
@@ -443,19 +496,20 @@ if __name__ == "__main__":
     
 
     env = SPEEnvironment(int(args.steps))
-    input_shape = (11, 7)
+    # input_shape = (11, 7)
+    input_shape = (7, 7)
     Agent = DQN(input_shape, 256, env.action_space.n)
 
     # load saved net's paras
-    model_file = 'image/Exp7.2/Exp7.2_paras (101-150)/exp7.2_dqn_model_episode_150.pth'
+    model_file = 'image/Exp10.2/synthetic/1-200/Exp10-2_paras-1-200/exp10-2_dqn_model_episode_200.pth'
     if os.path.exists(model_file):
         Agent.net.load_state_dict(torch.load(model_file))
         print("loaded net's paras...")
 
-    # load replay buffer from last episode
-    replay_buffer = f'image/Exp7.2/buffer_after_150_episodes.pkl'
+    # load replay buffer
+    replay_buffer = f'image/Exp10.2/synthetic/1-200/Exp10-2_replay_buffer-1-200/exp10-2_buffer_after_200_episodes.pkl'
     with open (replay_buffer, 'rb') as f:
-      Agent.buffer = pickle.load(f)
+        Agent.buffer = pickle.load(f)
     print('loaded replay buffer from last round...')
    
     if args.agentstate is not None:
@@ -463,17 +517,38 @@ if __name__ == "__main__":
    
     average_reward = 0  # average reward of all episodes
 
-    # create folder to store paras
-    paras_folder_name = 'data/output/5/600/5000000000/0/25000/601/Exp7.2_paras (151-200)'
-    if not os.path.exists(paras_folder_name):
-        os.makedirs(paras_folder_name) 
+    # create folder to store paras (linear)
+    # paras_folder_name = 'data/output/linear/5/600/5000000000/0/25000/601/Exp10-2_paras-1-200'
+    # if not os.path.exists(paras_folder_name):
+    #     os.makedirs(paras_folder_name)
 
-    # create folder to store q value plots
-    q_value_folder_name = 'data/output/5/600/5000000000/0/25000/601/Exp7.2_q_value_plots (151-200)'
+    # create folder to store paras (synthetic)
+    paras_folder_name = 'data/output/synthetic/1/900/5000000000/901/Exp10-2_paras-201-300'
+    if not os.path.exists(paras_folder_name):
+        os.makedirs(paras_folder_name)
+
+    # create folder to store q value plots (linear)
+    # q_value_folder_name = 'data/output/linear/5/600/5000000000/0/25000/601/Exp10-2_q_value_plot-1-200'
+    # if not os.path.exists(q_value_folder_name):
+    #     os.makedirs(q_value_folder_name)
+
+    # create folder to store q value plots (synthetic)
+    q_value_folder_name = 'data/output/synthetic/1/900/5000000000/901/Exp10-2_q_values_plot-201-300'
     if not os.path.exists(q_value_folder_name):
         os.makedirs(q_value_folder_name)
+    
+    # create folder to store replay buffer (linear)
+    # replay_buffer_folder_name = 'data/output/linear/5/600/5000000000/0/25000/601/Exp10-2_replay_buffer-1-200'
+    # if not os.path.exists(replay_buffer_folder_name):
+    #     os.makedirs(replay_buffer_folder_name)
+    
+    # create folder to store replay buffer (synthetic)
+    replay_buffer_folder_name = 'data/output/synthetic/1/900/5000000000/901/Exp10-2_replay_buffer-201-300'
+    if not os.path.exists(replay_buffer_folder_name):
+        os.makedirs(replay_buffer_folder_name)
+    
 
-    for i_episode in range(150, 150 + int(args.episodes)):
+    for i_episode in range(200, 200 + int(args.episodes)):
         print('starting episode',i_episode + 1)
         s0 = env.reset()
         s0 = s0.reshape(-1)
@@ -490,7 +565,7 @@ if __name__ == "__main__":
             a0, action_type, action_time, epsilon = Agent.select_action(s0)
             #s1, r, done, _ = env.step(a0)
             q_values = Agent.net(torch.Tensor(s0)).detach().numpy().squeeze()
-            print(f"Episode {i_episode + 1}, Step {step_count + 1}, Action {a0}, Action type: {action_type}, Epsilon: {epsilon:.6f}, Q values: {q_values}, Action time: {action_time}") 
+            # print(f"Episode {i_episode + 1}, Step {step_count + 1}, Action {a0}, Current Compression: {current_compression}, Action type: {action_type}, Epsilon: {epsilon:.6f}, Q values: {q_values}, Action time: {action_time}") 
 
             steps.append(step_count)
 
@@ -499,10 +574,11 @@ if __name__ == "__main__":
 
             # only keep the return value of s1, r, done, ignore the fourth return value
             step_result = env.step(a0)
-            s1, r, done = step_result[:3]
+            s1, r, done, current_compression = step_result[:4]
+
+            print(f"Episode {i_episode + 1}, Step {step_count + 1}, Action {a0}, Current Compression: {current_compression}, Action type: {action_type}, Epsilon: {epsilon:.6f}, Q values: {q_values}, Action time: {action_time}") 
 
             tot_time += r  # cal. total time of current episode
-
             tot_reward += r # cal total reward of current episode
             step_count += 1 # increment the step 
 
@@ -543,22 +619,36 @@ if __name__ == "__main__":
         plt.ylabel('Q Values')
         plt.title(f'Q Values Over Episodes (Episode {i_episode + 1})')
         plt.legend()
-        q_value_file_path = os.path.join(q_value_folder_name, f'exp7.2_q_values_plot_{i_episode + 1}.png')
+        q_value_file_path = os.path.join(q_value_folder_name, f'exp10-2_q_values_plot_{i_episode + 1}.png')
         plt.savefig(q_value_file_path)
         plt.close()
             
-        # saving paras per 10 episodes
+        # saving paras and replay buffer per 10 episodes
         if (i_episode + 1) % 10 == 0: 
             # save model paras every 10 episodes
-            paras_file_path = os.path.join(paras_folder_name, f'exp7.2_dqn_model_episode_{i_episode + 1}.pth')
+            paras_file_path = os.path.join(paras_folder_name, f'exp10-2_dqn_model_episode_{i_episode + 1}.pth')
             torch.save(Agent.net.state_dict(), paras_file_path)
-
-        # store the replay buffer when reaching the last episode of this round
-        if (i_episode + 1) == 150 + int(args.episodes):
-            replay_buffer = f'data/output/5/600/5000000000/0/25000/601/buffer_after_{i_episode + 1}_episodes.pkl'
-            with open (replay_buffer, 'wb') as f:
+            replay_buffer_file_path = os.path.join(replay_buffer_folder_name, f'exp10-2_buffer_after_{i_episode + 1}_episodes.pkl')
+            with open (replay_buffer_file_path, 'wb') as f:
                 pickle.dump(Agent.buffer, f)
-            print(f'Saved replay buffer after {i_episode + 1} episodes ...')              
+            # print(f'Saved replay buffer after {i_episode + 1} episodes ...')
+
+
+        # store the replay buffer when reaching the last episode of this round (linear)
+        # if (i_episode + 1) :
+        #     replay_buffer = f'data/output/linear/5/600/5000000000/0/25000/601/buffer_after_{i_episode + 1}_episodes.pkl'
+        #     with open (replay_buffer, 'wb') as f:
+        #         pickle.dump(Agent.buffer, f)
+        #     print(f'Saved replay buffer after {i_episode + 1} episodes ...')
+
+        
+        # store the replay buffer when reaching the last episode of this round (synthetic)
+        # if (i_episode + 1) == 150 + int(args.episodes):
+        # if (i_episode + 1) == int(args.episodes):
+        #     replay_buffer = f'data/output/synthetic/1/900/5000000000/901/buffer_after_{i_episode + 1}_episodes.pkl'
+        #     with open (replay_buffer, 'wb') as f:
+        #         pickle.dump(Agent.buffer, f)
+        #     print(f'Saved replay buffer after {i_episode + 1} episodes ...')                     
 
     print('closing')
     env.close()
