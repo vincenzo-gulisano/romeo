@@ -6,7 +6,7 @@ echo "Base folder: ${base_folder}"
 mkdir -p ${base_folder}/episodelogs
 
 # Loop from 1 to 100
-for i in {100..200}
+for i in {0..200}
 do
     echo "Looking for episode $i"	
     # Find the starting line number
