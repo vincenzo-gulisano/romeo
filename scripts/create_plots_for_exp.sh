@@ -1,6 +1,6 @@
 #!/bin/bash
-base_exp_folder="./data/10/synthetic-RL/1/900"
-folders_to_explore=(exp10.2)
+base_exp_folder="./data/11/synthetic-RL/1/900"
+folders_to_explore=(exp11)
 for folder_to_explore in "${folders_to_explore[@]}"; do
 
     exp_folder="${base_exp_folder}/${folder_to_explore}"
@@ -15,6 +15,10 @@ for folder_to_explore in "${folders_to_explore[@]}"; do
     awk '/^Got a new state\/reward pair: / {sub(/^Got a new state\/reward pair: /, ""); print int($1)} /^reward / {sub(/^reward /, ""); print $1}' ${exp_folder}/python_agent.log | paste -d, - -  > ${exp_folder}/rewards.csv
     awk -F',' 'BEGIN {OFS=","; sum=0} {sum += $2; print $1, sum}' ${exp_folder}/rewards.csv > ${exp_folder}/cumulativereward.csv
     awk -F',' 'NR > 1 { print $1 "," ($2 == -1 ? -1 : ($2 < 1000 ? 0 : 1)) }' ${exp_folder}/latency.average.csv > ${exp_folder}/latency.violations.csv
+
+    echo "Trying to extract the action probabilities based on soft max"
+    python plotting/create_action_probabilities_csv_from_python_log.py ${exp_folder}/python_agent.log ${exp_folder}/actionsprobs.csv
+    python plotting/plot_action_probabilities.py ${exp_folder}/actionsprobs.csv ${exp_folder}/eps
 
     echo "Creating plots"
     python plotting/plot_experiment_stats_exp.py ${exp_folder}/ ${exp_folder}/episodesstats.csv 
