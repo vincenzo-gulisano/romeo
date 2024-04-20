@@ -79,7 +79,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
                     if (lastReportedState.get(ts).containsKey(metric)) {
                         logMsg += String.format("%.2f", lastReportedState.get(ts).get(metric)) + ",";
                     } else {
-                        logMsg += "-1.0,";
+                        logMsg += "-1.0,"; // metric vallue is missing or not recorded for that timestamp
                     }
                 }
             }
@@ -91,29 +91,37 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
 
     // This is the version that computes the rewards based on the latest
     // value that is not -1. If no reward can be computed, the function returns -1
-    private long computeRewardBasedOnLatestCompressionValues(List<Double> values) {
-        logger.debug("Computing reward based on the latest ratio value...");
-        long reward = -1;
-        for (double value : values) {
-            if (value != -1) {
-                reward = (long) Math.round(Math.pow(100 - value, 1.5));
-            }
-        }
-        return reward;
-    }
+    // private long computeRewardBasedOnLatestCompressionValues(List<Double> values) {
+    //     logger.debug("Computing reward based on the latest ratio value...");
+    //     long reward = -1;
+    //     for (double value : values) {
+    //         if (value != -1) {
+    //             reward = (long) Math.round(Math.pow(100 - value, 1.5));
+    //         }
+    //     }
+    //     return reward;
+    // }
 
     // This is the version that first computes the delta between first and last non
     // -1 value and if it is negative returns the respective reward. If no reward
     // can be computed, the function returns -1
-    // private long computeRewardBasedOnLatestCompressionValues(List<Double> values) {
-    //     logger.debug("Computing reward based on deltas and whether the compression increased...");
-    //     List<Double> filteredValues = values.stream().filter(v -> v != -1).collect(Collectors.toList());
+    private long computeRewardBasedOnLatestCompressionValues(List<Double> values) {
+        logger.debug("Computing reward based on deltas and whether the compression increased...");
+        List<Double> filteredValues = values.stream().filter(v -> v != -1).collect(Collectors.toList());
 
-    //     if (filteredValues.size() >= 2 && filteredValues.getLast() - filteredValues.getFirst() <= 0) {
-    //         return (long) Math.round(Math.pow(100 - (filteredValues.getLast() - filteredValues.getFirst()), 1.5));
-    //     }
-    //     return -1;
-    // }
+        // if (filteredValues.size() >= 2 && filteredValues.getLast() - filteredValues.getFirst() <= 0) {
+        //     return (long) Math.round(Math.pow(100 - (filteredValues.getLast() - filteredValues.getFirst()), 1.5));
+        // }
+        if(filteredValues.size() >= 2){
+            double first = filteredValues.get(0);
+            double last = filteredValues.get(filteredValues.size() - 1);
+            if((last - first) < 0){
+                return Math.round(Math.pow(Math.abs(last - first), 1.5));
+            }
+            return 0;
+        }
+        return -1;
+    }
 
     @Override
     public long getReward() {
