@@ -30,9 +30,12 @@ batch_size = 128
 #episodes = 50
 target_update = 4  # the frequency for copying parameters from net to target_net
 #steps = 100
-EPSILON_START = 0.01
-EPSILON_END = 0.01
-EPSILON_DECAY = 500 # the higher value, the slower decay
+# EPSILON_START = 0.01
+# EPSILON_END = 0.01
+# EPSILON_DECAY = 500 # the higher value, the slower decay
+TAU_START = 10
+TAU_END = 1
+TAU_DECAY = 500
 
 
 # define neural network
@@ -92,32 +95,49 @@ class DQN(object):
         self.loss_func = nn.MSELoss()
         self.steps_done = 0
         self.sample_count = 0
+        self.current_compression = 100
 
     def put(self, s0, a0, r, t, s1):
         self.buffer.push(s0, a0, r, t, s1)
 
     def select_action(self, state):
-        eps_threshold = random.random()
+        # eps_threshold = random.random()
         #action = self.net(torch.Tensor(state))
         self.sample_count += 1
-        self.epsilon = EPSILON_END + (EPSILON_START - EPSILON_END) * math.exp(-1 * self.sample_count / EPSILON_DECAY)
+
+        # Boltzmann(softmax) exploration strategy
+        self.tau = TAU_END + (TAU_START - TAU_END) * math.exp(-1 * self.sample_count / TAU_DECAY)
         # reshape state to 1D vector
         state = torch.Tensor(state).view(-1)
-        action = self.net(state)
+        q_values = self.net(state)
+        # softmax function to convert q values into probablities that sum to one
+        action_probabilities = F.softmax(q_values / self.tau, dim=-1)
+        # sample from the 'action_probablities' distribution
+        action = torch.multinomial(action_probabilities, 1).item()
         action_time = time.time()
-        # if eps_threshold > EPSION:
-        #     choice = torch.argmax(action).numpy()
+        action_type = "softmax selection"
+
+        # epsilon greedy decay
+        # self.epsilon = EPSILON_END + (EPSILON_START - EPSILON_END) * math.exp(-1 * self.sample_count / EPSILON_DECAY)
+        # # reshape state to 1D vector
+        # state = torch.Tensor(state).view(-1)
+        # action = self.net(state)
+        # action_time = time.time()
+
+        # if eps_threshold > self.epsilon:
+        #     action = torch.argmax(action).numpy()
         #     action_type = "exploitation"
         # else:
-        #     choice = np.random.randint(0, action.shape[0])  # random sampling
+        #     action = np.random.randint(0, action.shape[0])  # random sampling
         #     action_type = "exploration"
-        if eps_threshold > self.epsilon:
-            choice = torch.argmax(action).numpy()
-            action_type = "exploitation"
-        else:
-            choice = np.random.randint(0, action.shape[0])  # random sampling
-            action_type = "exploration"
-        return choice, action_type, action_time, self.epsilon
+        
+        # uodate compression ratio based on the action
+        if action == 0:
+            self.current_compression = max(0, self.current_compression - 10)
+        elif action == 2:
+            self.current_compression = min(100, self.current_compression + 10)
+        
+        return action, action_type, action_time, self.tau, action_probabilities.detach().numpy(), self.current_compression
 
     def update_parameters(self):
         if self.buffer.__len__() < batch_size:
@@ -297,7 +317,7 @@ class SPEEnvironment(Env):
         # Return the observation
         return self.consumer.tracker.state.copy()
     
-    def step(self,action):
+    def step(self, action, current_compression):
     
         self.remaingSteps -= 1
 
@@ -305,14 +325,14 @@ class SPEEnvironment(Env):
         assert self.action_space.contains(action), "Invalid action"
 
         # select ccompression ratio based on the action
-        if action == 0:
-            self.current_compression = max(0, self.current_compression - 10)
-        elif action == 2:
-            self.current_compression = min(100, self.current_compression + 10)
+        # if action == 0:
+        #     self.current_compression = max(0, self.current_compression - 10)
+        # elif action == 2:
+        #     self.current_compression = min(100, self.current_compression + 10)
 
         # print('Transmitting action',action)
         # self.producer.produce("changeD,"+str(action))
-        self.producer.produce("changeD," + str(int(self.current_compression/10)))
+        self.producer.produce("changeD," + str(int(current_compression/10)))
 
         # Wait for the state and reward measurement
         self.prev_stat_time = time.time()
@@ -350,15 +370,15 @@ class SPEEnvironment(Env):
                 if latency > self.latency_threshold:
                     checkAlsoBasedReward = False
                     self.latency_counter += 1
-                    # print(f"High latency observed: {event_time, latency} ms at step {(self.stepsPerEpisode - self.remaingSteps) + 1}")
-                    print(f"High latency observed: {event_time, latency} ms at step {(self.stepsPerEpisode - self.remaingSteps)}")
+                    print(f"High latency observed: {event_time, latency} ms at step {(self.stepsPerEpisode - self.remaingSteps) + 1}")
+                    # print(f"High latency observed: {event_time, latency} ms at step {(self.stepsPerEpisode - self.remaingSteps)}")
             
         if checkAlsoBasedReward:
             print(f"Checking high latency based on actual reward")
             if self.consumer.tracker.reward < self.negative_reward_threshold:
                 self.latency_counter += 1
-                # print(f"High latency observed because of reward at step {(self.stepsPerEpisode - self.remaingSteps) + 1}")
-                print(f"High latency observed because of reward at step {(self.stepsPerEpisode - self.remaingSteps)}")
+                print(f"High latency observed because of reward at step {(self.stepsPerEpisode - self.remaingSteps) + 1}")
+                # print(f"High latency observed because of reward at step {(self.stepsPerEpisode - self.remaingSteps)}")
         
         # check if latency is greater than 2.5s in three steps for every episode
         if self.latency_counter >= self.latency_violations_per_episode:
@@ -374,7 +394,7 @@ class SPEEnvironment(Env):
         self.ep_return += 1
 
         # TODO There's something missing, the SPE itself could be done if it runs out of data. This is not being checked as of now...
-        return self.consumer.tracker.state.copy(), self.consumer.tracker.reward, done, self.current_compression, []
+        return self.consumer.tracker.state.copy(), self.consumer.tracker.reward, done, []
     
     def close(self):
         super(SPEEnvironment, self).close()
@@ -501,16 +521,16 @@ if __name__ == "__main__":
     Agent = DQN(input_shape, 256, env.action_space.n)
 
     # load saved net's paras
-    model_file = 'image/Exp10.2/synthetic/1-200/Exp10-2_paras-1-200/exp10-2_dqn_model_episode_200.pth'
-    if os.path.exists(model_file):
-        Agent.net.load_state_dict(torch.load(model_file))
-        print("loaded net's paras...")
+    # model_file = 'image/Exp10.2/synthetic/1-200/Exp10-2_paras-1-200/exp10-2_dqn_model_episode_200.pth'
+    # if os.path.exists(model_file):
+    #     Agent.net.load_state_dict(torch.load(model_file))
+    #     print("loaded net's paras...")
 
     # load replay buffer
-    replay_buffer = f'image/Exp10.2/synthetic/1-200/Exp10-2_replay_buffer-1-200/exp10-2_buffer_after_200_episodes.pkl'
-    with open (replay_buffer, 'rb') as f:
-        Agent.buffer = pickle.load(f)
-    print('loaded replay buffer from last round...')
+    # replay_buffer = f'image/Exp10.2/synthetic/1-200/Exp10-2_replay_buffer-1-200/exp10-2_buffer_after_200_episodes.pkl'
+    # with open (replay_buffer, 'rb') as f:
+    #     Agent.buffer = pickle.load(f)
+    # print('loaded replay buffer from last round...')
    
     if args.agentstate is not None:
         Agent.net.load_state_dict(torch.load(args.agentstate))
@@ -518,37 +538,37 @@ if __name__ == "__main__":
     average_reward = 0  # average reward of all episodes
 
     # create folder to store paras (linear)
-    # paras_folder_name = 'data/output/linear/5/600/5000000000/0/25000/601/Exp10-2_paras-1-200'
-    # if not os.path.exists(paras_folder_name):
-    #     os.makedirs(paras_folder_name)
-
-    # create folder to store paras (synthetic)
-    paras_folder_name = 'data/output/synthetic/1/900/5000000000/901/Exp10-2_paras-201-300'
+    paras_folder_name = 'data/output/linear/5/600/5000000000/0/25000/601/Exp10-2_paras-1-200'
     if not os.path.exists(paras_folder_name):
         os.makedirs(paras_folder_name)
 
-    # create folder to store q value plots (linear)
-    # q_value_folder_name = 'data/output/linear/5/600/5000000000/0/25000/601/Exp10-2_q_value_plot-1-200'
-    # if not os.path.exists(q_value_folder_name):
-    #     os.makedirs(q_value_folder_name)
+    # create folder to store paras (synthetic)
+    # paras_folder_name = 'data/output/synthetic/1/900/5000000000/901/Exp10-3_paras-1-100'
+    # if not os.path.exists(paras_folder_name):
+    #     os.makedirs(paras_folder_name)
 
-    # create folder to store q value plots (synthetic)
-    q_value_folder_name = 'data/output/synthetic/1/900/5000000000/901/Exp10-2_q_values_plot-201-300'
+    # create folder to store q value plots (linear)
+    q_value_folder_name = 'data/output/linear/5/600/5000000000/0/25000/601/Exp10-2_q_value_plot-1-200'
     if not os.path.exists(q_value_folder_name):
         os.makedirs(q_value_folder_name)
+
+    # create folder to store q value plots (synthetic)
+    # q_value_folder_name = 'data/output/synthetic/1/900/5000000000/901/Exp10-3_q_values_plot-1-100'
+    # if not os.path.exists(q_value_folder_name):
+    #     os.makedirs(q_value_folder_name)
     
     # create folder to store replay buffer (linear)
-    # replay_buffer_folder_name = 'data/output/linear/5/600/5000000000/0/25000/601/Exp10-2_replay_buffer-1-200'
-    # if not os.path.exists(replay_buffer_folder_name):
-    #     os.makedirs(replay_buffer_folder_name)
-    
-    # create folder to store replay buffer (synthetic)
-    replay_buffer_folder_name = 'data/output/synthetic/1/900/5000000000/901/Exp10-2_replay_buffer-201-300'
+    replay_buffer_folder_name = 'data/output/linear/5/600/5000000000/0/25000/601/Exp10-2_replay_buffer-1-200'
     if not os.path.exists(replay_buffer_folder_name):
         os.makedirs(replay_buffer_folder_name)
     
+    # create folder to store replay buffer (synthetic)
+    # replay_buffer_folder_name = 'data/output/synthetic/1/900/5000000000/901/Exp10-3_replay_buffer-1-100'
+    # if not os.path.exists(replay_buffer_folder_name):
+    #     os.makedirs(replay_buffer_folder_name)
+    
 
-    for i_episode in range(200, 200 + int(args.episodes)):
+    for i_episode in range(0, int(args.episodes)):
         print('starting episode',i_episode + 1)
         s0 = env.reset()
         s0 = s0.reshape(-1)
@@ -562,10 +582,15 @@ if __name__ == "__main__":
         q_values_history = [[] for _ in range(env.action_space.n)]
 
         while True:
-            a0, action_type, action_time, epsilon = Agent.select_action(s0)
-            #s1, r, done, _ = env.step(a0)
+            # for epsilon greedy strategy
+            # a0, action_type, action_time, epsilon, current_compression = Agent.select_action(s0)
+            # for Boltzmann(softmax) exploration strategy
+            a0, action_type, action_time, tau, action_probablities, current_compression = Agent.select_action(s0)
             q_values = Agent.net(torch.Tensor(s0)).detach().numpy().squeeze()
+            # for epsilon greedy strategy
             # print(f"Episode {i_episode + 1}, Step {step_count + 1}, Action {a0}, Current Compression: {current_compression}, Action type: {action_type}, Epsilon: {epsilon:.6f}, Q values: {q_values}, Action time: {action_time}") 
+            # for Boltzmann(softmax) exploration strategy
+            print(f"Episode {i_episode + 1}, Step {step_count + 1}, Action Probablities {action_probablities}, Action {a0}, Current Compression: {current_compression}, Action type: {action_type}, Tau: {tau:.6f}, Q values: {q_values}, Action time: {action_time}") 
 
             steps.append(step_count)
 
@@ -573,10 +598,8 @@ if __name__ == "__main__":
                 q_values_history[i].append(q_value)
 
             # only keep the return value of s1, r, done, ignore the fourth return value
-            step_result = env.step(a0)
-            s1, r, done, current_compression = step_result[:4]
-
-            print(f"Episode {i_episode + 1}, Step {step_count + 1}, Action {a0}, Current Compression: {current_compression}, Action type: {action_type}, Epsilon: {epsilon:.6f}, Q values: {q_values}, Action time: {action_time}") 
+            step_result = env.step(a0, current_compression)
+            s1, r, done = step_result[:3]
 
             tot_time += r  # cal. total time of current episode
             tot_reward += r # cal total reward of current episode
@@ -594,6 +617,7 @@ if __name__ == "__main__":
                 Agent.update_parameters()
             
             if done == True:
+                print(f"Episode {i_episode + 1}, Step {step_count + 1}, This episode has finished.")
                 # incremental averaging
                 average_reward = average_reward + 1 / (i_episode + 1) * (tot_reward - average_reward)
                 print('Episode ', i_episode + 1, 'tot_time: ', tot_time, ' tot_reward: ', tot_reward, ' average_reward: ', average_reward)
@@ -632,23 +656,7 @@ if __name__ == "__main__":
             with open (replay_buffer_file_path, 'wb') as f:
                 pickle.dump(Agent.buffer, f)
             # print(f'Saved replay buffer after {i_episode + 1} episodes ...')
-
-
-        # store the replay buffer when reaching the last episode of this round (linear)
-        # if (i_episode + 1) :
-        #     replay_buffer = f'data/output/linear/5/600/5000000000/0/25000/601/buffer_after_{i_episode + 1}_episodes.pkl'
-        #     with open (replay_buffer, 'wb') as f:
-        #         pickle.dump(Agent.buffer, f)
-        #     print(f'Saved replay buffer after {i_episode + 1} episodes ...')
-
-        
-        # store the replay buffer when reaching the last episode of this round (synthetic)
-        # if (i_episode + 1) == 150 + int(args.episodes):
-        # if (i_episode + 1) == int(args.episodes):
-        #     replay_buffer = f'data/output/synthetic/1/900/5000000000/901/buffer_after_{i_episode + 1}_episodes.pkl'
-        #     with open (replay_buffer, 'wb') as f:
-        #         pickle.dump(Agent.buffer, f)
-        #     print(f'Saved replay buffer after {i_episode + 1} episodes ...')                     
+                 
 
     print('closing')
     env.close()
