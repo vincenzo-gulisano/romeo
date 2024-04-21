@@ -124,8 +124,10 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
         logger.debug("added send state token, current value is {}, clockTimeBarrier:{}, eventTimeBarrier:{}, D:{}",
                 sendStateTokens.get(), clockTimeBarrier, eventTimeBarrier, dValue);
 
+        logger.debug("Storing D value {}", dValue);
         varDValues.add(dValue);
         while (varDValues.size() > maxVarDValues) {
+            logger.debug("Removing D value {}", varDValues.get(0));
             varDValues.remove(0);
         }
     }
@@ -142,6 +144,8 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
 
     protected void resetVariables() {
         measurements.clear();
+        logger.debug("Clearing varDValues");
+        varDValues.clear();
     }
 
     @Override

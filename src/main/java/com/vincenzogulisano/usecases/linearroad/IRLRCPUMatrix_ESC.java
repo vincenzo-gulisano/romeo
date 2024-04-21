@@ -28,6 +28,12 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
     private final long latencyThreshold;
     private final long CPUThreshold;
 
+    // These two variables keep track of whether the latency was above the threshold
+    // and the compression was above zero in each of the previously reported states
+    private List<Boolean> latencyAboveThresholdInReportedStates;
+    private List<Boolean> compressionsGreaterThanZeroInReportedStates;
+    private List<Boolean> compressionsEqualToOneInReportedStates;
+
     public IRLRCPUMatrix_ESC(long monitoringPeriod, Producer<String, String> producer, String separator,
             long valuesPerObservation, long latencyThreshold, long CPUThreshold) {
         super(monitoringPeriod, producer, separator, false, false);
@@ -38,14 +44,26 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
                 Arrays.asList("injectionrate", "throughput", "outrate", "latency", "ratio", "comp", "dec",
                         "CPU-in", "CPU-agg", "CPU-out", "eventtime"));
         stateMeasurements = new TreeMap<>();
+
+        latencyAboveThresholdInReportedStates = new LinkedList<>();
+        compressionsGreaterThanZeroInReportedStates = new LinkedList<>();
+        compressionsEqualToOneInReportedStates = new LinkedList<>();
+
         resetVariables();
 
     }
 
     @Override
     protected void resetVariables() {
+        logger.debug("Calling reset on super class");
+        super.resetVariables();
         stateMeasurements.clear();
         lastReportedStateMaxTS = -1;
+
+        logger.debug("Clearing latencyAboveThresholdInReportedStates and compressionsAboveZeroInReportedStates");
+        latencyAboveThresholdInReportedStates.clear();
+        compressionsGreaterThanZeroInReportedStates.clear();
+        compressionsEqualToOneInReportedStates.clear();
     }
 
     /**
@@ -100,6 +118,32 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         return result;
     }
 
+    /**
+     * Checks if the last compression measurement (if any) in the current set is
+     * equal to 1
+     * 
+     * This method iterates through all entries in {@code stateMeasurements}, which
+     * could stores compression values associated with their respective timestamps.
+     * If the most recent compression value is equal to 100, the method will
+     * return {@code true}.
+     * 
+     * Notice:
+     * - The method will always return false if the key "ratio" does not exist
+     * within the map values where compression measurements are present.
+     * 
+     * @return {@code true} if the last compression value is equal to 1,
+     *         otherwise {@code false}.
+     */
+    private boolean isCompressionEqualToOne() {
+        boolean result = false;
+        for (Entry<Long, HashMap<String, Double>> m : stateMeasurements.entrySet()) {
+            if (m.getValue().containsKey("ratio") && m.getValue().get("ratio") == 100) {
+                result = true;
+            }
+        }
+        return result;
+    }
+
     @Override
     public String getStateMeasurementAsString() {
 
@@ -140,6 +184,17 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
             // Inside if to avoid substring operation cost if not needed
             logger.debug("serialized state:\n{}", logMsg.substring(0, logMsg.length() - 1));
         }
+
+        // Keep track of state latency and compressiong
+        latencyAboveThresholdInReportedStates.add(isLatencyAboveThreshold());
+        compressionsGreaterThanZeroInReportedStates.add(isCompressionGreaterThanZero());
+        compressionsEqualToOneInReportedStates.add(isCompressionEqualToOne());
+        logger.debug("Stored latency above treshold {}, compression above zero {}, compression equal one {}",
+                latencyAboveThresholdInReportedStates.get(latencyAboveThresholdInReportedStates.size() - 1),
+                compressionsGreaterThanZeroInReportedStates
+                        .get(compressionsGreaterThanZeroInReportedStates.size() - 1),
+                compressionsEqualToOneInReportedStates.get(compressionsEqualToOneInReportedStates.size() - 1));
+
         return logMsg.substring(0, logMsg.length() - 1);
     }
 
@@ -180,10 +235,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         return -1;
     }
 
-    @Override
-    public long getReward() {
-
-        logger.debug("\nComputing Reward (for timestamps greater than {})", lastReportedStateMaxTS);
+    private long computeRewardBasedOnCompressionAndLatency() {
 
         long reward = 0;
 
@@ -214,30 +266,110 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
             }
         }
 
-        logger.debug("Computing extra indicators (not used as of now)");
-        long hiccupStretch = 0;
-        long thisHiccupStretch = 0;
-        for (long ts : stateMeasurements.keySet()) {
-            if (ts > lastReportedStateMaxTS && (!stateMeasurements.get(ts).containsKey("eventtime")
-                    || (stateMeasurements.get(ts).containsKey("eventtime")
-                            && stateMeasurements.get(ts).get("eventtime") == -1))) {
-                thisHiccupStretch++;
-            } else {
-                hiccupStretch = Math.max(hiccupStretch, thisHiccupStretch);
-                thisHiccupStretch = 0;
-            }
-        }
-        hiccupStretch = Math.max(hiccupStretch, thisHiccupStretch);
-        long aboveThresholdCPU = 0;
-        for (long ts : stateMeasurements.keySet()) {
-            if (ts > lastReportedStateMaxTS && stateMeasurements.get(ts).containsKey("CPU-agg")) {
-                if (stateMeasurements.get(ts).get("CPU-agg") >= CPUThreshold) {
-                    aboveThresholdCPU++;
+        return reward;
+
+    }
+
+    private long computeRewardBasedOnActionLatencyAndCompression() {
+
+        long prevD = varDValues.get(0);
+        long lastD = varDValues.get(1);
+        boolean latencyAboveThreshold = latencyAboveThresholdInReportedStates.get(0);
+        boolean compressionGreaterThanZero = compressionsGreaterThanZeroInReportedStates.get(0);
+        boolean compressionsEqualToOne = compressionsEqualToOneInReportedStates.get(0);
+
+        if (latencyAboveThreshold) {
+            if (prevD > lastD) {
+                logger.debug("Latency exceeded and compression increased --> bad");
+                return -1;
+            } else if (prevD == lastD) {
+                if (compressionsEqualToOne) {
+                    logger.debug("Latency exceeded and compression unchanged (but already at 1) --> good");
+                    return +1;
+                } else {
+                    logger.debug("Latency exceeded and compression unchanged (but smaller than 1) --> bad");
+                    return -1;
                 }
+            } else {
+                logger.debug("Latency exceeded and compression decreased --> good");
+                return +1;
+            }
+        } else {
+            if (prevD > lastD) {
+                logger.debug("Below max latency and compression increased --> good");
+                return +1;
+            } else if (prevD == lastD) {
+                if (compressionGreaterThanZero) {
+                    logger.debug(
+                            "Below max latency and compression unchanged (but greater than zero) --> bad");
+                    return -1;
+                } else {
+                    logger.debug(
+                            "Below max latency and compression unchanged (but equal to zero) --> good");
+                    return +1;
+                }
+            } else {
+                logger.debug("Below max latency and compression decreased --> bad");
+                return -1;
             }
         }
-        logger.debug("Longest hiccup stretch (without accounting for non-increasing event times!):{}", hiccupStretch);
-        logger.debug("Above threshold CPU:{}", aboveThresholdCPU);
+
+    }
+
+    @Override
+    public long getReward() {
+
+        logger.debug("\nComputing Reward (for timestamps greater than {})", lastReportedStateMaxTS);
+
+        // Clearing earliest Dvalues, latency above threshold, compression above zero
+        while (varDValues.size() > 2) {
+            varDValues.remove(0);
+        }
+        while (latencyAboveThresholdInReportedStates.size() > 2) {
+            latencyAboveThresholdInReportedStates.remove(0);
+        }
+        while (compressionsGreaterThanZeroInReportedStates.size() > 2) {
+            compressionsGreaterThanZeroInReportedStates.remove(0);
+        }
+        while (compressionsEqualToOneInReportedStates.size() > 2) {
+            compressionsEqualToOneInReportedStates.remove(0);
+        }
+        logger.debug(
+                "\nDValues: {}\nLatencies above threshold: {}\nCompressions greater than 0: {}\nCompressions equal to 1: {}",
+                varDValues,
+                latencyAboveThresholdInReportedStates, compressionsGreaterThanZeroInReportedStates,
+                compressionsEqualToOneInReportedStates);
+
+        // long reward = computeRewardBasedOnCompressionAndLatency();
+        long reward = varDValues.size() > 1 ? computeRewardBasedOnActionLatencyAndCompression() : 0;
+
+        // logger.debug("Computing extra indicators (not used as of now)");
+        // long hiccupStretch = 0;
+        // long thisHiccupStretch = 0;
+        // for (long ts : stateMeasurements.keySet()) {
+        // if (ts > lastReportedStateMaxTS &&
+        // (!stateMeasurements.get(ts).containsKey("eventtime")
+        // || (stateMeasurements.get(ts).containsKey("eventtime")
+        // && stateMeasurements.get(ts).get("eventtime") == -1))) {
+        // thisHiccupStretch++;
+        // } else {
+        // hiccupStretch = Math.max(hiccupStretch, thisHiccupStretch);
+        // thisHiccupStretch = 0;
+        // }
+        // }
+        // hiccupStretch = Math.max(hiccupStretch, thisHiccupStretch);
+        // long aboveThresholdCPU = 0;
+        // for (long ts : stateMeasurements.keySet()) {
+        // if (ts > lastReportedStateMaxTS &&
+        // stateMeasurements.get(ts).containsKey("CPU-agg")) {
+        // if (stateMeasurements.get(ts).get("CPU-agg") >= CPUThreshold) {
+        // aboveThresholdCPU++;
+        // }
+        // }
+        // }
+        // logger.debug("Longest hiccup stretch (without accounting for non-increasing
+        // event times!):{}", hiccupStretch);
+        // logger.debug("Above threshold CPU:{}", aboveThresholdCPU);
 
         lastReportedStateMaxTS = stateMeasurements.lastKey();
         logger.debug("Reward computed, lastReportedStateMaxTS updated to {}", lastReportedStateMaxTS);
@@ -299,10 +431,12 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         long lastEventTime = (long) lastEventTimeDouble;
         boolean ready = stateMeasurements.lastKey() >= clockTimeBarrier && lastEventTime >= eventTimeBarrier
                 && stateMeasurements.lastKey() > lastReportedStateMaxTS && stateMeasurements.size() >= monitoringPeriod;
-        logger.debug(
-                "State ready based on barriers (>=)? {} - clock time:{} clock time barrier:{} event time:{} event time barrier:{} lastReportedStateMaxTS:{}, lastReportedState.size():{}",
-                ready, stateMeasurements.lastKey(), clockTimeBarrier, lastEventTime, eventTimeBarrier,
-                lastReportedStateMaxTS, stateMeasurements.size());
+        if (ready) {
+            logger.debug(
+                    "State ready based on barriers (>=)? {} - clock time:{} clock time barrier:{} event time:{} event time barrier:{} lastReportedStateMaxTS:{}, lastReportedState.size():{}",
+                    ready, stateMeasurements.lastKey(), clockTimeBarrier, lastEventTime, eventTimeBarrier,
+                    lastReportedStateMaxTS, stateMeasurements.size());
+        }
 
         return ready;
 

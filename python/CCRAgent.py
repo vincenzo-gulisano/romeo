@@ -273,7 +273,6 @@ if __name__ == "__main__":
     parser.add_argument('compression', help='Compression level')
     args = parser.parse_args()
     
-    
     env = SPEEnvironment(int(args.steps))
 
     for i in range(int(args.episodes)):
@@ -281,13 +280,18 @@ if __name__ == "__main__":
         obs = env.reset()
         negative_rewards = 0
 
+        prev_action = 10;
+        
         while True:
             
             if args.compression != 'r':
                 action = int(args.compression)
             else:
                 action = env.action_space.sample()
+                while (abs(action-prev_action)>1):
+                    action = env.action_space.sample()
             obs, reward, done, info = env.step(action)
+            prev_action = action
             if reward<0:
                 negative_rewards += 1
                 # print('Got 3 negative rewards for this episode, resetting!')
