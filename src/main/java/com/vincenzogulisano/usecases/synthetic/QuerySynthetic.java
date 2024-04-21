@@ -44,7 +44,7 @@ public class QuerySynthetic implements Actionable, EnvironmentMonitor {
     private SourceReadFromFile sourceFunction;
     private SinkLogAndLatency<TupleInput> sink;
     private ThreadCPUMonitor threadCPUMonitor;
-    private long compressionThreshold;
+    private long valueDAtEpisodeStart;
     private String statsFolder;
     private StatReporter reporter;
     private EpisodesLogger episodesLogger;
@@ -87,7 +87,7 @@ public class QuerySynthetic implements Actionable, EnvironmentMonitor {
             }
 
             @Override
-            public void addSendStateToken(long clockTimeBarrier, long eventTimeBarrier) {
+            public void addSendStateToken(long clockTimeBarrier, long eventTimeBarrier, long dValue) {
 
             }
 
@@ -116,18 +116,20 @@ public class QuerySynthetic implements Actionable, EnvironmentMonitor {
 
         statsFolder = expOps.commandLine().getOptionValue("s");
         String inputFile = expOps.commandLine().getOptionValue("i");
-        compressionThreshold = Long.parseLong(expOps.commandLine().getOptionValue("d", String.valueOf(Long.MAX_VALUE)));
+        valueDAtEpisodeStart = Long.parseLong(expOps.commandLine().getOptionValue("d", String.valueOf(Long.MAX_VALUE)));
         experimentLength = Long.parseLong(expOps.commandLine().getOptionValue("l"));
         wa = Long.parseLong(expOps.commandLine().getOptionValue("wa"));
         ws = Long.parseLong(expOps.commandLine().getOptionValue("ws"));
         String outPath = expOps.commandLine().getOptionValue("o", "");
         boolean writeOut = outPath.equals("") ? false : true;
-        InjectorType type = InjectorType.valueOf(expOps.commandLine().getOptionValue("t", String.valueOf(InjectorType.FIXEDRATE)));
-        // long nanoSleep = Long.valueOf(expOps.commandLine().getOptionValue("n", String.valueOf(0)));
+        InjectorType type = InjectorType
+                .valueOf(expOps.commandLine().getOptionValue("t", String.valueOf(InjectorType.FIXEDRATE)));
+        // long nanoSleep = Long.valueOf(expOps.commandLine().getOptionValue("n",
+        // String.valueOf(0)));
         startingTimeMinimum = Long.valueOf(expOps.commandLine().getOptionValue("stmin",
-        String.valueOf(0)));
+                String.valueOf(0)));
         startingTimeMaximum = Long.valueOf(expOps.commandLine().getOptionValue("stmax",
-        String.valueOf(0)));
+                String.valueOf(0)));
         randomizeSeed = Boolean.valueOf(expOps.commandLine().getOptionValue("rer", "False"));
 
         r = new Random(0);
@@ -148,7 +150,7 @@ public class QuerySynthetic implements Actionable, EnvironmentMonitor {
         Source<TupleInput> s = q.addBaseSource("in", sourceFunction);
 
         woostAgg = new WoostAggregateWithCompression<>("agg",
-                0, 1, ws, wa, new WindowSynthetic(), compressionThreshold, statsFolder);
+                0, 1, ws, wa, new WindowSynthetic(), valueDAtEpisodeStart, statsFolder);
 
         Operator<TupleInput, TupleInput> agg = q.addOperator(woostAgg);
 
@@ -229,7 +231,7 @@ public class QuerySynthetic implements Actionable, EnvironmentMonitor {
                 v, latestEventTime, latestClockTime, nextEventTimeOutput + 1, latestClockTime + 1);
 
         logger.debug("Since D has changed, adding a token to the state monitor");
-        reporter.addSendStateToken(latestClockTime + 1, nextEventTimeOutput + 1);
+        reporter.addSendStateToken(latestClockTime + 1, nextEventTimeOutput + 1, v);
 
     }
 
@@ -278,8 +280,9 @@ public class QuerySynthetic implements Actionable, EnvironmentMonitor {
         // threshold");
         // Util.sleep(2000);
 
-        logger.debug("Reset compression threshold of the Aggregate to " + compressionThreshold);
-        woostAgg.changeD(compressionThreshold);
+        long newCompression = (long) ((double) ws * ((double) valueDAtEpisodeStart / 10.0));
+        logger.debug("Reset compression threshold of the Aggregate to {}", newCompression);
+        woostAgg.changeD(newCompression);
 
         // logger.debug("Sleeping 2 seconds before giving green light for state filling
         // tuples");
@@ -309,7 +312,7 @@ public class QuerySynthetic implements Actionable, EnvironmentMonitor {
         logger.debug("Since the reset is complete, adding a token to the state monitor");
         long latestEventTime = woostAgg.getLatestEventTime();
         long latestClockTime = System.currentTimeMillis() / 1000;
-        reporter.addSendStateToken(latestClockTime, latestEventTime);
+        reporter.addSendStateToken(latestClockTime, latestEventTime, valueDAtEpisodeStart);
 
     }
 

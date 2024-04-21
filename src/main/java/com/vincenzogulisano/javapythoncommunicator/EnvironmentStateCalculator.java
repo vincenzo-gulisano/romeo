@@ -3,6 +3,7 @@ package com.vincenzogulisano.javapythoncommunicator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -61,6 +62,13 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
     protected boolean resetAllMeasurementsAfterReport;
     protected boolean keepOnlyMonitoringPeriodData;
 
+    // The following list keeps track of the D values passed by the agent. It's
+    // protected so classes extending this one can operate on it as they wish. The
+    // maxVarDValues is used to limit the max number of values stored in the list
+    // (in case the extending class does not use them at all).
+    protected final int maxVarDValues = 1000;
+    protected List<Long> varDValues;
+
     public EnvironmentStateCalculator(long monitoringPeriod, Producer<String, String> producer, String separator,
             boolean resetAllMeasurementsAfterReport, boolean keepOnlyMonitoringPeriodData) {
         this.monitoringPeriod = monitoringPeriod;
@@ -74,6 +82,8 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
         this.lock = new ReentrantLock();
         this.resetAllMeasurementsAfterReport = resetAllMeasurementsAfterReport;
         this.keepOnlyMonitoringPeriodData = keepOnlyMonitoringPeriodData;
+
+        varDValues = new LinkedList<>();
     }
 
     public EnvironmentStateCalculator(long monitoringPeriod, Producer<String, String> producer, String separator) {
@@ -102,7 +112,8 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
         logger.debug("reset completed set by SPE. resetCompleted={}", resetCompleted);
     }
 
-    public void addSendStateToken(long clockTimeBarrier, long eventTimeBarrier) {
+    @Override
+    public void addSendStateToken(long clockTimeBarrier, long eventTimeBarrier, long dValue) {
         if (this.sendStateTokens.get() != 0) {
             logger.fatal("Cannot add a state token if one is already defined!");
             throw new RuntimeException("Cannot add a state token if one is already defined!");
@@ -110,8 +121,13 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
         this.sendStateTokens.incrementAndGet();
         this.clockTimeBarrier = clockTimeBarrier;
         this.eventTimeBarrier = eventTimeBarrier;
-        logger.debug("added send state token, current value is {}, clockTimeBarrier:{}, eventTimeBarrier:{}",
-                sendStateTokens.get(), clockTimeBarrier, eventTimeBarrier);
+        logger.debug("added send state token, current value is {}, clockTimeBarrier:{}, eventTimeBarrier:{}, D:{}",
+                sendStateTokens.get(), clockTimeBarrier, eventTimeBarrier, dValue);
+
+        varDValues.add(dValue);
+        while (varDValues.size() > maxVarDValues) {
+            varDValues.remove(0);
+        }
     }
 
     protected boolean valueIsToBeRegistered(String id, double value) {

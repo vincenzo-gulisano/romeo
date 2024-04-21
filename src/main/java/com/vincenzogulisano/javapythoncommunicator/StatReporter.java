@@ -23,7 +23,7 @@ public interface StatReporter {
      *                         a state reward can be sent. Set to -1 is there is no
      *                         barrier
      */
-    public void addSendStateToken(long clockTimeBarrier, long eventTimeBarrier);
+    public void addSendStateToken(long clockTimeBarrier, long eventTimeBarrier, long dValue);
 
     public void registerLogger(EpisodesLogger logger);
 
