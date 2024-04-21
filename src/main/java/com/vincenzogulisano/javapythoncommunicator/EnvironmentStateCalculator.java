@@ -221,7 +221,7 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
                     "Checking if state measurement is available and there is at least one token to send the state...");
             if (sendStateTokens.get() > 0) {
                 logger.debug("One token is available");
-                if (computeStateMeasurementAndReward()) {
+                if (areRewardAndNewStateMeasurementAvailable()) {
                     logger.debug("And state/reward too");
                     sendStateTokens.set(0);
 
@@ -268,7 +268,7 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
      * 
      * @return True if a state measurement and a Reward are available
      */
-    public abstract boolean computeStateMeasurementAndReward();
+    public abstract boolean areRewardAndNewStateMeasurementAvailable();
 
     public abstract long getReward();
 

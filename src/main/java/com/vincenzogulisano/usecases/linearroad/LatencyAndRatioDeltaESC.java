@@ -32,7 +32,7 @@ public class LatencyAndRatioDeltaESC extends EnvironmentStateCalculator {
     }
 
     @Override
-    public boolean computeStateMeasurementAndReward() {
+    public boolean areRewardAndNewStateMeasurementAvailable() {
 
         logger.debug("Checking if state measurement and reward are available");
 
