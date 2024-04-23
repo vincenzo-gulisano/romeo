@@ -15,6 +15,7 @@ import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.nn.init as init
 import torch.optim as optim
 from collections import namedtuple
 import math
@@ -23,7 +24,7 @@ import pickle
 
 
 GAMMA = 0.9
-lr = 0.1
+lr = 0.01
 # EPSILON = 0.1
 buffer_size = 10000  # replay buffer size
 batch_size = 128
@@ -44,10 +45,32 @@ class Net(nn.Module):
         super(Net, self).__init__()
         # flatten the input
         self.flatten = nn.Flatten()
-        self.input_size = input_shape[0] * input_shape[1] # cal input size after flattening
+        self.input_size = input_shape[0] * input_shape[1] # calculate input size after flattening
         self.Linear1 = nn.Linear(self.input_size, hidden_size)
         self.Linear2 = nn.Linear(hidden_size, hidden_size)
         self.Linear3 = nn.Linear(hidden_size, output_size)
+
+        # initialize weights using Xavier uniform distribution
+        # init.xavier_uniform_(self.Linear1.weight)#, gain = nn.init.calculate_gain('relu'))
+        # init.xavier_uniform_(self.Linear2.weight)#, gain = nn.init.calculate_gain('relu'))
+        # init.xavier_uniform_(self.Linear3.weight)#, gain = nn.init.calculate_gain('relu'))
+
+        # iniitialize weights using He initialization
+        # init.kaiming_normal_(self.Linear1.weight, mode='fan_in', nonlinearity='relu')
+        # init.kaiming_normal_(self.Linear2.weight, mode='fan_in', nonlinearity='relu')
+        # init.kaiming_normal_(self.Linear3.weight, mode='fan_in', nonlinearity='relu')
+
+        # # initialize biases within range [-0.1, 0.1]
+        # init.uniform_(self.Linear1.bias, -0.1, 0.1)
+        # init.uniform_(self.Linear2.bias, -0.1, 0.1)
+        # init.uniform_(self.Linear3.bias, -0.1, 0.1)
+
+        # self.Linear1.bias.data.fill_(0)
+        # self.Linear2.bias.data.fill_(0)
+        # self.Linear3.bias.data.fill_(0)
+
+        # Initialize weights 
+        self.init_weights() 
 
     def forward(self, x):
         # print('x: ', x)
@@ -58,6 +81,16 @@ class Net(nn.Module):
         x = F.relu(self.Linear2(x))
         x = self.Linear3(x)
         return x
+    
+    def init_weights(self): 
+        # Define the lower and upper bounds of the uniform distribution 
+        # lower_bound, upper_bound = -0.1, 0.1 
+
+        # Initialize weights and biases for each layer 
+        for m in self.modules(): 
+            if isinstance(m, nn.Linear): 
+                init.uniform_(m.weight, -0.07, 0.07) 
+                m.bias.data.fill_(0.05)
 
 
 # nametuple container
@@ -95,6 +128,9 @@ class DQN(object):
         self.loss_func = nn.MSELoss()
         self.steps_done = 0
         self.sample_count = 0
+        self.reset_compression()
+
+    def reset_compression(self):
         self.current_compression = 100
 
     def put(self, s0, a0, r, t, s1):
@@ -270,14 +306,23 @@ class SPEEnvironment(Env):
         self.latency_threshold = 2500
         self.latency_counter = 0
         self.latency_last_events = -1
-
         # define thresholds for negative reward and latency violtions
         self.negative_reward_threshold = -150
         self.latency_violations_per_episode = 3
-
         # define initial compression ratio
         self.current_compression = 100
 
+        self.state_labels = ["injectionrate", "throughput", "outrate", "latency", "compressionratio", "CPU-agg", "eventtime"]
+
+    def print_state(self, state):
+        # get the maxmimum length of state labels for alignment
+        max_label_length = max(len(label) for label in self.state_labels)
+        max_value_length = max(max(len(f"{value:.2f}") for value in values) for values in state)
+        column_width = max(max_label_length, max_value_length)
+        for label, values in zip(self.state_labels, state):
+            formatted_label = label.ljust(column_width)
+            formatted_values = ' '.join(f'{value:{column_width}.2f}' for value in values)
+            print(f"{formatted_label} {formatted_values}")
 
     def reset(self):
 
@@ -285,7 +330,9 @@ class SPEEnvironment(Env):
         #self.negative_reward_counter = 0
 
         # reset latency counter
-        self.latency_counter = 0 
+        self.latency_counter = 0
+        # reset the time tracker for latency events
+        self.latency_last_events = -1  
         # reset initial compressionn ratio
         self.current_compression = 100
 
@@ -305,8 +352,9 @@ class SPEEnvironment(Env):
                 # print('self.consumer.tracker.state is not None',(self.consumer.tracker.state is not None),'self.consumer.tracker.last_time',self.consumer.tracker.last_time,'self.prev_stat_time',self.prev_stat_time)
                 if self.consumer.tracker.state is not None and self.consumer.tracker.last_time > self.prev_stat_time:
                     print('Got a new state/reward pair:',self.consumer.tracker.last_time)
-                    for row in self.consumer.tracker.state:
-                        print ([f'{num:.2f}' for num in row])
+                    self.print_state(self.consumer.tracker.state)
+                    # for row in self.consumer.tracker.state:
+                    #     print ([f'{num:.2f}' for num in row])
                     print('reward',self.consumer.tracker.reward,flush=True)
                     # print('Got a new state/reward pair:',self.consumer.tracker.last_time,self.consumer.tracker.state,self.consumer.tracker.reward,flush=True)
                     state_measurement_available = True
@@ -345,8 +393,9 @@ class SPEEnvironment(Env):
                 if self.consumer.tracker.state is not None and self.consumer.tracker.last_time > self.prev_stat_time:
                     # print('Got a new state/reward pair:',self.consumer.tracker.last_time,self.consumer.tracker.state,self.consumer.tracker.reward,flush=True)
                     print('Got a new state/reward pair:',self.consumer.tracker.last_time)
-                    for row in self.consumer.tracker.state:
-                        print ([f'{num:.2f}' for num in row])
+                    self.print_state(self.consumer.tracker.state)
+                    # for row in self.consumer.tracker.state:
+                    #     print ([f'{num:.2f}' for num in row])
                     print('reward',self.consumer.tracker.reward,flush=True)
                     state_measurement_available = True
         
@@ -518,7 +567,9 @@ if __name__ == "__main__":
     env = SPEEnvironment(int(args.steps))
     # input_shape = (11, 7)
     input_shape = (7, 7)
-    Agent = DQN(input_shape, 256, env.action_space.n)
+    hidden_size = 128
+    output_sie = env.action_space.n
+    Agent = DQN(input_shape, hidden_size, output_sie)
 
     # load saved net's paras
     # model_file = 'image/Exp10.2/synthetic/1-200/Exp10-2_paras-1-200/exp10-2_dqn_model_episode_200.pth'
@@ -535,45 +586,48 @@ if __name__ == "__main__":
     if args.agentstate is not None:
         Agent.net.load_state_dict(torch.load(args.agentstate))
    
-    average_reward = 0  # average reward of all episodes
+    incremental_average_reward = 0  # average reward of all episodes for incermental averaging
 
     # create folder to store paras (linear)
-    paras_folder_name = 'data/output/linear/5/600/5000000000/0/25000/601/Exp10-2_paras-1-200'
-    if not os.path.exists(paras_folder_name):
-        os.makedirs(paras_folder_name)
-
-    # create folder to store paras (synthetic)
-    # paras_folder_name = 'data/output/synthetic/1/900/5000000000/901/Exp10-3_paras-1-100'
+    # paras_folder_name = 'data/output/linear/5/600/5000000000/0/25000/601/Exp11-1_paras-1-100'
     # if not os.path.exists(paras_folder_name):
     #     os.makedirs(paras_folder_name)
 
-    # create folder to store q value plots (linear)
-    q_value_folder_name = 'data/output/linear/5/600/5000000000/0/25000/601/Exp10-2_q_value_plot-1-200'
-    if not os.path.exists(q_value_folder_name):
-        os.makedirs(q_value_folder_name)
+    # create folder to store paras (synthetic)
+    paras_folder_name = 'data/output/synthetic/1/900/5000000000/10/Exp11-1_paras-1-100'
+    if not os.path.exists(paras_folder_name):
+        os.makedirs(paras_folder_name)
 
-    # create folder to store q value plots (synthetic)
-    # q_value_folder_name = 'data/output/synthetic/1/900/5000000000/901/Exp10-3_q_values_plot-1-100'
+    # create folder to store q value plots (linear)
+    # q_value_folder_name = 'data/output/linear/5/600/5000000000/0/25000/601/Exp11-1_q_value_plot-1-100'
     # if not os.path.exists(q_value_folder_name):
     #     os.makedirs(q_value_folder_name)
+
+    # create folder to store q value plots (synthetic)
+    q_value_folder_name = 'data/output/synthetic/1/900/5000000000/10/Exp11-1_q_values_plot-1-100'
+    if not os.path.exists(q_value_folder_name):
+        os.makedirs(q_value_folder_name)
     
     # create folder to store replay buffer (linear)
-    replay_buffer_folder_name = 'data/output/linear/5/600/5000000000/0/25000/601/Exp10-2_replay_buffer-1-200'
-    if not os.path.exists(replay_buffer_folder_name):
-        os.makedirs(replay_buffer_folder_name)
-    
-    # create folder to store replay buffer (synthetic)
-    # replay_buffer_folder_name = 'data/output/synthetic/1/900/5000000000/901/Exp10-3_replay_buffer-1-100'
+    # replay_buffer_folder_name = 'data/output/linear/5/600/5000000000/0/25000/601/Exp11-1_replay_buffer-1-100'
     # if not os.path.exists(replay_buffer_folder_name):
     #     os.makedirs(replay_buffer_folder_name)
+    
+    # create folder to store replay buffer (synthetic)
+    replay_buffer_folder_name = 'data/output/synthetic/1/900/5000000000/10/Exp11-1_replay_buffer-1-100'
+    if not os.path.exists(replay_buffer_folder_name):
+        os.makedirs(replay_buffer_folder_name)
     
 
     for i_episode in range(0, int(args.episodes)):
         print('starting episode',i_episode + 1)
+        start_time = time.time() # start time of per episode
         s0 = env.reset()
         s0 = s0.reshape(-1)
-        tot_reward = 0  # total reward per episode
-        tot_time = 0  # actual processing time per episode
+        Agent.reset_compression()
+
+        total_reward = 0  # total reward per episode
+        # total_time = 0  # actual processing time per episode
         step_count = 0 # count the number of steps in every episode
 
         # plt.figure()
@@ -590,7 +644,7 @@ if __name__ == "__main__":
             # for epsilon greedy strategy
             # print(f"Episode {i_episode + 1}, Step {step_count + 1}, Action {a0}, Current Compression: {current_compression}, Action type: {action_type}, Epsilon: {epsilon:.6f}, Q values: {q_values}, Action time: {action_time}") 
             # for Boltzmann(softmax) exploration strategy
-            print(f"Episode {i_episode + 1}, Step {step_count + 1}, Action Probablities {action_probablities}, Action {a0}, Current Compression: {current_compression}, Action type: {action_type}, Tau: {tau:.6f}, Q values: {q_values}, Action time: {action_time}") 
+            print(f"Episode {i_episode + 1}, Step {step_count + 1}, Tau: {tau:.6f}, Q values: {q_values}, Action Probablities: {action_probablities}, Action {a0}, Current Compression: {current_compression}, Action time: {action_time}, Action type: {action_type}") 
 
             steps.append(step_count)
 
@@ -601,8 +655,8 @@ if __name__ == "__main__":
             step_result = env.step(a0, current_compression)
             s1, r, done = step_result[:3]
 
-            tot_time += r  # cal. total time of current episode
-            tot_reward += r # cal total reward of current episode
+            # total_time += r  # cal. total time of current episode
+            total_reward += r # cal total reward of current episode
             step_count += 1 # increment the step 
 
             if done:
@@ -617,10 +671,14 @@ if __name__ == "__main__":
                 Agent.update_parameters()
             
             if done == True:
+                end_time = time.time() # end time of per episode
+                total_time = end_time - start_time
                 print(f"Episode {i_episode + 1}, Step {step_count + 1}, This episode has finished.")
-                # incremental averaging
-                average_reward = average_reward + 1 / (i_episode + 1) * (tot_reward - average_reward)
-                print('Episode ', i_episode + 1, 'tot_time: ', tot_time, ' tot_reward: ', tot_reward, ' average_reward: ', average_reward)
+                # incremental average for all past episodes
+                incremental_average_reward = incremental_average_reward +  (total_reward - incremental_average_reward) / (i_episode + 1)
+                # standard average for this current episode
+                standard_average_reward = total_reward / step_count if step_count else 0
+                print(f"Episode {i_episode + 1}, Total Time: {total_time: .2f}, Total Reward: {total_reward}, Incremental Average Reward: {incremental_average_reward}, Standard Average Reward: {standard_average_reward}")
                 break
 
         if i_episode % target_update == 0:
@@ -643,16 +701,16 @@ if __name__ == "__main__":
         plt.ylabel('Q Values')
         plt.title(f'Q Values Over Episodes (Episode {i_episode + 1})')
         plt.legend()
-        q_value_file_path = os.path.join(q_value_folder_name, f'exp10-2_q_values_plot_{i_episode + 1}.png')
+        q_value_file_path = os.path.join(q_value_folder_name, f'exp11-1_q_values_plot_{i_episode + 1}.png')
         plt.savefig(q_value_file_path)
         plt.close()
             
         # saving paras and replay buffer per 10 episodes
         if (i_episode + 1) % 10 == 0: 
             # save model paras every 10 episodes
-            paras_file_path = os.path.join(paras_folder_name, f'exp10-2_dqn_model_episode_{i_episode + 1}.pth')
+            paras_file_path = os.path.join(paras_folder_name, f'exp11-1_dqn_model_episode_{i_episode + 1}.pth')
             torch.save(Agent.net.state_dict(), paras_file_path)
-            replay_buffer_file_path = os.path.join(replay_buffer_folder_name, f'exp10-2_buffer_after_{i_episode + 1}_episodes.pkl')
+            replay_buffer_file_path = os.path.join(replay_buffer_folder_name, f'exp11-1_buffer_after_{i_episode + 1}_episodes.pkl')
             with open (replay_buffer_file_path, 'wb') as f:
                 pickle.dump(Agent.buffer, f)
             # print(f'Saved replay buffer after {i_episode + 1} episodes ...')
