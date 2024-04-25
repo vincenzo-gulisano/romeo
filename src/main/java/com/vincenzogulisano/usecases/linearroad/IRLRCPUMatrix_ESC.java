@@ -310,12 +310,15 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         // compressionsEqualToOneInReportedStates.get(0);
 
         if (!latencyAboveThreshold && (lastRatio < pastRatio || (lastRatio == pastRatio && lastRatio == 0))) {
+            logger.debug("latency not exceeded and compression increased if possible. Good!");
             return +1;
         }
         if (latencyAboveThreshold && (lastRatio > pastRatio || (lastRatio == pastRatio && lastRatio == 100)
                 || lastD > prevD || (lastD == prevD && lastD == 10))) {
+            logger.debug("latency exceeded and compression decreased if possible. Good!");
             return +1;
         }
+        logger.debug("Not behaving!");
         return -1;
         // if (latencyAboveThreshold) {
         // if (prevD > lastD) {
