@@ -30,9 +30,10 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
 
     // These two variables keep track of whether the latency was above the threshold
     // and the compression was above zero in each of the previously reported states
-    private List<Boolean> latencyAboveThresholdInReportedStates;
-    private List<Boolean> compressionsGreaterThanZeroInReportedStates;
-    private List<Boolean> compressionsEqualToOneInReportedStates;
+    private List<Boolean> latencyGreaterThanOrEqualToThresholdInReportedStates;
+    private List<Double> latestCompressionsInReportedStates;
+    // private List<Boolean> compressionsGreaterThanZeroInReportedStates;
+    // private List<Boolean> compressionsEqualToOneInReportedStates;
 
     public IRLRCPUMatrix_ESC(long monitoringPeriod, Producer<String, String> producer, String separator,
             long valuesPerObservation, long latencyThreshold, long CPUThreshold) {
@@ -45,9 +46,10 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
                         "CPU-in", "CPU-agg", "CPU-out", "eventtime"));
         stateMeasurements = new TreeMap<>();
 
-        latencyAboveThresholdInReportedStates = new LinkedList<>();
-        compressionsGreaterThanZeroInReportedStates = new LinkedList<>();
-        compressionsEqualToOneInReportedStates = new LinkedList<>();
+        latencyGreaterThanOrEqualToThresholdInReportedStates = new LinkedList<>();
+        latestCompressionsInReportedStates = new LinkedList<>();
+        // compressionsGreaterThanZeroInReportedStates = new LinkedList<>();
+        // compressionsEqualToOneInReportedStates = new LinkedList<>();
 
         resetVariables();
 
@@ -61,9 +63,10 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         lastReportedStateMaxTS = -1;
 
         logger.debug("Clearing latencyAboveThresholdInReportedStates and compressionsAboveZeroInReportedStates");
-        latencyAboveThresholdInReportedStates.clear();
-        compressionsGreaterThanZeroInReportedStates.clear();
-        compressionsEqualToOneInReportedStates.clear();
+        latencyGreaterThanOrEqualToThresholdInReportedStates.clear();
+        latestCompressionsInReportedStates.clear();
+        // compressionsGreaterThanZeroInReportedStates.clear();
+        // compressionsEqualToOneInReportedStates.clear();
     }
 
     /**
@@ -82,7 +85,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
      * @return {@code true} if the last latency value is greater than or equal to
      *         {@code latencyThreshold}, otherwise {@code false}.
      */
-    private boolean isLatencyAboveThreshold() {
+    private boolean isLatencyGreaterThanOrEqualToThreshold() {
         boolean result = false;
         for (Entry<Long, HashMap<String, Double>> m : stateMeasurements.entrySet()) {
             if (m.getValue().containsKey("latency") && m.getValue().get("latency") >= latencyThreshold) {
@@ -92,57 +95,72 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         return result;
     }
 
-    /**
-     * Checks if the last compression measurement (if any) in the current set is
-     * greater than 0
-     * 
-     * This method iterates through all entries in {@code stateMeasurements}, which
-     * could stores compression values associated with their respective timestamps.
-     * If the most recent compression value is greater than 0, the method will
-     * return {@code true}.
-     * 
-     * Notice:
-     * - The method will always return false if the key "ratio" does not exist
-     * within the map values where compression measurements are present.
-     * 
-     * @return {@code true} if the last compression value is greater than 0,
-     *         otherwise {@code false}.
-     */
-    private boolean isCompressionGreaterThanZero() {
-        boolean result = false;
+    private double retrieveLatestCompressionValueInState() {
+        double latestCompressionValue = -1;
         for (Entry<Long, HashMap<String, Double>> m : stateMeasurements.entrySet()) {
-            if (m.getValue().containsKey("ratio") && m.getValue().get("ratio") > 0) {
-                result = true;
+            if (m.getValue().containsKey("ratio")) {
+                latestCompressionValue = m.getValue().get("ratio");
             }
         }
-        return result;
+        assert (latestCompressionValue != -1);
+        return latestCompressionValue;
     }
 
-    /**
-     * Checks if the last compression measurement (if any) in the current set is
-     * equal to 1
-     * 
-     * This method iterates through all entries in {@code stateMeasurements}, which
-     * could stores compression values associated with their respective timestamps.
-     * If the most recent compression value is equal to 100, the method will
-     * return {@code true}.
-     * 
-     * Notice:
-     * - The method will always return false if the key "ratio" does not exist
-     * within the map values where compression measurements are present.
-     * 
-     * @return {@code true} if the last compression value is equal to 1,
-     *         otherwise {@code false}.
-     */
-    private boolean isCompressionEqualToOne() {
-        boolean result = false;
-        for (Entry<Long, HashMap<String, Double>> m : stateMeasurements.entrySet()) {
-            if (m.getValue().containsKey("ratio") && m.getValue().get("ratio") == 100) {
-                result = true;
-            }
-        }
-        return result;
-    }
+    // /**
+    // * Checks if the last compression measurement (if any) in the current set is
+    // * greater than 0
+    // *
+    // * This method iterates through all entries in {@code stateMeasurements},
+    // which
+    // * could stores compression values associated with their respective
+    // timestamps.
+    // * If the most recent compression value is greater than 0, the method will
+    // * return {@code true}.
+    // *
+    // * Notice:
+    // * - The method will always return false if the key "ratio" does not exist
+    // * within the map values where compression measurements are present.
+    // *
+    // * @return {@code true} if the last compression value is greater than 0,
+    // * otherwise {@code false}.
+    // */
+    // private boolean isCompressionGreaterThanZero() {
+    // boolean result = false;
+    // for (Entry<Long, HashMap<String, Double>> m : stateMeasurements.entrySet()) {
+    // if (m.getValue().containsKey("ratio") && m.getValue().get("ratio") > 0) {
+    // result = true;
+    // }
+    // }
+    // return result;
+    // }
+
+    // /**
+    // * Checks if the last compression measurement (if any) in the current set is
+    // * equal to 1
+    // *
+    // * This method iterates through all entries in {@code stateMeasurements},
+    // which
+    // * could stores compression values associated with their respective
+    // timestamps.
+    // * If the most recent compression value is equal to 100, the method will
+    // * return {@code true}.
+    // *
+    // * Notice:
+    // * - The method will always return false if the key "ratio" does not exist
+    // * within the map values where compression measurements are present.
+    // *
+    // * @return {@code true} if the last compression value is equal to 1,
+    // * otherwise {@code false}.
+    // */
+    // private boolean isCompressionEqualToOne() {
+    // boolean result = false;
+    // for (Entry<Long, HashMap<String, Double>> m : stateMeasurements.entrySet()) {
+    // if (m.getValue().containsKey("ratio") && m.getValue().get("ratio") == 100) {
+    // result = true;
+    // }
+    // }
+    // return result;
+    // }
 
     @Override
     public String getStateMeasurementAsString() {
@@ -186,14 +204,23 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         }
 
         // Keep track of state latency and compressiong
-        latencyAboveThresholdInReportedStates.add(isLatencyAboveThreshold());
-        compressionsGreaterThanZeroInReportedStates.add(isCompressionGreaterThanZero());
-        compressionsEqualToOneInReportedStates.add(isCompressionEqualToOne());
-        logger.debug("Stored latency above treshold {}, compression above zero {}, compression equal one {}",
-                latencyAboveThresholdInReportedStates.get(latencyAboveThresholdInReportedStates.size() - 1),
-                compressionsGreaterThanZeroInReportedStates
-                        .get(compressionsGreaterThanZeroInReportedStates.size() - 1),
-                compressionsEqualToOneInReportedStates.get(compressionsEqualToOneInReportedStates.size() - 1));
+        latencyGreaterThanOrEqualToThresholdInReportedStates.add(isLatencyGreaterThanOrEqualToThreshold());
+        latestCompressionsInReportedStates.add(retrieveLatestCompressionValueInState());
+        // compressionsGreaterThanZeroInReportedStates.add(isCompressionGreaterThanZero());
+        // compressionsEqualToOneInReportedStates.add(isCompressionEqualToOne());
+        // logger.debug("Stored latency above treshold {}, compression above zero {},
+        // compression equal one {}",
+        // latencyAboveThresholdInReportedStates.get(latencyAboveThresholdInReportedStates.size()
+        // - 1),
+        // compressionsGreaterThanZeroInReportedStates
+        // .get(compressionsGreaterThanZeroInReportedStates.size() - 1),
+        // compressionsEqualToOneInReportedStates.get(compressionsEqualToOneInReportedStates.size()
+        // - 1));
+        logger.debug("Stored latency above treshold {}, latest compression {}",
+                latencyGreaterThanOrEqualToThresholdInReportedStates
+                        .get(latencyGreaterThanOrEqualToThresholdInReportedStates.size() - 1),
+                latestCompressionsInReportedStates
+                        .get(latestCompressionsInReportedStates.size() - 1));
 
         return logMsg.substring(0, logMsg.length() - 1);
     }
@@ -274,45 +301,60 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
 
         long prevD = varDValues.get(0);
         long lastD = varDValues.get(1);
-        boolean latencyAboveThreshold = latencyAboveThresholdInReportedStates.get(0);
-        boolean compressionGreaterThanZero = compressionsGreaterThanZeroInReportedStates.get(0);
-        boolean compressionsEqualToOne = compressionsEqualToOneInReportedStates.get(0);
+        boolean latencyAboveThreshold = latencyGreaterThanOrEqualToThresholdInReportedStates.get(0);
+        double pastRatio = latestCompressionsInReportedStates.get(0);
+        double lastRatio = latestCompressionsInReportedStates.get(1);
+        // boolean compressionGreaterThanZero =
+        // compressionsGreaterThanZeroInReportedStates.get(0);
+        // boolean compressionsEqualToOne =
+        // compressionsEqualToOneInReportedStates.get(0);
 
-        if (latencyAboveThreshold) {
-            if (prevD > lastD) {
-                logger.debug("Latency exceeded and compression increased --> bad");
-                return -1;
-            } else if (prevD == lastD) {
-                if (compressionsEqualToOne) {
-                    logger.debug("Latency exceeded and compression unchanged (but already at 1) --> good");
-                    return +1;
-                } else {
-                    logger.debug("Latency exceeded and compression unchanged (but smaller than 1) --> bad");
-                    return -1;
-                }
-            } else {
-                logger.debug("Latency exceeded and compression decreased --> good");
-                return +1;
-            }
-        } else {
-            if (prevD > lastD) {
-                logger.debug("Below max latency and compression increased --> good");
-                return +1;
-            } else if (prevD == lastD) {
-                if (compressionGreaterThanZero) {
-                    logger.debug(
-                            "Below max latency and compression unchanged (but greater than zero) --> bad");
-                    return -1;
-                } else {
-                    logger.debug(
-                            "Below max latency and compression unchanged (but equal to zero) --> good");
-                    return +1;
-                }
-            } else {
-                logger.debug("Below max latency and compression decreased --> bad");
-                return -1;
-            }
+        if (!latencyAboveThreshold && (lastRatio < pastRatio || (lastRatio == pastRatio && lastRatio == 0))) {
+            return +1;
         }
+        if (latencyAboveThreshold && (lastRatio > pastRatio || (lastRatio == pastRatio && lastRatio == 100)
+                || lastD > prevD || (lastD == prevD && lastD == 10))) {
+            return +1;
+        }
+        return -1;
+        // if (latencyAboveThreshold) {
+        // if (prevD > lastD) {
+        // logger.debug("Latency exceeded and compression increased --> bad");
+        // return -1;
+        // } else if (prevD == lastD) {
+        // if (compressionsEqualToOne) {
+        // logger.debug("Latency exceeded and compression unchanged (but already at 1)
+        // --> good");
+        // return +1;
+        // } else {
+        // logger.debug("Latency exceeded and compression unchanged (but smaller than 1)
+        // --> bad");
+        // return -1;
+        // }
+        // } else {
+        // logger.debug("Latency exceeded and compression decreased --> good");
+        // return +1;
+        // }
+        // } else {
+        // if (prevD > lastD) {
+        // logger.debug("Below max latency and compression increased --> good");
+        // return +1;
+        // } else if (prevD == lastD) {
+        // if (compressionGreaterThanZero) {
+        // logger.debug(
+        // "Below max latency and compression unchanged (but greater than zero) -->
+        // bad");
+        // return -1;
+        // } else {
+        // logger.debug(
+        // "Below max latency and compression unchanged (but equal to zero) --> good");
+        // return +1;
+        // }
+        // } else {
+        // logger.debug("Below max latency and compression decreased --> bad");
+        // return -1;
+        // }
+        // }
 
     }
 
@@ -325,20 +367,31 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         while (varDValues.size() > 2) {
             varDValues.remove(0);
         }
-        while (latencyAboveThresholdInReportedStates.size() > 2) {
-            latencyAboveThresholdInReportedStates.remove(0);
+        while (latencyGreaterThanOrEqualToThresholdInReportedStates.size() > 2) {
+            latencyGreaterThanOrEqualToThresholdInReportedStates.remove(0);
         }
-        while (compressionsGreaterThanZeroInReportedStates.size() > 2) {
-            compressionsGreaterThanZeroInReportedStates.remove(0);
+        while (latestCompressionsInReportedStates.size() > 2) {
+            latestCompressionsInReportedStates.remove(0);
         }
-        while (compressionsEqualToOneInReportedStates.size() > 2) {
-            compressionsEqualToOneInReportedStates.remove(0);
-        }
+        // while (compressionsGreaterThanZeroInReportedStates.size() > 2) {
+        // compressionsGreaterThanZeroInReportedStates.remove(0);
+        // }
+        // while (compressionsEqualToOneInReportedStates.size() > 2) {
+        // compressionsEqualToOneInReportedStates.remove(0);
+        // }
         logger.debug(
-                "\nDValues: {}\nLatencies above threshold: {}\nCompressions greater than 0: {}\nCompressions equal to 1: {}",
+                "\nDValues: {}\nLatencies greater than/equal to threshold: {}\nlatest compression ratios: {}",
                 varDValues,
-                latencyAboveThresholdInReportedStates, compressionsGreaterThanZeroInReportedStates,
-                compressionsEqualToOneInReportedStates);
+                latencyGreaterThanOrEqualToThresholdInReportedStates,
+                latencyGreaterThanOrEqualToThresholdInReportedStates);
+
+        // logger.debug(
+        // "\nDValues: {}\nLatencies above threshold: {}\nCompressions greater than 0:
+        // {}\nCompressions equal to 1: {}",
+        // varDValues,
+        // latencyGreaterThanOrEqualToThresholdInReportedStates,
+        // compressionsGreaterThanZeroInReportedStates,
+        // compressionsEqualToOneInReportedStates);
 
         // long reward = computeRewardBasedOnCompressionAndLatency();
         long reward = varDValues.size() > 1 ? computeRewardBasedOnActionLatencyAndCompression() : 0;
