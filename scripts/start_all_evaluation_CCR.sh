@@ -45,7 +45,7 @@ starting_time_max=9900
 usecase="LinearRoad"
 
 # # This is for the synthetic query
-base_folder="/home/vincenzo/romeo/data/output/12/synthetic-CCR"
+base_folder="/home/vincenzo/romeo/data/output/13/synthetic-CCR"
 input_file="/home/vincenzo/romeo/data/input/synthetic.csv"
 wa=1
 ws=900
