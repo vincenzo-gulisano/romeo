@@ -2,7 +2,6 @@ package com.vincenzogulisano.usecases.linearroad;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -160,65 +159,6 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
 
         return logMsg.substring(0, logMsg.length() - 1);
     }
-
-
-    // This is the version that first computes the delta between first and last non
-    // -1 value and if it is negative returns the respective reward. If no reward
-    // can be computed, the function returns -1
-    private long computeRewardBasedOnLatestCompressionValues(List<Double> values) {
-        logger.debug("Computing reward based on deltas and whether the compression increased...");
-        List<Double> filteredValues = values.stream().filter(v -> v != -1).collect(Collectors.toList());
-
-        // if (filteredValues.size() >= 2 && filteredValues.getLast() -
-        // filteredValues.getFirst() <= 0) {
-        // return (long) Math.round(Math.pow(100 - (filteredValues.getLast() -
-        // filteredValues.getFirst()), 1.5));
-        // }
-        if (filteredValues.size() >= 2) {
-            double first = filteredValues.get(0);
-            double last = filteredValues.get(filteredValues.size() - 1);
-            if ((last - first) < 0) {
-                return Math.round(Math.pow(Math.abs(last - first), 1.5));
-            }
-            return 0;
-        }
-        return -1;
-    }
-
-    // private long computeRewardBasedOnCompressionAndLatency() {
-
-    //     long reward = 0;
-
-    //     logger.debug("Checking if new latency values above threshold exist...");
-    //     long latency = Long.MIN_VALUE;
-    //     double ratio = Double.MAX_VALUE;
-    //     for (long ts : stateMeasurements.keySet()) {
-    //         if (ts > lastReportedStateMaxTS && stateMeasurements.get(ts).containsKey("latency")
-    //                 && stateMeasurements.get(ts).get("latency") != -1) {
-    //             latency = (long) Math.max(stateMeasurements.get(ts).get("latency"), latency);
-    //         }
-    //     }
-    //     if (latency >= latencyThreshold) {
-    //         reward = Math.min(-1 * ((latency - 1000) / 10), -1);
-    //         logger.debug("... they do! reporting {}", reward);
-    //     } else {
-    //         List<Double> latestCompressionValues = new LinkedList<>();
-    //         for (long ts : stateMeasurements.keySet()) {
-    //             if (ts > lastReportedStateMaxTS && stateMeasurements.get(ts).containsKey("ratio")
-    //                     && stateMeasurements.get(ts).get("ratio") != -1) {
-    //                 latestCompressionValues.add(stateMeasurements.get(ts).get("ratio"));
-    //             }
-    //         }
-    //         long rewardFromCompression = computeRewardBasedOnLatestCompressionValues(latestCompressionValues);
-    //         if (rewardFromCompression != -1) {
-    //             reward = rewardFromCompression;
-    //             logger.debug("... which is {} and means reward {}", String.format("%.2f", ratio), reward);
-    //         }
-    //     }
-
-    //     return reward;
-
-    // }
 
     private long computeRewardBasedOnActionLatencyAndCompression() {
 
