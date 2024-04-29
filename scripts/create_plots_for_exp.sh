@@ -1,6 +1,6 @@
 #!/bin/bash
-base_exp_folder="./data/exp12/linearroad/agent"
-folders_to_explore=(12.1 12.2)
+base_exp_folder="./data/exp13/synthetic/agent"
+folders_to_explore=(13.2)
 for folder_to_explore in "${folders_to_explore[@]}"; do
 
     exp_folder="${base_exp_folder}/${folder_to_explore}"
