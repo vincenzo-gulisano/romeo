@@ -87,22 +87,34 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
      */
     private boolean isLatencyGreaterThanOrEqualToThreshold() {
         boolean result = false;
+        boolean found = false;
         for (Entry<Long, HashMap<String, Double>> m : stateMeasurements.entrySet()) {
-            if (m.getValue().containsKey("latency") && m.getValue().get("latency") >= latencyThreshold) {
-                result = true;
+            if (m.getValue().containsKey("latency") && Double.compare(m.getValue().get("latency"), -1.0) != 0) {
+                found = true;
+                if (m.getValue().get("latency") >= latencyThreshold) {
+                    result = true;
+                }
             }
+
+        }
+        if (!found) {
+            throw new RuntimeException("There seems to be no latency value in the latest state measurements");
         }
         return result;
     }
 
     private double retrieveLatestCompressionValueInState() {
-        double latestCompressionValue = -1;
+        double latestCompressionValue = -1.0;
+        boolean found = false;
         for (Entry<Long, HashMap<String, Double>> m : stateMeasurements.entrySet()) {
-            if (m.getValue().containsKey("ratio")) {
+            if (m.getValue().containsKey("ratio") && Double.compare(m.getValue().get("ratio"), -1.0) != 0) {
                 latestCompressionValue = m.getValue().get("ratio");
+                found = true;
             }
         }
-        assert (latestCompressionValue != -1);
+        if (!found) {
+            throw new RuntimeException("There seems to be no ratio value in the latest state measurements");
+        }
         return latestCompressionValue;
     }
 
@@ -309,7 +321,8 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         // boolean compressionsEqualToOne =
         // compressionsEqualToOneInReportedStates.get(0);
 
-        if (!latencyAboveThreshold && (lastRatio < pastRatio || (lastRatio == pastRatio && lastRatio == 0))) {
+        if (!latencyAboveThreshold && (lastRatio < pastRatio || (lastRatio == pastRatio && lastRatio == 0)
+                || lastD < prevD || (lastD == prevD && lastD == 0))) {
             logger.debug("latency not exceeded and compression increased if possible. Good!");
             return +1;
         }
@@ -386,7 +399,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
                 "\nDValues: {}\nLatencies greater than/equal to threshold: {}\nlatest compression ratios: {}",
                 varDValues,
                 latencyGreaterThanOrEqualToThresholdInReportedStates,
-                latencyGreaterThanOrEqualToThresholdInReportedStates);
+                latestCompressionsInReportedStates);
 
         // logger.debug(
         // "\nDValues: {}\nLatencies above threshold: {}\nCompressions greater than 0:
