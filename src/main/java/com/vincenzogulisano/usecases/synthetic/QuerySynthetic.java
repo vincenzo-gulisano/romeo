@@ -19,6 +19,7 @@ import org.apache.logging.log4j.Logger;
 import com.vincenzogulisano.javapythoncommunicator.Actionable;
 import com.vincenzogulisano.javapythoncommunicator.EnvironmentMonitor;
 import com.vincenzogulisano.javapythoncommunicator.PolicyBarrier;
+import com.vincenzogulisano.javapythoncommunicator.PolicyBarrierCalculator;
 import com.vincenzogulisano.javapythoncommunicator.StatReporter;
 import com.vincenzogulisano.usecases.linearroad.SinkLogAndLatency;
 import com.vincenzogulisano.usecases.linearroad.TupleCarStops;
@@ -222,20 +223,14 @@ public class QuerySynthetic implements Actionable, EnvironmentMonitor {
         episodesLogger.writeActionEvent(Long.toString(v));
         long newCompression = (long) ((double) ws * ((double) v / 10.0));
         long latestEventTime = woostAgg.changeD(newCompression);
-        long nextEventTimeOutput = getEarliestWinStartTS(latestEventTime) + ws;
-        logger.debug("Next batch of outputs to be produced by A at {}", nextEventTimeOutput);
-        if (nextEventTimeOutput == latestEventTime + 1) {
-            logger.debug("Since is the event time after this, taking the next batch of outputs");
-            nextEventTimeOutput += wa;
-        }
         long latestClockTime = System.currentTimeMillis() / 1000;
+        logger.debug("Since D has changed, adding a token to the state monitor");
+        PolicyBarrierCalculator barrier = PolicyBarrierCalculator.getBarriers(policyBarrier, latestClockTime,
+                latestEventTime, wa, ws);
         logger.debug(
                 "D changed to {} at event time {} and clock time {}. Barriers: event time >= {} and clock time >= {}",
-                v, latestEventTime, latestClockTime, nextEventTimeOutput + 1, latestClockTime + 1);
-
-        logger.debug("Since D has changed, adding a token to the state monitor");
-        reporter.addSendStateToken(latestClockTime + 1, nextEventTimeOutput + 1, v);
-
+                v, latestEventTime, latestClockTime, barrier.getEventTimeBarrier(), barrier.getWallclockTimeBarrier());
+        reporter.addSendStateToken(barrier.getWallclockTimeBarrier(), barrier.getEventTimeBarrier(), v);
     }
 
     @Override
@@ -315,6 +310,8 @@ public class QuerySynthetic implements Actionable, EnvironmentMonitor {
         logger.debug("Since the reset is complete, adding a token to the state monitor");
         long latestEventTime = woostAgg.getLatestEventTime();
         long latestClockTime = System.currentTimeMillis() / 1000;
+        // In this case I pass the barriers automatically since it is the beginning of
+        // an episode
         reporter.addSendStateToken(latestClockTime, latestEventTime, valueDAtEpisodeStart);
 
     }
