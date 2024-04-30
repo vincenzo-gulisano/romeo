@@ -55,12 +55,12 @@ starting_time_max=6800
 usecase="Synthetic"
 
 # Define lists of values
-policy="AOB"
+policy="WEAOB" # CHOSE ONE OUT OF WEAOB - Wallclock, Event time, Aggregate OBlivios, EAOB - Event time, Aggregate OBlivios, AOB - Aggregate OBlivios, WEAAW - Wallclock, Event time, Aggregate AWare
 duration=100000000
 episodes=30
 steps=40
 compressions=(0 1 2 3 4 5 6 7 8 9 10 r) # 
-compressions=(r) # 
+compressions=(0) # 
 
 for compression in "${compressions[@]}"; do
     echo "Compression: $compression"
