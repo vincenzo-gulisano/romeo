@@ -18,6 +18,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.vincenzogulisano.javapythoncommunicator.Actionable;
 import com.vincenzogulisano.javapythoncommunicator.EnvironmentMonitor;
+import com.vincenzogulisano.javapythoncommunicator.PolicyBarrier;
 import com.vincenzogulisano.javapythoncommunicator.StatReporter;
 import com.vincenzogulisano.util.EpisodesLogger;
 import com.vincenzogulisano.util.ExperimentOptions;
@@ -52,6 +53,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
     private long ws;
     private Random r;
     private boolean randomizeSeed;
+    private PolicyBarrier policyBarrier;
 
     public final static long sleepBeforeRealRate = 1000;
 
@@ -77,6 +79,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         startingTimeMinimum = Long.valueOf(expOps.commandLine().getOptionValue("stmin", String.valueOf(0)));
         startingTimeMaximum = Long.valueOf(expOps.commandLine().getOptionValue("stmax", String.valueOf(0)));
         randomizeSeed = Boolean.valueOf(expOps.commandLine().getOptionValue("rer", "False"));
+        policyBarrier = PolicyBarrier.valueOf(expOps.commandLine().getOptionValue("pb", "WEAAW"));
 
         r = new Random(0);
 
