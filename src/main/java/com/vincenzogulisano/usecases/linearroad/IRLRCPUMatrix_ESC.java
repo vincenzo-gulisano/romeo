@@ -116,9 +116,10 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
             logger.debug("These are the latest reports\n{}",
                     stateFormatter(stateMeasurements));
         }
+        logger.debug("stateMeasurements.lastKey():{}, monitoringPeriod:{}",stateMeasurements.lastKey(),monitoringPeriod);
 
         long thresholdTS = stateMeasurements.firstKey();
-        logger.debug("The state will contains readings for state from ts {}.", thresholdTS);
+        logger.debug("The state will contain readings for state from ts {}.", thresholdTS);
         if (stateMeasurements.lastKey() - (thresholdTS + 1) > monitoringPeriod) {
             for (long ts : stateMeasurements.keySet()) {
                 thresholdTS = ts;
