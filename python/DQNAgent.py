@@ -23,7 +23,7 @@ import os
 import pickle
 
 
-GAMMA = 0.9
+GAMMA = 0.99
 lr = 0.01
 # EPSILON = 0.1
 buffer_size = 10000  # replay buffer size
@@ -607,7 +607,7 @@ if __name__ == "__main__":
     #     os.makedirs(paras_folder_name)
 
     # create folder to store paras (synthetic)
-    paras_folder_name = 'data/output/synthetic/1/900/5000000000/10/Exp13_paras-1-100'
+    paras_folder_name = 'data/output/WEAOB/synthetic/1/900/5000000000/10/Exp13-1_WEAOB_paras-1-100'
     if not os.path.exists(paras_folder_name):
         os.makedirs(paras_folder_name)
 
@@ -617,7 +617,7 @@ if __name__ == "__main__":
     #     os.makedirs(q_value_folder_name)
 
     # create folder to store q value plots (synthetic)
-    q_value_folder_name = 'data/output/synthetic/1/900/5000000000/10/Exp13_q_values_plot-1-100'
+    q_value_folder_name = 'data/output/WEAOB/synthetic/1/900/5000000000/10/Exp13-1_WEAOB_q_values_plot-1-100'
     if not os.path.exists(q_value_folder_name):
         os.makedirs(q_value_folder_name)
     
@@ -627,7 +627,7 @@ if __name__ == "__main__":
     #     os.makedirs(replay_buffer_folder_name)
     
     # create folder to store replay buffer (synthetic)
-    replay_buffer_folder_name = 'data/output/synthetic/1/900/5000000000/10/Exp13_replay_buffer-1-100'
+    replay_buffer_folder_name = 'data/output/WEAOB/synthetic/1/900/5000000000/10/Exp13-1_WEAOB_replay_buffer-1-100'
     if not os.path.exists(replay_buffer_folder_name):
         os.makedirs(replay_buffer_folder_name)
     
@@ -714,16 +714,16 @@ if __name__ == "__main__":
         plt.ylabel('Q Values')
         plt.title(f'Q Values Over Episodes (Episode {i_episode + 1})')
         plt.legend()
-        q_value_file_path = os.path.join(q_value_folder_name, f'exp13_q_values_plot_{i_episode + 1}.png')
+        q_value_file_path = os.path.join(q_value_folder_name, f'exp13-1_weaob_q_values_plot_{i_episode + 1}.png')
         plt.savefig(q_value_file_path)
         plt.close()
             
         # saving paras and replay buffer per 10 episodes
         if (i_episode + 1) % 10 == 0: 
             # save model paras every 10 episodes
-            paras_file_path = os.path.join(paras_folder_name, f'exp13_dqn_model_episode_{i_episode + 1}.pth')
+            paras_file_path = os.path.join(paras_folder_name, f'exp13-1_weaob_dqn_model_episode_{i_episode + 1}.pth')
             torch.save(Agent.net.state_dict(), paras_file_path)
-            replay_buffer_file_path = os.path.join(replay_buffer_folder_name, f'exp13_buffer_after_{i_episode + 1}_episodes.pkl')
+            replay_buffer_file_path = os.path.join(replay_buffer_folder_name, f'exp13-1_weaob_buffer_after_{i_episode + 1}_episodes.pkl')
             with open (replay_buffer_file_path, 'wb') as f:
                 pickle.dump(Agent.buffer, f)
             # print(f'Saved replay buffer after {i_episode + 1} episodes ...')

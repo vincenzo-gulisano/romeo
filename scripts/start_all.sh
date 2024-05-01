@@ -43,7 +43,7 @@ sleep_until_time_or_pid() {
 # usecase="LinearRoad"
 
 # # This is for the synthetic query
-base_folder="/home/jingyu/romeo/data/output/synthetic"
+base_folder="/home/jingyu/romeo/data/output/WEAOB/synthetic"
 input_file="/home/vincenzo/romeo/data/input/synthetic.csv"
 wa=1
 ws=900
@@ -53,6 +53,10 @@ starting_time_max=6500
 usecase="Synthetic"
 
 # Define lists of values
+policy="WEAOB" # Wallclock, Event time, Aggregate OBlivios
+# policy="EAOB" # Event time, Aggregate OBlivios
+# policy="AOB" # Aggregate OBlivios
+# policy="WEAAW" # Wallclock, Event time, Aggregate AWare
 duration=5000000000
 episodes=100
 steps=80
@@ -99,7 +103,7 @@ echo "The PID of the python agent is ${python_pid}"
 echo "Starting SPE"
 
 echo "Starting experiment for ${id} (compression)"
-args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase} -rer True"
+args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase} -pb ${policy} -rer True"
 
 mvn clean compile package exec:java -Dexec.mainClass="com.vincenzogulisano.javapythoncommunicator.JPComm" -Dexec.args="${args}" > ${exp_folder}/spe.log 2>&1 &
 
