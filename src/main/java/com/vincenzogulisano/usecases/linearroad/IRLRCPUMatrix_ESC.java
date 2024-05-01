@@ -18,6 +18,22 @@ import com.vincenzogulisano.javapythoncommunicator.EnvironmentStateCalculator;
 
 public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
 
+    enum LatencyAboveThreshold {
+        YES,
+        NO,
+        UNKNOWN;
+    }
+
+    class CompressionValue {
+        public final double value;
+        public final boolean valid;
+
+        public CompressionValue(double value, boolean valid) {
+            this.value = value;
+            this.valid = valid;
+        }
+    }
+
     public Logger logger = LogManager.getLogger();
 
     private TreeMap<Long, HashMap<String, Double>> stateMeasurements;
@@ -27,9 +43,9 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
 
     // These two variables keep track of whether the latency was above the threshold
     // and about the compression of the previously reported states
-    private List<Boolean> latencyGreaterThanOrEqualToThresholdInReportedStates;
-    private List<Double> latestCompressionsInReportedStates;
-    
+    private List<LatencyAboveThreshold> latencyGreaterThanOrEqualToThresholdInReportedStates;
+    private List<CompressionValue> latestCompressionsInReportedStates;
+
     public IRLRCPUMatrix_ESC(long monitoringPeriod, Producer<String, String> producer, String separator,
             long valuesPerObservation, long latencyThreshold, long CPUThreshold) {
         super(monitoringPeriod, producer, separator, false, false);
@@ -41,7 +57,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
 
         latencyGreaterThanOrEqualToThresholdInReportedStates = new LinkedList<>();
         latestCompressionsInReportedStates = new LinkedList<>();
-    
+
         resetVariables();
 
     }
@@ -74,37 +90,38 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
      * @return {@code true} if the last latency value is greater than or equal to
      *         {@code latencyThreshold}, otherwise {@code false}.
      */
-    private boolean isLatencyGreaterThanOrEqualToThreshold() {
-        boolean result = false;
+    private LatencyAboveThreshold isLatencyGreaterThanOrEqualToThreshold() {
+        boolean aboveThreshold = false;
         boolean found = false;
         for (Entry<Long, HashMap<String, Double>> m : stateMeasurements.entrySet()) {
             if (m.getValue().containsKey("latency") && Double.compare(m.getValue().get("latency"), -1.0) != 0) {
                 found = true;
                 if (m.getValue().get("latency") >= latencyThreshold) {
-                    result = true;
+                    aboveThreshold = true;
                 }
             }
 
         }
         if (!found) {
-            throw new RuntimeException("There seems to be no latency value in the latest state measurements");
+            logger.warn("There seems to be no latency value in the latest state measurements");
         }
-        return result;
+        return found ? (aboveThreshold ? (LatencyAboveThreshold.YES) : (LatencyAboveThreshold.NO))
+                : (LatencyAboveThreshold.UNKNOWN);
     }
 
-    private double retrieveLatestCompressionValueInState() {
-        double latestCompressionValue = -1.0;
-        boolean found = false;
+    private CompressionValue retrieveLatestCompressionValueInState() {
+        double value = -1.0;
+        boolean valid = false;
         for (Entry<Long, HashMap<String, Double>> m : stateMeasurements.entrySet()) {
             if (m.getValue().containsKey("ratio") && Double.compare(m.getValue().get("ratio"), -1.0) != 0) {
-                latestCompressionValue = m.getValue().get("ratio");
-                found = true;
+                value = m.getValue().get("ratio");
+                valid = true;
             }
         }
-        if (!found) {
-            throw new RuntimeException("There seems to be no ratio value in the latest state measurements");
+        if (!valid) {
+            logger.warn("There seems to be no ratio value in the latest state measurements");
         }
-        return latestCompressionValue;
+        return new CompressionValue(value, valid);
     }
 
     @Override
@@ -116,7 +133,8 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
             logger.debug("These are the latest reports\n{}",
                     stateFormatter(stateMeasurements));
         }
-        logger.debug("stateMeasurements.lastKey():{}, monitoringPeriod:{}",stateMeasurements.lastKey(),monitoringPeriod);
+        logger.debug("stateMeasurements.lastKey():{}, monitoringPeriod:{}", stateMeasurements.lastKey(),
+                monitoringPeriod);
 
         long thresholdTS = stateMeasurements.firstKey();
         logger.debug("The state will contain readings for state from ts {}.", thresholdTS);
@@ -165,17 +183,34 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
 
         long prevD = varDValues.get(0);
         long lastD = varDValues.get(1);
-        boolean latencyAboveThreshold = latencyGreaterThanOrEqualToThresholdInReportedStates.get(0);
-        double pastRatio = latestCompressionsInReportedStates.get(0);
-        double lastRatio = latestCompressionsInReportedStates.get(1);
-        
-        if (!latencyAboveThreshold && (lastRatio < pastRatio || (lastRatio == pastRatio && lastRatio == 0)
-                || lastD < prevD || (lastD == prevD && lastD == 0))) {
+        LatencyAboveThreshold latencyAboveThreshold = latencyGreaterThanOrEqualToThresholdInReportedStates.get(0);
+        CompressionValue pastRatio = latestCompressionsInReportedStates.get(0);
+        CompressionValue lastRatio = latestCompressionsInReportedStates.get(1);
+
+        if (latencyAboveThreshold == LatencyAboveThreshold.UNKNOWN) {
+            logger.warn(
+                    "Reward cannot be computed because we do not know if the latency is above or below the threshold. Returning 0");
+            return 0;
+        }
+        if (!pastRatio.valid) {
+            logger.warn(
+                    "Reward cannot be computed because we do not know the past compression value");
+            return 0;
+        }
+        if (!lastRatio.valid) {
+            logger.warn(
+                    "Reward cannot be computed because we do not know the last compression value");
+            return 0;
+        }
+        if (latencyAboveThreshold == LatencyAboveThreshold.NO
+                && (lastRatio.value < pastRatio.value || (lastRatio == pastRatio && lastRatio.value == 0)
+                        || lastD < prevD || (lastD == prevD && lastD == 0))) {
             logger.debug("latency not exceeded and compression increased if possible. Good!");
             return +1;
         }
-        if (latencyAboveThreshold && (lastRatio > pastRatio || (lastRatio == pastRatio && lastRatio == 100)
-                || lastD > prevD || (lastD == prevD && lastD == 10))) {
+        if (latencyAboveThreshold == LatencyAboveThreshold.YES
+                && (lastRatio.value > pastRatio.value || (lastRatio == pastRatio && lastRatio.value == 100)
+                        || lastD > prevD || (lastD == prevD && lastD == 10))) {
             logger.debug("latency exceeded and compression decreased if possible. Good!");
             return +1;
         }
