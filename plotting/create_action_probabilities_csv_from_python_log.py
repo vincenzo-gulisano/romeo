@@ -4,7 +4,7 @@ import csv
 
 def process_file(input_file, output_csv):
     # Extended regular expression to capture the episode, step, action probabilities, and action time
-    pattern = re.compile(r"Episode (\d+), Step (\d+), Action Probabilities \[(.*?)\],.*Action time: (\d+\.\d+)")
+    pattern = re.compile(r"Episode (\d+), Step (\d+), Action Probablities: \[(.*?)\],.*Action time: (\d+\.\d+),.*")
 
     # Open the output CSV file for writing
     with open(output_csv, 'w', newline='') as csvfile:

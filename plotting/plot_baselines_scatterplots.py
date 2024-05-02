@@ -124,9 +124,9 @@ def plot_graphs(base_folder,rate_file_path,agent_data):
     
     
     # The values represent: initial size, fine size, initial opacity, final opacity, color, prob. of selection
-    agent_plots = {'exp11': [1,5,0.1,0.8,'red',1]}
+    agent_plots = {'exp11.1': [1,5,0.1,0.8,'red',1]}
        
-    given_order = ['exp11']  # The desired order for baselines
+    given_order = ['exp11.1']  # The desired order for baselines
     
     # Create a set for faster membership tests
     unique_baselines_set = set(baseline_df['baseline'].unique())

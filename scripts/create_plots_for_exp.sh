@@ -1,6 +1,6 @@
 #!/bin/bash
-base_exp_folder="./data/11/synthetic-RL/1/900"
-folders_to_explore=(exp11)
+base_exp_folder="./data/11.1/synthetic-RL/1/900"
+folders_to_explore=(exp11.1)
 for folder_to_explore in "${folders_to_explore[@]}"; do
 
     exp_folder="${base_exp_folder}/${folder_to_explore}"
