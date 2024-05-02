@@ -32,21 +32,34 @@ sleep_until_time_or_pid() {
     done
 }
 
-# Define base folder and input file
-base_folder="/home/jingyu/romeo/data/output"
-input_file="/home/vincenzo/woost/data/input/input.txt"
+# This is for Linear Road
+# base_folder="/home/jingyu/romeo/data/output/linear"
+# input_file="/home/vincenzo/woost/data/input/input.txt"
+# wa=5
+# ws=600
+# d=10
+# starting_time_min=900
+# starting_time_max=9900
+# usecase="LinearRoad"
+
+# # This is for the synthetic query
+base_folder="/home/jingyu/romeo/data/output/WEAOB/synthetic"
+input_file="/home/vincenzo/romeo/data/input/synthetic.csv"
+wa=1
+ws=900
+d=10
+starting_time_min=1200
+starting_time_max=6500
+usecase="Synthetic"
 
 # Define lists of values
-wa=5
-ws=600
+policy="WEAOB" # Wallclock, Event time, Aggregate OBlivios
+# policy="EAOB" # Event time, Aggregate OBlivios
+# policy="AOB" # Aggregate OBlivios
+# policy="WEAAW" # Wallclock, Event time, Aggregate AWare
 duration=5000000000
-d=601
-rate=25000
-repetition=0
-starting_time_min=900
-starting_time_max=9900
-episodes=40
-steps=50
+episodes=100
+steps=80
 
 # Define id variable with concatenation of values
 id="${wa}/${ws}/${duration}/${repetition}/${rate}"
@@ -90,7 +103,7 @@ echo "The PID of the python agent is ${python_pid}"
 echo "Starting SPE"
 
 echo "Starting experiment for ${id} (compression)"
-args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -n ${rate} -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max} -rer True"
+args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase} -pb ${policy} -rer True"
 
 mvn clean compile package exec:java -Dexec.mainClass="com.vincenzogulisano.javapythoncommunicator.JPComm" -Dexec.args="${args}" > ${exp_folder}/spe.log 2>&1 &
 

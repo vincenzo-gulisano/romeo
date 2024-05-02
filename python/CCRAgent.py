@@ -211,6 +211,7 @@ class MeasurementTracker:
             try:
                 self.state = np.array(doubles_list, dtype=np.float32).reshape(11, self.valuesPerObservation)
             except Exception as e:
+                print(e)
                 raise RuntimeError("An error occurred parsing "+input_str) from e
             self.reward = int(parts[1])
 

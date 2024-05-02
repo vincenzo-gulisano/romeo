@@ -45,7 +45,7 @@ starting_time_max=9900
 usecase="LinearRoad"
 
 # # This is for the synthetic query
-base_folder="/home/vincenzo/romeo/data/output/12/synthetic-CCR"
+base_folder="/home/vincenzo/romeo/data/output/13/AOB/synthetic-CCR"
 input_file="/home/vincenzo/romeo/data/input/synthetic.csv"
 wa=1
 ws=900
@@ -55,11 +55,12 @@ starting_time_max=6800
 usecase="Synthetic"
 
 # Define lists of values
+policy="WEAOB" # CHOSE ONE OUT OF WEAOB - Wallclock, Event time, Aggregate OBlivios, EAOB - Event time, Aggregate OBlivios, AOB - Aggregate OBlivios, WEAAW - Wallclock, Event time, Aggregate AWare
 duration=100000000
 episodes=30
 steps=40
 compressions=(0 1 2 3 4 5 6 7 8 9 10 r) # 
-compressions=(r) # 
+compressions=(0) # 
 
 for compression in "${compressions[@]}"; do
     echo "Compression: $compression"
@@ -105,7 +106,7 @@ for compression in "${compressions[@]}"; do
     echo "Starting SPE"
 
     echo "Starting experiment for ${id} (compression)"
-    args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase}"
+    args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase} -pb ${policy}"
 
     mvn clean compile package exec:java -Dexec.mainClass="com.vincenzogulisano.javapythoncommunicator.JPComm" -Dexec.args="${args}" > ${exp_folder}/spe.log 2>&1 &
 

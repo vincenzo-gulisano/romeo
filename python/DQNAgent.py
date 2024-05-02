@@ -23,7 +23,7 @@ import os
 import pickle
 
 
-GAMMA = 0.9
+GAMMA = 0.99
 lr = 0.01
 # EPSILON = 0.1
 buffer_size = 10000  # replay buffer size
@@ -35,7 +35,7 @@ target_update = 4  # the frequency for copying parameters from net to target_net
 # EPSILON_END = 0.01
 # EPSILON_DECAY = 500 # the higher value, the slower decay
 TAU_START = 10
-TAU_END = 1
+TAU_END = 3
 TAU_DECAY = 500
 
 
@@ -89,7 +89,7 @@ class Net(nn.Module):
         # Initialize weights and biases for each layer 
         for m in self.modules(): 
             if isinstance(m, nn.Linear): 
-                init.uniform_(m.weight, -0.07, 0.07) 
+                init.uniform_(m.weight, -0.03, 0.03) 
                 m.bias.data.fill_(0.05)
 
 
@@ -246,6 +246,8 @@ class SPEEnvironment(Env):
         # states: injectionrate, throughput, outrate, latency, compression ratio, comp, dec, CPU-in, CPU-agg, CPU-out, event time
         # metrics = 7
         # states: injectionrate, throughput, outrate, latency, compression ratio, CPU-agg, event time
+        # metrics = 6
+        # states: injectionrate, throughput, outrate, latency, compression ratio, CPU-agg
         self.observation_space = spaces.Box(low = np.array(
                                                 [np.full(self.valuesPerObservation, -1),
                                                 np.full(self.valuesPerObservation, -1),
@@ -257,7 +259,8 @@ class SPEEnvironment(Env):
                                                 # np.full(self.valuesPerObservation, -1),
                                                 np.full(self.valuesPerObservation, -1),
                                                 # np.full(self.valuesPerObservation, -1),
-                                                np.full(self.valuesPerObservation, -1)]), 
+                                                np.full(self.valuesPerObservation, -1)
+                                                ]), 
                                             high = np.array(
                                                 [np.full(self.valuesPerObservation, np.inf),
                                                  np.full(self.valuesPerObservation, np.inf),
@@ -269,7 +272,8 @@ class SPEEnvironment(Env):
                                                  # np.full(self.valuesPerObservation, 100),
                                                  np.full(self.valuesPerObservation, 100),
                                                  # np.full(self.valuesPerObservation, 100),
-                                                 np.full(self.valuesPerObservation, np.inf)]),
+                                                 np.full(self.valuesPerObservation, np.inf)
+                                                 ]),
                                             dtype = np.float32)
         # self.observation_space = spaces.Box(low = np.array([0,0,0,0]), 
         #                                     high = np.array([np.inf, np.inf, 100, 100]),
@@ -312,7 +316,8 @@ class SPEEnvironment(Env):
         # define initial compression ratio
         self.current_compression = 100
 
-        self.state_labels = ["injectionrate", "throughput", "outrate", "latency", "compressionratio", "CPU-agg", "eventtime"]
+        # self.state_labels = ["injectionrate", "throughput", "outrate", "latency", "compressionratio", "CPU-agg", "eventtime"]
+        self.state_labels = ["injectionrate", "throughput", "outrate", "latency", "compressionratio", "CPU-agg"]
 
     def print_state(self, state):
         # get the maxmimum length of state labels for alignment
@@ -362,8 +367,13 @@ class SPEEnvironment(Env):
         # Reset the reward
         self.ep_return  = self.consumer.tracker.reward
 
-        # Return the observation
-        return self.consumer.tracker.state.copy()
+        state = self.consumer.tracker.state.copy()
+        # get the current event time
+        self.current_event_time = state[6, :]
+        # return states except eventtime
+        return state[:-1]
+        # # Return the observation
+        # return self.consumer.tracker.state.copy()
     
     def step(self, action, current_compression):
     
@@ -412,8 +422,10 @@ class SPEEnvironment(Env):
         # update latency counter
         print(f"Checking high latency based on latency values")
         checkAlsoBasedReward = True
+        state = self.consumer.tracker.state.copy()
+        self.current_event_time = state[6, :]  # update eventtime
         # for event_time, latency in zip(self.consumer.tracker.state[10], self.consumer.tracker.state[3]):
-        for event_time, latency in zip(self.consumer.tracker.state[6], self.consumer.tracker.state[3]):
+        for event_time, latency in zip(self.current_event_time, self.consumer.tracker.state[3]):
             if event_time > self.latency_last_events:
                 self.latency_last_events = event_time
                 if latency > self.latency_threshold:
@@ -443,7 +455,8 @@ class SPEEnvironment(Env):
         self.ep_return += 1
 
         # TODO There's something missing, the SPE itself could be done if it runs out of data. This is not being checked as of now...
-        return self.consumer.tracker.state.copy(), self.consumer.tracker.reward, done, []
+        # return self.consumer.tracker.state.copy(), self.consumer.tracker.reward, done, []
+        return state[:-1], self.consumer.tracker.reward, done, []
     
     def close(self):
         super(SPEEnvironment, self).close()
@@ -566,7 +579,7 @@ if __name__ == "__main__":
 
     env = SPEEnvironment(int(args.steps))
     # input_shape = (11, 7)
-    input_shape = (7, 7)
+    input_shape = (6, 7)
     hidden_size = 128
     output_sie = env.action_space.n
     Agent = DQN(input_shape, hidden_size, output_sie)
@@ -594,7 +607,7 @@ if __name__ == "__main__":
     #     os.makedirs(paras_folder_name)
 
     # create folder to store paras (synthetic)
-    paras_folder_name = 'data/output/synthetic/1/900/5000000000/10/Exp11-1_paras-1-100'
+    paras_folder_name = 'data/output/WEAOB/synthetic/1/900/5000000000/10/Exp13-1_WEAOB_paras-1-100'
     if not os.path.exists(paras_folder_name):
         os.makedirs(paras_folder_name)
 
@@ -604,7 +617,7 @@ if __name__ == "__main__":
     #     os.makedirs(q_value_folder_name)
 
     # create folder to store q value plots (synthetic)
-    q_value_folder_name = 'data/output/synthetic/1/900/5000000000/10/Exp11-1_q_values_plot-1-100'
+    q_value_folder_name = 'data/output/WEAOB/synthetic/1/900/5000000000/10/Exp13-1_WEAOB_q_values_plot-1-100'
     if not os.path.exists(q_value_folder_name):
         os.makedirs(q_value_folder_name)
     
@@ -614,7 +627,7 @@ if __name__ == "__main__":
     #     os.makedirs(replay_buffer_folder_name)
     
     # create folder to store replay buffer (synthetic)
-    replay_buffer_folder_name = 'data/output/synthetic/1/900/5000000000/10/Exp11-1_replay_buffer-1-100'
+    replay_buffer_folder_name = 'data/output/WEAOB/synthetic/1/900/5000000000/10/Exp13-1_WEAOB_replay_buffer-1-100'
     if not os.path.exists(replay_buffer_folder_name):
         os.makedirs(replay_buffer_folder_name)
     
@@ -701,16 +714,16 @@ if __name__ == "__main__":
         plt.ylabel('Q Values')
         plt.title(f'Q Values Over Episodes (Episode {i_episode + 1})')
         plt.legend()
-        q_value_file_path = os.path.join(q_value_folder_name, f'exp11-1_q_values_plot_{i_episode + 1}.png')
+        q_value_file_path = os.path.join(q_value_folder_name, f'exp13-1_weaob_q_values_plot_{i_episode + 1}.png')
         plt.savefig(q_value_file_path)
         plt.close()
             
         # saving paras and replay buffer per 10 episodes
         if (i_episode + 1) % 10 == 0: 
             # save model paras every 10 episodes
-            paras_file_path = os.path.join(paras_folder_name, f'exp11-1_dqn_model_episode_{i_episode + 1}.pth')
+            paras_file_path = os.path.join(paras_folder_name, f'exp13-1_weaob_dqn_model_episode_{i_episode + 1}.pth')
             torch.save(Agent.net.state_dict(), paras_file_path)
-            replay_buffer_file_path = os.path.join(replay_buffer_folder_name, f'exp11-1_buffer_after_{i_episode + 1}_episodes.pkl')
+            replay_buffer_file_path = os.path.join(replay_buffer_folder_name, f'exp13-1_weaob_buffer_after_{i_episode + 1}_episodes.pkl')
             with open (replay_buffer_file_path, 'wb') as f:
                 pickle.dump(Agent.buffer, f)
             # print(f'Saved replay buffer after {i_episode + 1} episodes ...')

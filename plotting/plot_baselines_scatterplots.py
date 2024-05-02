@@ -121,12 +121,14 @@ def plot_graphs(base_folder,rate_file_path,agent_data):
     # Read the baselines_data.csv file
     baseline_file_path = os.path.join(agent_data)
     baseline_df = pd.read_csv(baseline_file_path)
-    
-    
+
+    # Convert the 'baseline' column to text (object) type
+    baseline_df['baseline'] = baseline_df['baseline'].astype(str)
+
     # The values represent: initial size, fine size, initial opacity, final opacity, color, prob. of selection
-    agent_plots = {'exp11.1': [1,5,0.1,0.8,'red',1]}
+    agent_plots = {'13.1': [1,5,0.1,0.8,'red',1],'13.2': [1,5,0.1,0.8,'green',1],'12.1': [1,5,0.1,0.8,'red',1],'12.2': [5,10,0.1,0.8,'green',1]}
        
-    given_order = ['exp11.1']  # The desired order for baselines
+    given_order = ['13.1','13.2','12.1','12.2']  # The desired order for baselines
     
     # Create a set for faster membership tests
     unique_baselines_set = set(baseline_df['baseline'].unique())
