@@ -23,7 +23,7 @@ import os
 import pickle
 
 
-GAMMA = 0.99
+GAMMA = 0.999
 lr = 0.01
 # EPSILON = 0.1
 buffer_size = 10000  # replay buffer size
@@ -50,30 +50,10 @@ class Net(nn.Module):
         self.Linear2 = nn.Linear(hidden_size, hidden_size)
         self.Linear3 = nn.Linear(hidden_size, output_size)
 
-        # initialize weights using Xavier uniform distribution
-        # init.xavier_uniform_(self.Linear1.weight)#, gain = nn.init.calculate_gain('relu'))
-        # init.xavier_uniform_(self.Linear2.weight)#, gain = nn.init.calculate_gain('relu'))
-        # init.xavier_uniform_(self.Linear3.weight)#, gain = nn.init.calculate_gain('relu'))
-
-        # iniitialize weights using He initialization
-        # init.kaiming_normal_(self.Linear1.weight, mode='fan_in', nonlinearity='relu')
-        # init.kaiming_normal_(self.Linear2.weight, mode='fan_in', nonlinearity='relu')
-        # init.kaiming_normal_(self.Linear3.weight, mode='fan_in', nonlinearity='relu')
-
-        # # initialize biases within range [-0.1, 0.1]
-        # init.uniform_(self.Linear1.bias, -0.1, 0.1)
-        # init.uniform_(self.Linear2.bias, -0.1, 0.1)
-        # init.uniform_(self.Linear3.bias, -0.1, 0.1)
-
-        # self.Linear1.bias.data.fill_(0)
-        # self.Linear2.bias.data.fill_(0)
-        # self.Linear3.bias.data.fill_(0)
-
         # Initialize weights 
         self.init_weights() 
 
     def forward(self, x):
-        # print('x: ', x)
         # flatten the input
         if x.dim() > 1:
             x = x.view(-1, self.input_size)
@@ -83,9 +63,6 @@ class Net(nn.Module):
         return x
     
     def init_weights(self): 
-        # Define the lower and upper bounds of the uniform distribution 
-        # lower_bound, upper_bound = -0.1, 0.1 
-
         # Initialize weights and biases for each layer 
         for m in self.modules(): 
             if isinstance(m, nn.Linear): 
@@ -307,14 +284,20 @@ class SPEEnvironment(Env):
         # self.negative_reward_counter = 0
 
         # track latency
-        self.latency_threshold = 2500
-        self.latency_counter = 0
-        self.latency_last_events = -1
-        # define thresholds for negative reward and latency violtions
-        self.negative_reward_threshold = -150
-        self.latency_violations_per_episode = 3
+        # self.latency_threshold = 2500
+        # self.latency_counter = 0
+        # self.latency_last_events = -1
+
+        # # define thresholds for negative reward and latency violtions
+        # self.negative_reward_threshold = -150
+        # self.latency_violations_per_episode = 3
+
         # define initial compression ratio
-        self.current_compression = 100
+        self.current_compression = 100 
+
+        self.bonus_latency_threshold = 1000
+        self.latency_record = []
+        # self.bonus_steps_required = 10  # Number of steps to check for latency condition at the end of an episode
 
         # self.state_labels = ["injectionrate", "throughput", "outrate", "latency", "compressionratio", "CPU-agg", "eventtime"]
         self.state_labels = ["injectionrate", "throughput", "outrate", "latency", "compressionratio", "CPU-agg"]
@@ -335,11 +318,12 @@ class SPEEnvironment(Env):
         #self.negative_reward_counter = 0
 
         # reset latency counter
-        self.latency_counter = 0
+        # self.latency_counter = 0
         # reset the time tracker for latency events
         self.latency_last_events = -1  
         # reset initial compressionn ratio
         self.current_compression = 100
+        self.latency_record = []
 
         # Send the reset
         self.producer.produce("reset")
@@ -378,6 +362,7 @@ class SPEEnvironment(Env):
     def step(self, action, current_compression):
     
         self.remaingSteps -= 1
+        done = False
 
         # Assert that it is a valid action 
         assert self.action_space.contains(action), "Invalid action"
@@ -420,32 +405,42 @@ class SPEEnvironment(Env):
         #     done = False
         
         # update latency counter
-        print(f"Checking high latency based on latency values")
-        checkAlsoBasedReward = True
+        # print(f"Checking high latency based on latency values")
+        # checkAlsoBasedReward = True
         state = self.consumer.tracker.state.copy()
         self.current_event_time = state[6, :]  # update eventtime
         # for event_time, latency in zip(self.consumer.tracker.state[10], self.consumer.tracker.state[3]):
-        for event_time, latency in zip(self.current_event_time, self.consumer.tracker.state[3]):
-            if event_time > self.latency_last_events:
-                self.latency_last_events = event_time
-                if latency > self.latency_threshold:
-                    checkAlsoBasedReward = False
-                    self.latency_counter += 1
-                    print(f"High latency observed: {event_time, latency} ms at step {(self.stepsPerEpisode - self.remaingSteps) + 1}")
+        # for event_time, latency in zip(self.current_event_time, self.consumer.tracker.state[3]):
+        #     if event_time > self.latency_last_events:
+        #         self.latency_last_events = event_time
+        #         if latency > self.latency_threshold:
+        #             checkAlsoBasedReward = False
+        #             self.latency_counter += 1
+        #             print(f"High latency observed: {event_time, latency} ms at step {(self.stepsPerEpisode - self.remaingSteps) + 1}")
                     # print(f"High latency observed: {event_time, latency} ms at step {(self.stepsPerEpisode - self.remaingSteps)}")
             
-        if checkAlsoBasedReward:
-            print(f"Checking high latency based on actual reward")
-            if self.consumer.tracker.reward < self.negative_reward_threshold:
-                self.latency_counter += 1
-                print(f"High latency observed because of reward at step {(self.stepsPerEpisode - self.remaingSteps) + 1}")
-                # print(f"High latency observed because of reward at step {(self.stepsPerEpisode - self.remaingSteps)}")
+        # if checkAlsoBasedReward:
+        #     print(f"Checking high latency based on actual reward")
+        #     if self.consumer.tracker.reward < self.negative_reward_threshold:
+        #         self.latency_counter += 1
+        #         print(f"High latency observed because of reward at step {(self.stepsPerEpisode - self.remaingSteps) + 1}")
+        #         # print(f"High latency observed because of reward at step {(self.stepsPerEpisode - self.remaingSteps)}")
         
-        # check if latency is greater than 2.5s in three steps for every episode
-        if self.latency_counter >= self.latency_violations_per_episode:
+        # # check if latency is greater than 2.5s in three steps for every episode
+        # if self.latency_counter >= self.latency_violations_per_episode:
+        #     done = True
+        # else:
+        #     done = False
+
+        # record latency of last second if it is not missing (-1)
+        if self.consumer.tracker.state.copy()[3, -1] != -1:
+            self.latency_record.append(self.consumer.tracker.state.copy()[3, -1])
+        if len(self.latency_record) >= self.stepsPerEpisode:
             done = True
-        else:
-            done = False
+            if all(latency <= self.bonus_latency_threshold for latency in self.latency_record[-10:]):
+                self.consumer.tracker.reward += 10
+                print("Extra reward bonus +10 because of low latency in the last 10 steps") 
+
         
         # check if there has remaining steps
         if self.remaingSteps <= 0:
@@ -585,13 +580,13 @@ if __name__ == "__main__":
     Agent = DQN(input_shape, hidden_size, output_sie)
 
     # load saved net's paras
-    # model_file = 'image/Exp10.2/synthetic/1-200/Exp10-2_paras-1-200/exp10-2_dqn_model_episode_200.pth'
+    # model_file = 'image/Exp13.1/1_WEAOB/weaob_synthetic/1-100/Exp13-1_WEAOB_paras-1-100/exp13-1_weaob_dqn_model_episode_100.pth'
     # if os.path.exists(model_file):
     #     Agent.net.load_state_dict(torch.load(model_file))
     #     print("loaded net's paras...")
 
     # load replay buffer
-    # replay_buffer = f'image/Exp10.2/synthetic/1-200/Exp10-2_replay_buffer-1-200/exp10-2_buffer_after_200_episodes.pkl'
+    # replay_buffer = f'image/Exp13.1/1_WEAOB/weaob_synthetic/1-100/Exp13-1_WEAOB_replay_buffer-1-100/exp13-1_weaob_buffer_after_100_episodes.pkl'
     # with open (replay_buffer, 'rb') as f:
     #     Agent.buffer = pickle.load(f)
     # print('loaded replay buffer from last round...')
@@ -602,32 +597,32 @@ if __name__ == "__main__":
     incremental_average_reward = 0  # average reward of all episodes for incermental averaging
 
     # create folder to store paras (linear)
-    # paras_folder_name = 'data/output/linear/5/600/5000000000/0/25000/601/Exp11-1_paras-1-100'
+    # paras_folder_name = 'data/output/WEAOB/linear/5/600/5000000000/10/Exp13-1_WEAOB_l_paras-101-500'
     # if not os.path.exists(paras_folder_name):
     #     os.makedirs(paras_folder_name)
 
     # create folder to store paras (synthetic)
-    paras_folder_name = 'data/output/WEAOB/synthetic/1/900/5000000000/10/Exp13-1_WEAOB_paras-1-100'
+    paras_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp13-2_WEAAW_s_paras-1-100'
     if not os.path.exists(paras_folder_name):
         os.makedirs(paras_folder_name)
 
     # create folder to store q value plots (linear)
-    # q_value_folder_name = 'data/output/linear/5/600/5000000000/0/25000/601/Exp11-1_q_value_plot-1-100'
+    # q_value_folder_name = 'data/output/WEAOB/linear/5/600/5000000000/10/Exp13-1_WEAOB_l_q_value_plot-101-500'
     # if not os.path.exists(q_value_folder_name):
     #     os.makedirs(q_value_folder_name)
 
     # create folder to store q value plots (synthetic)
-    q_value_folder_name = 'data/output/WEAOB/synthetic/1/900/5000000000/10/Exp13-1_WEAOB_q_values_plot-1-100'
+    q_value_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp13-2_WEAAW_s_q_values_plot-1-100'
     if not os.path.exists(q_value_folder_name):
         os.makedirs(q_value_folder_name)
     
     # create folder to store replay buffer (linear)
-    # replay_buffer_folder_name = 'data/output/linear/5/600/5000000000/0/25000/601/Exp11-1_replay_buffer-1-100'
+    # replay_buffer_folder_name = 'data/output/WEAOB/linear/5/600/5000000000/10/Exp13-1_WEAOB_l_replay_buffer-101-500'
     # if not os.path.exists(replay_buffer_folder_name):
     #     os.makedirs(replay_buffer_folder_name)
     
     # create folder to store replay buffer (synthetic)
-    replay_buffer_folder_name = 'data/output/WEAOB/synthetic/1/900/5000000000/10/Exp13-1_WEAOB_replay_buffer-1-100'
+    replay_buffer_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp13-2_WEAAW_s_replay_buffer-1-100'
     if not os.path.exists(replay_buffer_folder_name):
         os.makedirs(replay_buffer_folder_name)
     
@@ -714,16 +709,16 @@ if __name__ == "__main__":
         plt.ylabel('Q Values')
         plt.title(f'Q Values Over Episodes (Episode {i_episode + 1})')
         plt.legend()
-        q_value_file_path = os.path.join(q_value_folder_name, f'exp13-1_weaob_q_values_plot_{i_episode + 1}.png')
+        q_value_file_path = os.path.join(q_value_folder_name, f'exp13-2_weaaw_s_q_values_plot_{i_episode + 1}.png')
         plt.savefig(q_value_file_path)
         plt.close()
             
         # saving paras and replay buffer per 10 episodes
         if (i_episode + 1) % 10 == 0: 
             # save model paras every 10 episodes
-            paras_file_path = os.path.join(paras_folder_name, f'exp13-1_weaob_dqn_model_episode_{i_episode + 1}.pth')
+            paras_file_path = os.path.join(paras_folder_name, f'exp13-2_weaaw_s_dqn_model_episode_{i_episode + 1}.pth')
             torch.save(Agent.net.state_dict(), paras_file_path)
-            replay_buffer_file_path = os.path.join(replay_buffer_folder_name, f'exp13-1_weaob_buffer_after_{i_episode + 1}_episodes.pkl')
+            replay_buffer_file_path = os.path.join(replay_buffer_folder_name, f'exp13-2_weaaw_s_buffer_after_{i_episode + 1}_episodes.pkl')
             with open (replay_buffer_file_path, 'wb') as f:
                 pickle.dump(Agent.buffer, f)
             # print(f'Saved replay buffer after {i_episode + 1} episodes ...')
