@@ -95,13 +95,16 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
      *         {@code latencyThreshold}, otherwise {@code false}.
      */
     private LatStatus isLatencyGreaterThanOrEqualToThreshold() {
-        boolean aboveThreshold = false;
+        boolean aboveHardThreshold = false;
+        boolean aboveSoftThreshold = false;
         boolean found = false;
         for (Entry<Long, HashMap<String, Double>> m : stateMeasurements.entrySet()) {
             if (m.getValue().containsKey("latency") && Double.compare(m.getValue().get("latency"), -1.0) != 0) {
                 found = true;
                 if (m.getValue().get("latency") >= hardLatencyThreshold) {
-                    aboveThreshold = true;
+                    aboveHardThreshold = true;
+                } else if (m.getValue().get("latency") >= softLatencyThreshold) {
+                    aboveSoftThreshold = true;
                 }
             }
 
@@ -109,7 +112,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         if (!found) {
             logger.warn("There seems to be no latency value in the latest state measurements");
         }
-        return found ? (aboveThreshold ? (LatStatus.YES) : (LatStatus.NO))
+        return found ? (aboveHardThreshold ? (LatStatus.ABOVEHARD) : (aboveSoftThreshold ? LatStatus.INBETWEENSOFTANDHARD : LatStatus.BELOWSOFT))
                 : (LatStatus.UNKNOWN);
     }
 
