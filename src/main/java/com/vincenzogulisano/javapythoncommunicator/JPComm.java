@@ -130,7 +130,7 @@ public class JPComm {
 
         String usecase = expOps.commandLine().getOptionValue("usecase", "LinearRoad");
 
-        long latencyThreshold = Long.valueOf(expOps.commandLine().getOptionValue("latencyTreshold", "1000"));
+        long latencyThreshold = Long.valueOf(expOps.commandLine().getOptionValue("latencyTreshold", "1500"));
         long CPUThreshold = Long.valueOf(expOps.commandLine().getOptionValue("CPUTreshold", "80"));
 
         switch (usecase) {
