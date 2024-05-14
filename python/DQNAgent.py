@@ -23,19 +23,19 @@ import os
 import pickle
 
 
-GAMMA = 0.999
+GAMMA = 0.99
 lr = 0.01
 # EPSILON = 0.1
 buffer_size = 10000  # replay buffer size
 batch_size = 128
 #episodes = 50
-target_update = 4  # the frequency for copying parameters from net to target_net
+target_update = 20  # the frequency for copying parameters from net to target_net
 #steps = 100
 # EPSILON_START = 0.01
 # EPSILON_END = 0.01
 # EPSILON_DECAY = 500 # the higher value, the slower decay
-TAU_START = 10
-TAU_END = 3
+TAU_START = 5
+TAU_END = 1
 TAU_DECAY = 500
 
 
@@ -284,20 +284,24 @@ class SPEEnvironment(Env):
         # self.negative_reward_counter = 0
 
         # track latency
-        # self.latency_threshold = 2500
-        # self.latency_counter = 0
-        # self.latency_last_events = -1
-
-        # # define thresholds for negative reward and latency violtions
+        self.latency_threshold = 2500
+        self.latency_counter = 0
+        self.latency_last_events = -1
+        # # define thresholds for negative reward 
         # self.negative_reward_threshold = -150
-        # self.latency_violations_per_episode = 3
+        # define latency violations
+        self.latency_violations_per_episode = 3
 
         # define initial compression ratio
         self.current_compression = 100 
 
         self.bonus_latency_threshold = 1000
         self.latency_record = []
-        # self.bonus_steps_required = 10  # Number of steps to check for latency condition at the end of an episode
+        # track the number of steps since last reward
+        self.steps_since_last_bonus = 0
+        self.bonus_step_interval = 10
+        # indicator for extra +5
+        # self.bonus_given = False 
 
         # self.state_labels = ["injectionrate", "throughput", "outrate", "latency", "compressionratio", "CPU-agg", "eventtime"]
         self.state_labels = ["injectionrate", "throughput", "outrate", "latency", "compressionratio", "CPU-agg"]
@@ -315,15 +319,15 @@ class SPEEnvironment(Env):
     def reset(self):
 
         #reset negative reward counter
-        #self.negative_reward_counter = 0
-
+        self.negative_reward_counter = 0
         # reset latency counter
-        # self.latency_counter = 0
+        self.latency_counter = 0
         # reset the time tracker for latency events
         self.latency_last_events = -1  
         # reset initial compressionn ratio
         self.current_compression = 100
         self.latency_record = []
+        self.steps_since_last_bonus = 0
 
         # Send the reset
         self.producer.produce("reset")
@@ -363,19 +367,22 @@ class SPEEnvironment(Env):
     
         self.remaingSteps -= 1
         done = False
+        # self.bonus_given = False
 
         # Assert that it is a valid action 
         assert self.action_space.contains(action), "Invalid action"
 
-        # select ccompression ratio based on the action
-        # if action == 0:
-        #     self.current_compression = max(0, self.current_compression - 10)
-        # elif action == 2:
-        #     self.current_compression = min(100, self.current_compression + 10)
-
-        # print('Transmitting action',action)
-        # self.producer.produce("changeD,"+str(action))
         self.producer.produce("changeD," + str(int(current_compression/10)))
+
+        # give extra +5 for completing every 10 steps
+        if self.steps_since_last_bonus == self.bonus_step_interval - 1:
+            self.consumer.tracker.reward += 5
+            #self.bonus_given = True
+            print(f"Extra reward bonus +5 for completing {self.bonus_step_interval} steps")
+        self.steps_since_last_bonus += 1
+        if self.steps_since_last_bonus == self.bonus_step_interval:
+            self.steps_since_last_bonus = 0
+
 
         # Wait for the state and reward measurement
         self.prev_stat_time = time.time()
@@ -405,18 +412,18 @@ class SPEEnvironment(Env):
         #     done = False
         
         # update latency counter
-        # print(f"Checking high latency based on latency values")
-        # checkAlsoBasedReward = True
+        print(f"Checking high latency based on latency values")
+        checkAlsoBasedReward = True
         state = self.consumer.tracker.state.copy()
         self.current_event_time = state[6, :]  # update eventtime
         # for event_time, latency in zip(self.consumer.tracker.state[10], self.consumer.tracker.state[3]):
-        # for event_time, latency in zip(self.current_event_time, self.consumer.tracker.state[3]):
-        #     if event_time > self.latency_last_events:
-        #         self.latency_last_events = event_time
-        #         if latency > self.latency_threshold:
-        #             checkAlsoBasedReward = False
-        #             self.latency_counter += 1
-        #             print(f"High latency observed: {event_time, latency} ms at step {(self.stepsPerEpisode - self.remaingSteps) + 1}")
+        for event_time, latency in zip(self.current_event_time, self.consumer.tracker.state[3]):
+            if event_time > self.latency_last_events:
+                self.latency_last_events = event_time
+                if latency > self.latency_threshold:
+                    checkAlsoBasedReward = False
+                    self.latency_counter += 1
+                    print(f"High latency observed: {event_time, latency} ms at step {(self.stepsPerEpisode - self.remaingSteps) + 1}")
                     # print(f"High latency observed: {event_time, latency} ms at step {(self.stepsPerEpisode - self.remaingSteps)}")
             
         # if checkAlsoBasedReward:
@@ -425,26 +432,20 @@ class SPEEnvironment(Env):
         #         self.latency_counter += 1
         #         print(f"High latency observed because of reward at step {(self.stepsPerEpisode - self.remaingSteps) + 1}")
         #         # print(f"High latency observed because of reward at step {(self.stepsPerEpisode - self.remaingSteps)}")
-        
-        # # check if latency is greater than 2.5s in three steps for every episode
-        # if self.latency_counter >= self.latency_violations_per_episode:
-        #     done = True
-        # else:
-        #     done = False
 
-        # record latency of last second if it is not missing (-1)
-        if self.consumer.tracker.state.copy()[3, -1] != -1:
-            self.latency_record.append(self.consumer.tracker.state.copy()[3, -1])
-        if len(self.latency_record) >= self.stepsPerEpisode:
+        # record latency of last second if it is not missing -1
+        if state[3, -1] != -1:
+            self.latency_record.append(state[3, -1])
+        # Check if episode should end
+        if self.remaingSteps <= 0 or self.latency_counter >= self.latency_violations_per_episode:
             done = True
-            if all(latency <= self.bonus_latency_threshold for latency in self.latency_record[-10:]):
-                self.consumer.tracker.reward += 10
-                print("Extra reward bonus +10 because of low latency in the last 10 steps") 
+            # apply bonus if conditions are met at the end of an episode
+            if len(self.latency_record) >= self.bonus_step_interval and all(latency <= self.bonus_latency_threshold for latency in self.latency_record[-10:]):
+                    self.consumer.tracker.reward += 10
+                    print(f"Extra reward bonus +10 because of low latency in the last {self.bonus_step_interval} steps")
+        else:
+            done = False
 
-        
-        # check if there has remaining steps
-        if self.remaingSteps <= 0:
-            done = True
         
         # Increment the episodic return
         self.ep_return += 1
@@ -597,32 +598,32 @@ if __name__ == "__main__":
     incremental_average_reward = 0  # average reward of all episodes for incermental averaging
 
     # create folder to store paras (linear)
-    # paras_folder_name = 'data/output/WEAOB/linear/5/600/5000000000/10/Exp13-1_WEAOB_l_paras-101-500'
+    # paras_folder_name = 'data/output/WEAAW/linear/5/600/5000000000/10/Exp13-2_WEAAW_l_paras-1-100'
     # if not os.path.exists(paras_folder_name):
     #     os.makedirs(paras_folder_name)
 
     # create folder to store paras (synthetic)
-    paras_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp13-2_WEAAW_s_paras-1-100'
+    paras_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp14_WEAAW_s_paras-1-200'
     if not os.path.exists(paras_folder_name):
         os.makedirs(paras_folder_name)
 
     # create folder to store q value plots (linear)
-    # q_value_folder_name = 'data/output/WEAOB/linear/5/600/5000000000/10/Exp13-1_WEAOB_l_q_value_plot-101-500'
+    # q_value_folder_name = 'data/output/WEAAW/linear/5/600/5000000000/10/Exp13-2_WEAAW_l_q_value_plot-1-100'
     # if not os.path.exists(q_value_folder_name):
     #     os.makedirs(q_value_folder_name)
 
     # create folder to store q value plots (synthetic)
-    q_value_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp13-2_WEAAW_s_q_values_plot-1-100'
+    q_value_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp14_WEAAW_s_q_values_plot-1-200'
     if not os.path.exists(q_value_folder_name):
         os.makedirs(q_value_folder_name)
     
     # create folder to store replay buffer (linear)
-    # replay_buffer_folder_name = 'data/output/WEAOB/linear/5/600/5000000000/10/Exp13-1_WEAOB_l_replay_buffer-101-500'
+    # replay_buffer_folder_name = 'data/output/WEAAW/linear/5/600/5000000000/10/Exp13-2_WEAAW_l_replay_buffer-1-100'
     # if not os.path.exists(replay_buffer_folder_name):
     #     os.makedirs(replay_buffer_folder_name)
     
     # create folder to store replay buffer (synthetic)
-    replay_buffer_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp13-2_WEAAW_s_replay_buffer-1-100'
+    replay_buffer_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp14_WEAAW_s_replay_buffer-1-200'
     if not os.path.exists(replay_buffer_folder_name):
         os.makedirs(replay_buffer_folder_name)
     
@@ -653,6 +654,10 @@ if __name__ == "__main__":
             # print(f"Episode {i_episode + 1}, Step {step_count + 1}, Action {a0}, Current Compression: {current_compression}, Action type: {action_type}, Epsilon: {epsilon:.6f}, Q values: {q_values}, Action time: {action_time}") 
             # for Boltzmann(softmax) exploration strategy
             print(f"Episode {i_episode + 1}, Step {step_count + 1}, Tau: {tau:.6f}, Q values: {q_values}, Action Probablities: {action_probablities}, Action {a0}, Current Compression: {current_compression}, Action time: {action_time}, Action type: {action_type}") 
+
+            # if env.bonus_given:
+            #     print(f"Extra reward bonus +5 for completing {env.bonus_step_interval} steps")
+            #     env.bonus_given = False
 
             steps.append(step_count)
 
@@ -709,16 +714,16 @@ if __name__ == "__main__":
         plt.ylabel('Q Values')
         plt.title(f'Q Values Over Episodes (Episode {i_episode + 1})')
         plt.legend()
-        q_value_file_path = os.path.join(q_value_folder_name, f'exp13-2_weaaw_s_q_values_plot_{i_episode + 1}.png')
+        q_value_file_path = os.path.join(q_value_folder_name, f'exp14_weaaw_s_values_plot_{i_episode + 1}.png')
         plt.savefig(q_value_file_path)
         plt.close()
             
         # saving paras and replay buffer per 10 episodes
         if (i_episode + 1) % 10 == 0: 
             # save model paras every 10 episodes
-            paras_file_path = os.path.join(paras_folder_name, f'exp13-2_weaaw_s_dqn_model_episode_{i_episode + 1}.pth')
+            paras_file_path = os.path.join(paras_folder_name, f'exp14_weaaw_s_dqn_model_episode_{i_episode + 1}.pth')
             torch.save(Agent.net.state_dict(), paras_file_path)
-            replay_buffer_file_path = os.path.join(replay_buffer_folder_name, f'exp13-2_weaaw_s_buffer_after_{i_episode + 1}_episodes.pkl')
+            replay_buffer_file_path = os.path.join(replay_buffer_folder_name, f'exp14_weaaw_s_buffer_after_{i_episode + 1}_episodes.pkl')
             with open (replay_buffer_file_path, 'wb') as f:
                 pickle.dump(Agent.buffer, f)
             # print(f'Saved replay buffer after {i_episode + 1} episodes ...')
