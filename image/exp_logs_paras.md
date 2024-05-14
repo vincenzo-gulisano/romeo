@@ -303,6 +303,6 @@ if (latency was smaller than threshold AND (compression ratio decreased OR compr
 5. reward bonus +10 if the last report of latency in last consecutive 10 steps is less than 1 second. 
 ## Exp13.3
 1. 20 episodes for only synthetic with tau fixed at 1
-    --> want to see what happens with the probabilities
-    --> it's not purely random, because some actions have higher probabilities than others, but it's almost random
-    --> would like to understand if this is because tau is too large
+(1) want to see what happens with the probabilities
+(2) it's not purely random, because some actions have higher probabilities than others, but it's almost random
+(3) would like to understand if this is because tau is too large
