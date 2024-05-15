@@ -33,6 +33,11 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
             this.value = value;
             this.valid = valid;
         }
+
+        @Override
+        public String toString() {
+            return value + " (" + valid + ")";
+        }
     }
 
     public Logger logger = LogManager.getLogger();
@@ -112,7 +117,9 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         if (!found) {
             logger.warn("There seems to be no latency value in the latest state measurements");
         }
-        return found ? (aboveHardThreshold ? (LatStatus.ABOVEHARD) : (aboveSoftThreshold ? LatStatus.INBETWEENSOFTANDHARD : LatStatus.BELOWSOFT))
+        return found
+                ? (aboveHardThreshold ? (LatStatus.ABOVEHARD)
+                        : (aboveSoftThreshold ? LatStatus.INBETWEENSOFTANDHARD : LatStatus.BELOWSOFT))
                 : (LatStatus.UNKNOWN);
     }
 
@@ -275,7 +282,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
 
         // Checking if we have enought measurements
         // If more than enough and keepOnlyMonitoringPeriodData, removing them
-        logger.debug("cleaning measurements");
+        // logger.debug("cleaning measurements");
         if (!measurements.isEmpty()) {
             for (String id_ : measurements.keySet()) {
                 while (!measurements.get(id_).isEmpty()
@@ -293,7 +300,8 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         while (!stateMeasurements.isEmpty()
                 && stateMeasurements.firstKey() <= lastReportedStateMaxTS - monitoringPeriod) {
             Entry<Long, HashMap<String, Double>> firstEntry = stateMeasurements.pollFirstEntry();
-            logger.debug("Removed entry with ts {} from lastReportedState", firstEntry.getKey());
+            // logger.debug("Removed entry with ts {} from lastReportedState",
+            // firstEntry.getKey());
         }
 
         return reward;
