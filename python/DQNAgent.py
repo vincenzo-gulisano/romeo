@@ -413,7 +413,7 @@ class SPEEnvironment(Env):
         
         # update latency counter
         print(f"Checking high latency based on latency values")
-        checkAlsoBasedReward = True
+        # checkAlsoBasedReward = True
         state = self.consumer.tracker.state.copy()
         self.current_event_time = state[6, :]  # update eventtime
         # for event_time, latency in zip(self.consumer.tracker.state[10], self.consumer.tracker.state[3]):
@@ -421,7 +421,7 @@ class SPEEnvironment(Env):
             if event_time > self.latency_last_events:
                 self.latency_last_events = event_time
                 if latency > self.latency_threshold:
-                    checkAlsoBasedReward = False
+                    # checkAlsoBasedReward = False
                     self.latency_counter += 1
                     print(f"High latency observed: {event_time, latency} ms at step {(self.stepsPerEpisode - self.remaingSteps) + 1}")
                     # print(f"High latency observed: {event_time, latency} ms at step {(self.stepsPerEpisode - self.remaingSteps)}")
@@ -432,15 +432,31 @@ class SPEEnvironment(Env):
         #         self.latency_counter += 1
         #         print(f"High latency observed because of reward at step {(self.stepsPerEpisode - self.remaingSteps) + 1}")
         #         # print(f"High latency observed because of reward at step {(self.stepsPerEpisode - self.remaingSteps)}")
+        # if self.latency_counter >= self.latency_violations_per_episode:
+        #     done = True
+        #     print(f"Episode terminated early due to excessive latency violations.")
 
         # record latency of last second if it is not missing -1
-        if state[3, -1] != -1:
-            self.latency_record.append(state[3, -1])
+        current_event_time = self.current_event_time
+        current_latency = self.consumer.tracker.state[3]
+        for event_time, latency in zip(current_event_time, current_latency):
+            if latency != -1:
+                # check if the same event time has been recorded
+                existing_entry = next((item for item in self.latency_record if item[0] == event_time), None)
+                # if the record of this eventtime already exists, then update latency
+                if existing_entry:
+                    index = self.latency_record.index(existing_entry)
+                    self.latency_record[index] = (event_time, latency)
+                # if not, add new record
+                else:
+                    self.latency_record.append((event_time, latency))
+
         # Check if episode should end
         if self.remaingSteps <= 0 or self.latency_counter >= self.latency_violations_per_episode:
             done = True
             # apply bonus if conditions are met at the end of an episode
-            if len(self.latency_record) >= self.bonus_step_interval and all(latency <= self.bonus_latency_threshold for latency in self.latency_record[-10:]):
+            valid_latencies = [latency for _, latency in self.latency_record[-10:]]  # extract only the latency values from the last 10 records
+            if len(valid_latencies) == self.bonus_step_interval and all(latency <= self.bonus_latency_threshold for latency in valid_latencies):
                     self.consumer.tracker.reward += 10
                     print(f"Extra reward bonus +10 because of low latency in the last {self.bonus_step_interval} steps")
         else:
