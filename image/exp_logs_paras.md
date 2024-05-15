@@ -311,10 +311,11 @@ if (latency was smaller than threshold AND (compression ratio decreased OR compr
 1. change discount factor to 0.99 (0.999 to 0.99)
 2. change target frequency to 20 (4 to 20)
 3. reward
-(1) +1: latency is below 1.5 seconds (hard threshold)
-(2) +2: latency is below 0.75 seconds (soft threshold)
-(3) +10: latency of last 10 steps with non-missing value is below 1 second
+3.1 +1: latency is below 1.5 seconds (hard threshold)
+3.2 +2: latency is below 0.75 seconds (soft threshold)
+3.3 +5: finishing every 10 steps
+3.4 +10: latency of last 10 eventtime with non-missing value is below 1 second
 4. early termination
-latency for any 3 steps in each episode is higher than 2.5 seconds --> terminate this episode, then go to next episode
+latency for any 3 steps in each episode is higher than 2.5 seconds --> terminate this episode, then go to next one
 5. run 200 episodes 50 steps for each episode
 6. change tau within [5,1] ([10,3] to [5,1])
