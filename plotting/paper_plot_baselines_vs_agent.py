@@ -38,7 +38,8 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
     if len(unique_baselines) > len(markers):
         print("Warning: Not enough unique markers defined for the number of baselines.")
     
-    max_latency=1
+    latencies_thresholds=[0.75,1.5]
+    latencies_thresholds_ids=['soft','hard']
 
     # Read the first and second columns from the CSV
     dfrate = pd.read_csv(rate_file_path, usecols=[0, 1], header=None)
@@ -83,10 +84,11 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
     axs[3,1].set_ylim([0.008,8])
     axs[3,0].set_xticks([])
     axs[3,1].set_yscale(latency_y_scale)
-    axs[3,1].axhline(y=max_latency, color='r', linestyle='--')  # Horizontal line at max_latency
-    # Add text for threshold latency
-    axs[3,1].text(0.5, max_latency*1.05, 'Threshold latency', color='red', verticalalignment='bottom', horizontalalignment='left', fontsize=8, transform=axs[3,1].transData)
-    # axs[3].grid(True, which='both', axis='y', linestyle='--', linewidth=0.5, color='gray')  # Enable y-axis grid
+    for lat_idx,latency_threshold in enumerate(latencies_thresholds): 
+        axs[3,1].axhline(y=latency_threshold, color='r', linestyle='--')  # Horizontal line at max_latency
+        # Add text for threshold latency
+        axs[3,1].text(0.5, latency_threshold*1.05, latencies_thresholds_ids[lat_idx], color='red', verticalalignment='bottom', horizontalalignment='left', fontsize=8, transform=axs[3,1].transData)
+        # axs[3].grid(True, which='both', axis='y', linestyle='--', linewidth=0.5, color='gray')  # Enable y-axis grid
 
     # cpu, divided by 100
     data_cpu = [df[df['baseline'] == baseline]['cpu'].dropna() / 100 for baseline in unique_baselines]
@@ -132,6 +134,7 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
     agent_plots = {
         'weaaw_linear': [1,5,0.01,0.99,'green',1],
         'weaaw_synthetic': [1,5,0.01,0.99,'green',1],
+        '14.1': [1,5,0.01,0.99,'green',0.75],
         '13.1': [1,5,0.1,0.8,'red',1],
         '13.2': [1,5,0.1,0.8,'green',1],
         '12.1': [1,5,0.1,0.8,'red',1],
@@ -139,6 +142,7 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
        
     given_order = ['weaaw_linear']  # The desired order for baselines
     given_order = ['weaaw_synthetic']  # The desired order for baselines
+    given_order = ['14.1']  # The desired order for baselines
     
     # Create a set for faster membership tests
     unique_baselines_set = set(baseline_df['baseline'].unique())
@@ -208,7 +212,13 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
                     axs[3,0].fill(x_coords, y_coords, color=agent_plots[baseline][4], alpha=opacities[j])  # Fill the rhombus with a blue color, semi-transparent
                     # This version is to draw the circle
                     # axs[3,0].plot(row['eventtime_start']- dfrate['x'].min(), row['latency']/1000, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
-    axs[3,0].axhline(y=max_latency, color='r', linestyle='--')  # Horizontal line at max_latency
+
+    for lat_idx,latency_threshold in enumerate(latencies_thresholds): 
+        axs[3,0].axhline(y=latency_threshold, color='r', linestyle='--')  # Horizontal line at max_latency
+        # Add text for threshold latency
+        axs[3,0].text(0.5, latency_threshold*1.05, latencies_thresholds_ids[lat_idx], color='red', verticalalignment='bottom', horizontalalignment='left', fontsize=8, transform=axs[3,1].transData)
+        # axs[3].grid(True, which='both', axis='y', linestyle='--', linewidth=0.5, color='gray')  # Enable y-axis grid
+    # axs[3,0].axhline(y=latencies_thresholds, color='r', linestyle='--')  # Horizontal line at max_latency
     axs[3,0].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
     axs[3,0].set_ylim([0.008,8])
     axs[3,0].set_yscale(latency_y_scale)

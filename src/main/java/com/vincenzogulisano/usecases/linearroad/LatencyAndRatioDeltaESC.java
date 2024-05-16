@@ -81,4 +81,10 @@ public class LatencyAndRatioDeltaESC extends EnvironmentStateCalculator {
         // return "0";
     }
 
+    @Override
+    public String getExtraInfo() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getExtraInfo'");
+    }
+
 }

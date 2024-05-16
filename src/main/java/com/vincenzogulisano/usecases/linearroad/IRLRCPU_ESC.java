@@ -90,4 +90,10 @@ public class IRLRCPU_ESC extends EnvironmentStateCalculator {
 
     }
 
+    @Override
+    public String getExtraInfo() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getExtraInfo'");
+    }
+
 }
