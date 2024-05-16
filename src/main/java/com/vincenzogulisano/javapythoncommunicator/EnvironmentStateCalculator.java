@@ -226,7 +226,7 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
             if (sendStateTokens.get() > 0) {
                 logger.debug("One token is available");
                 if (areRewardAndNewStateMeasurementAvailable()) {
-                    logger.debug("And state/reward too");
+                    logger.debug("And state/reward/extrainfo too");
                     sendStateTokens.set(0);
 
                     String msg = getStateMeasurementAsString() + separator + getReward() + separator + getExtraInfo();
