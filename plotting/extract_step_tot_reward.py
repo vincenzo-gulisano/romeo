@@ -5,7 +5,7 @@ import os
 
 def extract_data(base_folder):
     log_file_path = os.path.join(base_folder, 'python_agent.log') 
-    output_csv_path = os.path.join(base_folder, 'step_tot_reward.csv')
+    output_csv_path = os.path.join(base_folder, 'step_tot_reward_14.csv')
 
     episode_pattern = re.compile(r'Episode (\d+), Step (\d+), This episode has finished\.\nEpisode \1, Total Time:.*Total Reward: (-?\d+)')
 
