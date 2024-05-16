@@ -181,14 +181,19 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
                         logMsg.append("-1.0,");
                     }
                 }
-                if (metric.equals("latency") && entry.getValue().containsKey(metric)
+                // If the metric is latency, the event time is greater than that reported in the
+                // last state, there's indeed an entry for latency and if it is greater then the
+                // earlytermination threshold, increase
+                // numberOfLatenciesExceedingEarlyTerminationThreshold
+                if (metric.equals("latency") && entry.getKey() > lastReportedStateMaxTS
+                        && entry.getValue().containsKey(metric)
                         && entry.getValue().get(metric) > earlyTerminationThreshold) {
                     numberOfLatenciesExceedingEarlyTerminationThreshold++;
                 }
             }
-            logger.debug("Number of latencies exceeding early termination threshold: {}",
-                    numberOfLatenciesExceedingEarlyTerminationThreshold);
         }
+        logger.debug("Number of latencies exceeding early termination threshold: {}",
+                numberOfLatenciesExceedingEarlyTerminationThreshold);
         if (logger.isDebugEnabled()) {
             // Inside if to avoid substring operation cost if not needed
             logger.debug("serialized state:\n{}", logMsg.substring(0, logMsg.length() - 1));
