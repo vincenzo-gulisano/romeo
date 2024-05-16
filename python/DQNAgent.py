@@ -21,6 +21,7 @@ from collections import namedtuple
 import math
 import os
 import pickle
+import csv
 
 
 GAMMA = 0.99
@@ -413,7 +414,7 @@ class SPEEnvironment(Env):
         
         # update latency counter
         print(f"Checking high latency based on latency values")
-        checkAlsoBasedReward = True
+        # checkAlsoBasedReward = True
         state = self.consumer.tracker.state.copy()
         self.current_event_time = state[6, :]  # update eventtime
         # for event_time, latency in zip(self.consumer.tracker.state[10], self.consumer.tracker.state[3]):
@@ -421,7 +422,7 @@ class SPEEnvironment(Env):
             if event_time > self.latency_last_events:
                 self.latency_last_events = event_time
                 if latency > self.latency_threshold:
-                    checkAlsoBasedReward = False
+                    # checkAlsoBasedReward = False
                     self.latency_counter += 1
                     print(f"High latency observed: {event_time, latency} ms at step {(self.stepsPerEpisode - self.remaingSteps) + 1}")
                     # print(f"High latency observed: {event_time, latency} ms at step {(self.stepsPerEpisode - self.remaingSteps)}")
@@ -432,15 +433,31 @@ class SPEEnvironment(Env):
         #         self.latency_counter += 1
         #         print(f"High latency observed because of reward at step {(self.stepsPerEpisode - self.remaingSteps) + 1}")
         #         # print(f"High latency observed because of reward at step {(self.stepsPerEpisode - self.remaingSteps)}")
+        # if self.latency_counter >= self.latency_violations_per_episode:
+        #     done = True
+        #     print(f"Episode terminated early due to excessive latency violations.")
 
         # record latency of last second if it is not missing -1
-        if state[3, -1] != -1:
-            self.latency_record.append(state[3, -1])
+        current_event_time = self.current_event_time
+        current_latency = self.consumer.tracker.state[3]
+        for event_time, latency in zip(current_event_time, current_latency):
+            if latency != -1:
+                # check if the same event time has been recorded
+                existing_entry = next((item for item in self.latency_record if item[0] == event_time), None)
+                # if the record of this eventtime already exists, then update latency
+                if existing_entry:
+                    index = self.latency_record.index(existing_entry)
+                    self.latency_record[index] = (event_time, latency)
+                # if not, add new record
+                else:
+                    self.latency_record.append((event_time, latency))
+
         # Check if episode should end
         if self.remaingSteps <= 0 or self.latency_counter >= self.latency_violations_per_episode:
             done = True
             # apply bonus if conditions are met at the end of an episode
-            if len(self.latency_record) >= self.bonus_step_interval and all(latency <= self.bonus_latency_threshold for latency in self.latency_record[-10:]):
+            valid_latencies = [latency for _, latency in self.latency_record[-10:]]  # extract only the latency values from the last 10 records
+            if len(valid_latencies) == self.bonus_step_interval and all(latency <= self.bonus_latency_threshold for latency in valid_latencies):
                     self.consumer.tracker.reward += 10
                     print(f"Extra reward bonus +10 because of low latency in the last {self.bonus_step_interval} steps")
         else:
@@ -603,7 +620,7 @@ if __name__ == "__main__":
     #     os.makedirs(paras_folder_name)
 
     # create folder to store paras (synthetic)
-    paras_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp14_WEAAW_s_paras-1-200'
+    paras_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp14-1_WEAAW_s_paras-1-200'
     if not os.path.exists(paras_folder_name):
         os.makedirs(paras_folder_name)
 
@@ -613,7 +630,7 @@ if __name__ == "__main__":
     #     os.makedirs(q_value_folder_name)
 
     # create folder to store q value plots (synthetic)
-    q_value_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp14_WEAAW_s_q_values_plot-1-200'
+    q_value_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp14-1_WEAAW_s_q_values_plot-1-200'
     if not os.path.exists(q_value_folder_name):
         os.makedirs(q_value_folder_name)
     
@@ -623,10 +640,19 @@ if __name__ == "__main__":
     #     os.makedirs(replay_buffer_folder_name)
     
     # create folder to store replay buffer (synthetic)
-    replay_buffer_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp14_WEAAW_s_replay_buffer-1-200'
+    replay_buffer_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp14-1_WEAAW_s_replay_buffer-1-200'
     if not os.path.exists(replay_buffer_folder_name):
         os.makedirs(replay_buffer_folder_name)
-    
+
+    # create csv file to save episode - #step - total reward
+    step_tot_reward_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/'
+    if not os.path.exists(step_tot_reward_folder_name):
+        os.makedirs(step_tot_reward_folder_name)
+    step_tot_reward_path = os.path.join(step_tot_reward_folder_name, 'step_tot_reward.csv')
+
+    with open(step_tot_reward_path, mode = 'w', newline = '') as file:
+        writer = csv.writer(file)
+        writer.writerow(['episode', 'step', 'total_reward'])
 
     for i_episode in range(0, int(args.episodes)):
         print('starting episode',i_episode + 1)
@@ -692,6 +718,10 @@ if __name__ == "__main__":
                 # standard average for this current episode
                 standard_average_reward = total_reward / step_count if step_count else 0
                 print(f"Episode {i_episode + 1}, Total Time: {total_time: .2f}, Total Reward: {total_reward}, Incremental Average Reward: {incremental_average_reward}, Standard Average Reward: {standard_average_reward}")
+                # write results to 'step_tot_reward.csv'
+                with open(step_tot_reward_path, mode = 'a', newline = '') as file:
+                    writer = csv.writer(file, quoting=csv.QUOTE_MINIMAL)
+                    writer.writerow([i_episode + 1, step_count + 1, total_reward])
                 break
 
         if i_episode % target_update == 0:
@@ -714,16 +744,16 @@ if __name__ == "__main__":
         plt.ylabel('Q Values')
         plt.title(f'Q Values Over Episodes (Episode {i_episode + 1})')
         plt.legend()
-        q_value_file_path = os.path.join(q_value_folder_name, f'exp14_weaaw_s_values_plot_{i_episode + 1}.png')
+        q_value_file_path = os.path.join(q_value_folder_name, f'exp14-1_weaaw_s_values_plot_{i_episode + 1}.png')
         plt.savefig(q_value_file_path)
         plt.close()
             
         # saving paras and replay buffer per 10 episodes
         if (i_episode + 1) % 10 == 0: 
             # save model paras every 10 episodes
-            paras_file_path = os.path.join(paras_folder_name, f'exp14_weaaw_s_dqn_model_episode_{i_episode + 1}.pth')
+            paras_file_path = os.path.join(paras_folder_name, f'exp14-1_weaaw_s_dqn_model_episode_{i_episode + 1}.pth')
             torch.save(Agent.net.state_dict(), paras_file_path)
-            replay_buffer_file_path = os.path.join(replay_buffer_folder_name, f'exp14_weaaw_s_buffer_after_{i_episode + 1}_episodes.pkl')
+            replay_buffer_file_path = os.path.join(replay_buffer_folder_name, f'exp14-1_weaaw_s_buffer_after_{i_episode + 1}_episodes.pkl')
             with open (replay_buffer_file_path, 'wb') as f:
                 pickle.dump(Agent.buffer, f)
             # print(f'Saved replay buffer after {i_episode + 1} episodes ...')
