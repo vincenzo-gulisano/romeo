@@ -319,3 +319,11 @@ if (latency was smaller than threshold AND (compression ratio decreased OR compr
 latency for any 3 steps in each episode is higher than 2.5 seconds --> terminate this episode, then go to next one
 5. run 200 episodes 50 steps for each episode
 6. change tau within [5,1] ([10,3] to [5,1])
+# Exp14.1
+1. change reward function
+(1) +2: latency before and after action are both below soft and compression increased
+(2) +1: latency before and after action are both below soft and compression did not increase
+(3) +2: latency before and after action are both not high and compression increased
+(4) +1: latency before and after action are both not high and compression did not increase
+(5) +2: latency before is high and after action is not
+(6) -5: if not above
