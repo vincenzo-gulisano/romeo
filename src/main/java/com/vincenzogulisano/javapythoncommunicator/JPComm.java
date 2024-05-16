@@ -30,7 +30,8 @@ public class JPComm {
 
     public Logger logger = LogManager.getLogger();
 
-    private JPComm(Actionable actionable, long latencyTreshold, long CPUThreshold) {
+    private JPComm(Actionable actionable, long latencyTreshold, long CPUThreshold,
+            double earlyTerminationLatencyThreshold) {
         this.actionable = actionable;
 
         properties = new Properties();
@@ -50,14 +51,15 @@ public class JPComm {
         consumer.subscribe(Collections.singletonList("dchanges"));
         // esc = new LatencyAndRatioDeltaESC(20, producer, "/");
         // esc = new IRLRCPU_ESC(10,producer, "/");
-        esc = new IRLRCPUMatrix_ESC(7, producer, "/", 7, latencyTreshold, CPUThreshold);
+        esc = new IRLRCPUMatrix_ESC(7, producer, "/", 7, latencyTreshold, CPUThreshold,
+                earlyTerminationLatencyThreshold);
         // esc.addSendStateToken();
 
     }
 
     public static JPComm createInstance(Actionable actionable, EnvironmentMonitor monitor, long latencyTreshold,
-            long CPUThreshold) {
-        JPComm jpc = new JPComm(actionable, latencyTreshold, CPUThreshold);
+            long CPUThreshold, double earlyTerminationLatencyThreshold) {
+        JPComm jpc = new JPComm(actionable, latencyTreshold, CPUThreshold, earlyTerminationLatencyThreshold);
         monitor.setStatReporter(jpc.esc);
         return jpc;
     }
@@ -132,13 +134,16 @@ public class JPComm {
 
         long latencyThreshold = Long.valueOf(expOps.commandLine().getOptionValue("latencyTreshold", "1500"));
         long CPUThreshold = Long.valueOf(expOps.commandLine().getOptionValue("CPUTreshold", "80"));
+        double earlyTerminationLatencyThreshold = Double
+                .valueOf(expOps.commandLine().getOptionValue("earlyTerminationLatencyThreshold", "2500"));
 
         switch (usecase) {
             case "LinearRoad":
 
                 QueryCountConsecutiveStops q = new QueryCountConsecutiveStops();
                 q.createQuery(args);
-                JPComm jpc = JPComm.createInstance(q, q, latencyThreshold, CPUThreshold);
+                JPComm jpc = JPComm.createInstance(q, q, latencyThreshold, CPUThreshold,
+                        earlyTerminationLatencyThreshold);
                 jpc.startInternalThread();
                 q.activateQuery();
 
@@ -148,7 +153,8 @@ public class JPComm {
 
                 QuerySynthetic q2 = new QuerySynthetic();
                 q2.createQuery(args);
-                JPComm jpc2 = JPComm.createInstance(q2, q2, latencyThreshold, CPUThreshold);
+                JPComm jpc2 = JPComm.createInstance(q2, q2, latencyThreshold, CPUThreshold,
+                        earlyTerminationLatencyThreshold);
                 jpc2.startInternalThread();
                 q2.activateQuery();
 

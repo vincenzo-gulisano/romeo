@@ -345,7 +345,7 @@ class SPEEnvironment(Env):
             with self.consumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by other threads
                 # print('self.consumer.tracker.state is not None',(self.consumer.tracker.state is not None),'self.consumer.tracker.last_time',self.consumer.tracker.last_time,'self.prev_stat_time',self.prev_stat_time)
                 if self.consumer.tracker.state is not None and self.consumer.tracker.last_time > self.prev_stat_time:
-                    print('Got a new state/reward pair:',self.consumer.tracker.last_time)
+                    print('Got a new state/reward/extrainfo msg:',self.consumer.tracker.last_time)
                     self.print_state(self.consumer.tracker.state)
                     # for row in self.consumer.tracker.state:
                     #     print ([f'{num:.2f}' for num in row])
@@ -395,7 +395,7 @@ class SPEEnvironment(Env):
                 # print('self.consumer.tracker.state is not None',(self.consumer.tracker.state is not None),'self.consumer.tracker.last_time',self.consumer.tracker.last_time,'self.prev_stat_time',self.prev_stat_time)
                 if self.consumer.tracker.state is not None and self.consumer.tracker.last_time > self.prev_stat_time:
                     # print('Got a new state/reward pair:',self.consumer.tracker.last_time,self.consumer.tracker.state,self.consumer.tracker.reward,flush=True)
-                    print('Got a new state/reward pair:',self.consumer.tracker.last_time)
+                    print('Got a new state/reward/extrainfo msg:',self.consumer.tracker.last_time)
                     self.print_state(self.consumer.tracker.state)
                     # for row in self.consumer.tracker.state:
                     #     print ([f'{num:.2f}' for num in row])
@@ -521,6 +521,8 @@ class MeasurementTracker:
             # state_matrix = np.array(doubles_list, dtype=np.float32).reshape(-1, self.valuesPerObservation)
             # self.state = state_matrix.T
             self.reward = int(parts[1])
+
+            numberOfTimesLatencyExceededTheEarlyTerminationThresholdSinceLastAction = int(parts[2])
 
 class KafkaActionsProducer:
     def __init__(self, statsConsumer, bootstrap_servers='michelangelo.cse.chalmers.se:9092', actions_topic='dchanges'):

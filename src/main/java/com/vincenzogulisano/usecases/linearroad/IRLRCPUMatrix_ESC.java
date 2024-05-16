@@ -53,11 +53,15 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
     private List<LatStatus> latStatusInStates;
     private List<CompressionValue> latestCompressionsInReportedStates;
 
+    private long numberOfLatenciesExceedingEarlyTerminationThreshold;
+    private final double earlyTerminationThreshold;
+
     public IRLRCPUMatrix_ESC(long monitoringPeriod, Producer<String, String> producer, String separator,
-            long valuesPerObservation, long latencyThreshold, long CPUThreshold) {
+            long valuesPerObservation, long latencyThreshold, long CPUThreshold, double earlyTerminationThreshold) {
         super(monitoringPeriod, producer, separator, false, false);
         this.hardLatencyThreshold = latencyThreshold;
         this.softLatencyThreshold = latencyThreshold / 2;
+        this.earlyTerminationThreshold = earlyTerminationThreshold;
         logger.debug("Soft and hard latencies set to {} and {}", softLatencyThreshold, hardLatencyThreshold);
         relevantMetrics = new ArrayList<>(
                 Arrays.asList("injectionrate", "throughput", "outrate", "latency", "ratio", "comp", "dec",
@@ -164,6 +168,9 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
                     thresholdTS, monitoringPeriod);
         }
 
+        numberOfLatenciesExceedingEarlyTerminationThreshold = 0;
+        logger.debug("Number of latencies exceeding early termination threshold set to 0.");
+
         StringBuilder logMsg = new StringBuilder();
         for (String metric : relevantMetrics) {
             for (Entry<Long, HashMap<String, Double>> entry : stateMeasurements.entrySet()) {
@@ -174,7 +181,13 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
                         logMsg.append("-1.0,");
                     }
                 }
+                if (metric.equals("latency") && entry.getValue().containsKey(metric)
+                        && entry.getValue().get(metric) > earlyTerminationThreshold) {
+                    numberOfLatenciesExceedingEarlyTerminationThreshold++;
+                }
             }
+            logger.debug("Number of latencies exceeding early termination threshold: {}",
+                    numberOfLatenciesExceedingEarlyTerminationThreshold);
         }
         if (logger.isDebugEnabled()) {
             // Inside if to avoid substring operation cost if not needed
@@ -437,6 +450,11 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
 
         return formattedState;
 
+    }
+
+    @Override
+    public String getExtraInfo() {
+        return "" + numberOfLatenciesExceedingEarlyTerminationThreshold;
     }
 
 }
