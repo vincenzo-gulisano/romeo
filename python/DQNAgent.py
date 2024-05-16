@@ -21,6 +21,7 @@ from collections import namedtuple
 import math
 import os
 import pickle
+import csv
 
 
 GAMMA = 0.99
@@ -619,7 +620,7 @@ if __name__ == "__main__":
     #     os.makedirs(paras_folder_name)
 
     # create folder to store paras (synthetic)
-    paras_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp14_WEAAW_s_paras-1-200'
+    paras_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp14-1_WEAAW_s_paras-1-200'
     if not os.path.exists(paras_folder_name):
         os.makedirs(paras_folder_name)
 
@@ -629,7 +630,7 @@ if __name__ == "__main__":
     #     os.makedirs(q_value_folder_name)
 
     # create folder to store q value plots (synthetic)
-    q_value_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp14_WEAAW_s_q_values_plot-1-200'
+    q_value_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp14-1_WEAAW_s_q_values_plot-1-200'
     if not os.path.exists(q_value_folder_name):
         os.makedirs(q_value_folder_name)
     
@@ -639,10 +640,19 @@ if __name__ == "__main__":
     #     os.makedirs(replay_buffer_folder_name)
     
     # create folder to store replay buffer (synthetic)
-    replay_buffer_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp14_WEAAW_s_replay_buffer-1-200'
+    replay_buffer_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp14-1_WEAAW_s_replay_buffer-1-200'
     if not os.path.exists(replay_buffer_folder_name):
         os.makedirs(replay_buffer_folder_name)
-    
+
+    # create csv file to save episode - #step - total reward
+    step_tot_reward_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/'
+    if not os.path.exists(step_tot_reward_folder_name):
+        os.makedirs(step_tot_reward_folder_name)
+    step_tot_reward_path = os.path.join(step_tot_reward_folder_name, 'step_tot_reward.csv')
+
+    with open(step_tot_reward_path, mode = 'w', newline = '') as file:
+        writer = csv.writer(file)
+        writer.writerow(['episode', 'step', 'total_reward'])
 
     for i_episode in range(0, int(args.episodes)):
         print('starting episode',i_episode + 1)
@@ -708,6 +718,10 @@ if __name__ == "__main__":
                 # standard average for this current episode
                 standard_average_reward = total_reward / step_count if step_count else 0
                 print(f"Episode {i_episode + 1}, Total Time: {total_time: .2f}, Total Reward: {total_reward}, Incremental Average Reward: {incremental_average_reward}, Standard Average Reward: {standard_average_reward}")
+                # write results to 'step_tot_reward.csv'
+                with open(step_tot_reward_path, mode = 'a', newline = '') as file:
+                    writer = csv.writer(file, quoting=csv.QUOTE_MINIMAL)
+                    writer.writerow([i_episode + 1, step_count + 1, total_reward])
                 break
 
         if i_episode % target_update == 0:
@@ -730,16 +744,16 @@ if __name__ == "__main__":
         plt.ylabel('Q Values')
         plt.title(f'Q Values Over Episodes (Episode {i_episode + 1})')
         plt.legend()
-        q_value_file_path = os.path.join(q_value_folder_name, f'exp14_weaaw_s_values_plot_{i_episode + 1}.png')
+        q_value_file_path = os.path.join(q_value_folder_name, f'exp14-1_weaaw_s_values_plot_{i_episode + 1}.png')
         plt.savefig(q_value_file_path)
         plt.close()
             
         # saving paras and replay buffer per 10 episodes
         if (i_episode + 1) % 10 == 0: 
             # save model paras every 10 episodes
-            paras_file_path = os.path.join(paras_folder_name, f'exp14_weaaw_s_dqn_model_episode_{i_episode + 1}.pth')
+            paras_file_path = os.path.join(paras_folder_name, f'exp14-1_weaaw_s_dqn_model_episode_{i_episode + 1}.pth')
             torch.save(Agent.net.state_dict(), paras_file_path)
-            replay_buffer_file_path = os.path.join(replay_buffer_folder_name, f'exp14_weaaw_s_buffer_after_{i_episode + 1}_episodes.pkl')
+            replay_buffer_file_path = os.path.join(replay_buffer_folder_name, f'exp14-1_weaaw_s_buffer_after_{i_episode + 1}_episodes.pkl')
             with open (replay_buffer_file_path, 'wb') as f:
                 pickle.dump(Agent.buffer, f)
             # print(f'Saved replay buffer after {i_episode + 1} episodes ...')
