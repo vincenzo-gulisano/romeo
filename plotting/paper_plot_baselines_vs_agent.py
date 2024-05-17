@@ -134,6 +134,7 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
     agent_plots = {
         'weaaw_linear': [1,5,0.01,0.99,'green',1],
         'weaaw_synthetic': [1,5,0.01,0.99,'green',1],
+        '14.2': [1,5,0.01,0.99,'green',0.75],
         '14.1': [1,5,0.01,0.99,'green',0.75],
         '13.1': [1,5,0.1,0.8,'red',1],
         '13.2': [1,5,0.1,0.8,'green',1],
@@ -142,7 +143,7 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
        
     given_order = ['weaaw_linear']  # The desired order for baselines
     given_order = ['weaaw_synthetic']  # The desired order for baselines
-    given_order = ['14.1']  # The desired order for baselines
+    given_order = ['14.2']  # The desired order for baselines
     
     # Create a set for faster membership tests
     unique_baselines_set = set(baseline_df['baseline'].unique())

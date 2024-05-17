@@ -53,6 +53,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
     private List<LatStatus> latStatusInStates;
     private List<CompressionValue> latestCompressionsInReportedStates;
 
+    private TreeMap<Long, Double> prevLatenciesAboveTerminationThreshold;
     private long numberOfLatenciesExceedingEarlyTerminationThreshold;
     private final double earlyTerminationThreshold;
 
@@ -62,6 +63,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         this.hardLatencyThreshold = latencyThreshold;
         this.softLatencyThreshold = latencyThreshold / 2;
         this.earlyTerminationThreshold = earlyTerminationThreshold;
+        this.prevLatenciesAboveTerminationThreshold = new TreeMap<>();
         logger.debug("Soft and hard latencies set to {} and {}", softLatencyThreshold, hardLatencyThreshold);
         relevantMetrics = new ArrayList<>(
                 Arrays.asList("injectionrate", "throughput", "outrate", "latency", "ratio", "comp", "dec",
@@ -82,9 +84,11 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         stateMeasurements.clear();
         lastReportedStateMaxTS = -1;
 
-        logger.debug("Clearing latencyAboveThresholdInReportedStates and compressionsAboveZeroInReportedStates");
+        logger.debug(
+                "Clearing latencyAboveThresholdInReportedStates, compressionsAboveZeroInReportedStates, and latenciesAboveTerminationThreshold");
         latStatusInStates.clear();
         latestCompressionsInReportedStates.clear();
+        prevLatenciesAboveTerminationThreshold.clear();
     }
 
     /**
@@ -168,8 +172,30 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
                     thresholdTS, monitoringPeriod);
         }
 
-        numberOfLatenciesExceedingEarlyTerminationThreshold = 0;
-        logger.debug("Number of latencies exceeding early termination threshold set to 0.");
+        // Collect the entries exceeding the threshold in the latest set of measurements
+        TreeMap<Long, Double> latenciesAboveTerminationThreshold = new TreeMap<>();
+        for (Entry<Long, HashMap<String, Double>> entry : stateMeasurements.entrySet()) {
+            if (entry.getValue().containsKey("latency")
+                    && entry.getValue().get("latency") > earlyTerminationThreshold) {
+                latenciesAboveTerminationThreshold.put(entry.getKey(), entry.getValue().get("latency"));
+            }
+        }
+        logger.debug("Latencies exceeding early termination threshold: {}", latenciesAboveTerminationThreshold);
+        // Clean the ones that where already reported
+        HashSet<Long> toBeRemoved = new HashSet<>();
+        for (Entry<Long, Double> entry : latenciesAboveTerminationThreshold.entrySet()) {
+            if (prevLatenciesAboveTerminationThreshold.containsKey(entry.getKey())) {
+                logger.debug("Removing this latency because it has been already accounted for: {}", entry);
+                toBeRemoved.add(entry.getKey());
+            }
+        }
+        for (Long k : toBeRemoved) {
+            latenciesAboveTerminationThreshold.remove(k);
+        }
+        numberOfLatenciesExceedingEarlyTerminationThreshold = latenciesAboveTerminationThreshold.size();
+        logger.debug("Number of latencies exceeding early termination threshold: {}",
+                numberOfLatenciesExceedingEarlyTerminationThreshold);
+        prevLatenciesAboveTerminationThreshold = latenciesAboveTerminationThreshold;     
 
         StringBuilder logMsg = new StringBuilder();
         for (String metric : relevantMetrics) {
@@ -181,19 +207,9 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
                         logMsg.append("-1.0,");
                     }
                 }
-                // If the metric is latency, the event time is greater than that reported in the
-                // last state, there's indeed an entry for latency and if it is greater then the
-                // earlytermination threshold, increase
-                // numberOfLatenciesExceedingEarlyTerminationThreshold
-                if (metric.equals("latency") && entry.getKey() > lastReportedStateMaxTS
-                        && entry.getValue().containsKey(metric)
-                        && entry.getValue().get(metric) > earlyTerminationThreshold) {
-                    numberOfLatenciesExceedingEarlyTerminationThreshold++;
-                }
             }
         }
-        logger.debug("Number of latencies exceeding early termination threshold: {}",
-                numberOfLatenciesExceedingEarlyTerminationThreshold);
+        
         if (logger.isDebugEnabled()) {
             // Inside if to avoid substring operation cost if not needed
             logger.debug("serialized state:\n{}", logMsg.substring(0, logMsg.length() - 1));
