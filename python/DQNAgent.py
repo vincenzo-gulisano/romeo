@@ -375,16 +375,6 @@ class SPEEnvironment(Env):
 
         self.producer.produce("changeD," + str(int(current_compression/10)))
 
-        # give extra +5 for completing every 10 steps
-        if self.steps_since_last_bonus == self.bonus_step_interval - 1:
-            self.consumer.tracker.reward += 5
-            #self.bonus_given = True
-            print(f"Extra reward bonus +5 for completing {self.bonus_step_interval} steps")
-        self.steps_since_last_bonus += 1
-        if self.steps_since_last_bonus == self.bonus_step_interval:
-            self.steps_since_last_bonus = 0
-
-
         # Wait for the state and reward measurement
         self.prev_stat_time = time.time()
         state_measurement_available = False
@@ -411,9 +401,18 @@ class SPEEnvironment(Env):
         #     done = True
         # else:
         #     done = False
+                    
+        # give extra +5 for completing every 10 steps
+        if self.steps_since_last_bonus == self.bonus_step_interval - 1:
+            self.consumer.tracker.reward += 5
+            #self.bonus_given = True
+            print(f"Extra reward bonus +5 for completing {self.bonus_step_interval} steps")
+        self.steps_since_last_bonus += 1
+        if self.steps_since_last_bonus == self.bonus_step_interval:
+            self.steps_since_last_bonus = 0
         
         # update latency counter
-        print(f"Checking high latency based on latency values")
+        # print(f"Checking high latency based on latency values")
         # checkAlsoBasedReward = True
         state = self.consumer.tracker.state.copy()
         self.current_event_time = state[6, :]  # update eventtime
@@ -619,40 +618,46 @@ if __name__ == "__main__":
     incremental_average_reward = 0  # average reward of all episodes for incermental averaging
 
     # create folder to store paras (linear)
-    # paras_folder_name = 'data/output/WEAAW/linear/5/600/5000000000/10/Exp13-2_WEAAW_l_paras-1-100'
-    # if not os.path.exists(paras_folder_name):
-    #     os.makedirs(paras_folder_name)
-
-    # create folder to store paras (synthetic)
-    paras_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp14-2_WEAAW_s_paras-1-200'
+    paras_folder_name = 'data/output/WEAAW/linear/5/600/5000000000/10/Exp14-2_WEAAW_l_paras-1-200'
     if not os.path.exists(paras_folder_name):
         os.makedirs(paras_folder_name)
 
-    # create folder to store q value plots (linear)
-    # q_value_folder_name = 'data/output/WEAAW/linear/5/600/5000000000/10/Exp13-2_WEAAW_l_q_value_plot-1-100'
-    # if not os.path.exists(q_value_folder_name):
-    #     os.makedirs(q_value_folder_name)
+    # create folder to store paras (synthetic)
+    # paras_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp14-2_WEAAW_s_paras-1-200'
+    # if not os.path.exists(paras_folder_name):
+    #     os.makedirs(paras_folder_name)
 
-    # create folder to store q value plots (synthetic)
-    q_value_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp14-2_WEAAW_s_q_values_plot-1-200'
+    # create folder to store q value plots (linear)
+    q_value_folder_name = 'data/output/WEAAW/linear/5/600/5000000000/10/Exp14-2_WEAAW_l_q_value_plot-1-200'
     if not os.path.exists(q_value_folder_name):
         os.makedirs(q_value_folder_name)
+
+    # create folder to store q value plots (synthetic)
+    # q_value_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp14-2_WEAAW_s_q_values_plot-1-200'
+    # if not os.path.exists(q_value_folder_name):
+    #     os.makedirs(q_value_folder_name)
     
     # create folder to store replay buffer (linear)
-    # replay_buffer_folder_name = 'data/output/WEAAW/linear/5/600/5000000000/10/Exp13-2_WEAAW_l_replay_buffer-1-100'
-    # if not os.path.exists(replay_buffer_folder_name):
-    #     os.makedirs(replay_buffer_folder_name)
-    
-    # create folder to store replay buffer (synthetic)
-    replay_buffer_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp14-2_WEAAW_s_replay_buffer-1-200'
+    replay_buffer_folder_name = 'data/output/WEAAW/linear/5/600/5000000000/10/Exp14-2_WEAAW_l_replay_buffer-1-200'
     if not os.path.exists(replay_buffer_folder_name):
         os.makedirs(replay_buffer_folder_name)
+    
+    # create folder to store replay buffer (synthetic)
+    # replay_buffer_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp14-2_WEAAW_s_replay_buffer-1-200'
+    # if not os.path.exists(replay_buffer_folder_name):
+    #     os.makedirs(replay_buffer_folder_name)
 
     # create csv file to save episode - #step - total reward
-    step_tot_reward_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/'
+    step_tot_reward_folder_name = 'data/output/WEAAW/linear/5/600/5000000000/10'
     if not os.path.exists(step_tot_reward_folder_name):
         os.makedirs(step_tot_reward_folder_name)
-    step_tot_reward_path = os.path.join(step_tot_reward_folder_name, 'step_tot_reward_14-2.csv')
+    step_tot_reward_path = os.path.join(step_tot_reward_folder_name, 'step_tot_reward_l_14-2.csv')
+
+    # create csv file to save episode - #step - total reward
+    # step_tot_reward_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/'
+    # if not os.path.exists(step_tot_reward_folder_name):
+    #     os.makedirs(step_tot_reward_folder_name)
+    # step_tot_reward_path = os.path.join(step_tot_reward_folder_name, 'step_tot_reward_s_14-2.csv')
 
     with open(step_tot_reward_path, mode = 'w', newline = '') as file:
         writer = csv.writer(file)
@@ -713,6 +718,8 @@ if __name__ == "__main__":
             if args.learningactive:
                 Agent.update_parameters()
             
+            print(f"After {step_count + 1} steps, total reward so far in this episode: {total_reward}")
+            
             if done == True:
                 end_time = time.time() # end time of per episode
                 total_time = end_time - start_time
@@ -748,16 +755,16 @@ if __name__ == "__main__":
         plt.ylabel('Q Values')
         plt.title(f'Q Values Over Episodes (Episode {i_episode + 1})')
         plt.legend()
-        q_value_file_path = os.path.join(q_value_folder_name, f'exp14-2_weaaw_s_values_plot_{i_episode + 1}.png')
+        q_value_file_path = os.path.join(q_value_folder_name, f'exp14-2_weaaw_l_values_plot_{i_episode + 1}.png')
         plt.savefig(q_value_file_path)
         plt.close()
             
         # saving paras and replay buffer per 10 episodes
         if (i_episode + 1) % 10 == 0: 
             # save model paras every 10 episodes
-            paras_file_path = os.path.join(paras_folder_name, f'exp14-2_weaaw_s_dqn_model_episode_{i_episode + 1}.pth')
+            paras_file_path = os.path.join(paras_folder_name, f'exp14-2_weaaw_l_dqn_model_episode_{i_episode + 1}.pth')
             torch.save(Agent.net.state_dict(), paras_file_path)
-            replay_buffer_file_path = os.path.join(replay_buffer_folder_name, f'exp14-2_weaaw_s_buffer_after_{i_episode + 1}_episodes.pkl')
+            replay_buffer_file_path = os.path.join(replay_buffer_folder_name, f'exp14-2_weaaw_l_buffer_after_{i_episode + 1}_episodes.pkl')
             with open (replay_buffer_file_path, 'wb') as f:
                 pickle.dump(Agent.buffer, f)
             # print(f'Saved replay buffer after {i_episode + 1} episodes ...')
