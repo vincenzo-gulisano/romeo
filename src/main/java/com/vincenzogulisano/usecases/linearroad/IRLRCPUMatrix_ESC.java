@@ -89,6 +89,8 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         latStatusInStates.clear();
         latestCompressionsInReportedStates.clear();
         prevLatenciesAboveTerminationThreshold.clear();
+        numberOfLatenciesExceedingEarlyTerminationThreshold = 0;
+        logger.debug("numberOfLatenciesExceedingEarlyTerminationThreshold reset to 0.");
     }
 
     /**
@@ -192,10 +194,10 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         for (Long k : toBeRemoved) {
             latenciesAboveTerminationThreshold.remove(k);
         }
-        numberOfLatenciesExceedingEarlyTerminationThreshold = latenciesAboveTerminationThreshold.size();
+        numberOfLatenciesExceedingEarlyTerminationThreshold += latenciesAboveTerminationThreshold.size();
         logger.debug("Number of latencies exceeding early termination threshold: {}",
                 numberOfLatenciesExceedingEarlyTerminationThreshold);
-        prevLatenciesAboveTerminationThreshold = latenciesAboveTerminationThreshold;     
+        prevLatenciesAboveTerminationThreshold = latenciesAboveTerminationThreshold;
 
         StringBuilder logMsg = new StringBuilder();
         for (String metric : relevantMetrics) {
@@ -209,7 +211,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
                 }
             }
         }
-        
+
         if (logger.isDebugEnabled()) {
             // Inside if to avoid substring operation cost if not needed
             logger.debug("serialized state:\n{}", logMsg.substring(0, logMsg.length() - 1));
