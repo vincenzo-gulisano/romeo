@@ -6,10 +6,12 @@ import numpy as np
 import sys
 import plotly.tools as tls
 
-def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_episode_events):
+def plot_files_in_folder(folder,episodesstatsfile,makeplots,print_global_events,print_episode_events):
 
     # Font size used in the per-episode plots
     fs = 6
+
+    print('Make episode plots?',makeplots)
 
     valid_csv_files = []
 
@@ -20,11 +22,20 @@ def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_epis
         try:
             df = pd.read_csv(file_path)
             # Check if the CSV file has exactly 2 columns and contains numerical values
-            if len(df.columns) == 2 and all(df.applymap(lambda x: isinstance(x, (int, float))).all(axis=1)):
-                print(file_path,'is a valid file path')
+            if len(df.columns) == 2 and all(df.map(lambda x: isinstance(x, (int, float))).all(axis=1)):
+                # print(file_path,'is a valid file path')
                 valid_csv_files.append(file_path)
             else:
                 print(file_path,'is not a valid file path')
+                print('len(df.columns) == 2',len(df.columns) == 2)
+                print('all(df.map(lambda x: isinstance(x, (int, float))).all(axis=1))',all(df.map(lambda x: isinstance(x, (int, float))).all(axis=1)))
+                # Create a mask where True means the value is an int or float
+                mask = df.applymap(lambda x: isinstance(x, (int, float)))
+                # Find where the mask is False, which indicates non-int/float entries
+                non_int_float_entries = df[~mask]
+                # Display the result
+                print("Entries that are not integers or floats:")
+                print(non_int_float_entries)
         except pd.errors.EmptyDataError:
             pass  # Handle empty CSV files
 
@@ -81,7 +92,8 @@ def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_epis
     for episode_value in episodes_df['episode'].unique():
 
         # Set the size of the figure
-        fig2, ax2 = plt.subplots(len(valid_csv_files),1,figsize=(4, len(valid_csv_files)), sharex=True)
+        if makeplots:
+            fig2, ax2 = plt.subplots(len(valid_csv_files),1,figsize=(4, len(valid_csv_files)), sharex=True)
         somethingPlotted = False
 
         # Plot each valid CSV file
@@ -126,34 +138,26 @@ def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_epis
                 filtered_df = temp_df[temp_df.iloc[:, 1] != -1]
 
                 # Plot
-                ax2[i].plot(filtered_df.iloc[:, 0]-start_time,filtered_df.iloc[:, 1])
-                
-                # ax2[i].axvline(0, linestyle='--', color='red')
-                # ax2[i].text(0, (temp_df.iloc[:, 1].min()+temp_df.iloc[:, 1].max())/2, f"Episode {episode_value}", rotation=90, color='red')
-
-                # Get the last x, y values from the filtered DataFrame
-                # first_x = temp_df.iloc[0, 0]
-                # first_y = temp_df.iloc[0, 1]
-
-                # # Add text annotation at the last x, y value with the size of original df
-                # ax2[i].text(first_x, first_y, f'Size: {len(temp_df)}', fontsize=6)
-                y_label = y_label + f' {len(temp_df)}'
-                ax2[i].set_xlabel(x_label, fontsize=fs)
-                ax2[i].set_ylabel(y_label, fontsize=fs)
-                ax2[i].tick_params(axis='both', labelsize=fs)   
+                if makeplots:
+                    ax2[i].plot(filtered_df.iloc[:, 0]-start_time,filtered_df.iloc[:, 1])
+                    y_label = y_label + f' {len(temp_df)}'
+                    ax2[i].set_xlabel(x_label, fontsize=fs)
+                    ax2[i].set_ylabel(y_label, fontsize=fs)
+                    ax2[i].tick_params(axis='both', labelsize=fs)   
                 
                 
                 # Filter out -1 values
                 filtered_values = temp_df.iloc[:, 1][temp_df.iloc[:, 1] != -1]
 
                 # Append episode statistics to the list, excluding -1 from the calculations
+                # notice min and max are first and third quartile, respectively!
                 stats.append({
                     'episode': episode_value,
                     'stat': os.path.splitext(os.path.basename(file_path))[0],
-                    'min': np.min(filtered_values) if not filtered_values.empty else np.nan,
+                    'min': filtered_values.quantile(0.25) if not filtered_values.empty else np.nan,
                     'mean': np.mean(filtered_values) if not filtered_values.empty else np.nan,
                     'sum': np.sum(filtered_values) if not filtered_values.empty else np.nan,
-                    'max': np.max(filtered_values) if not filtered_values.empty else np.nan
+                    'max': filtered_values.quantile(0.75) if not filtered_values.empty else np.nan
                 })
 
                 # Convert the list of dictionaries to a DataFrame
@@ -163,12 +167,12 @@ def plot_files_in_folder(folder,episodesstatsfile,print_global_events,print_epis
                 stats_df.to_csv(episodesstatsfile, mode='a', index=False, header=not os.path.exists(episodesstatsfile))
 
 
-        if somethingPlotted:
+        if makeplots and somethingPlotted:
             fig2.tight_layout()
             # Ensure subplots are close to each other and adjust left and right margins
             fig2.subplots_adjust(hspace=0)
             fig2.savefig(os.path.join(episode_folder, f'episode{episode_value:03}.pdf'))
-        plt.close()
+            plt.close()
 
         
     fig1.tight_layout()
@@ -190,9 +194,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Plot valid CSV files in a folder.')
     parser.add_argument('folder', type=str, help='The folder containing CSV files.')
     parser.add_argument('episodesstats', type=str, help='Output CSV file for episodes stats')
+    parser.add_argument('--makeplots', action='store_true', help='Whether or not to create plots')
     parser.add_argument('--print_global_events', action='store_true', help='Print episodes and events')
     parser.add_argument('--print_episode_events', action='store_true', help='Print episodes and events')
 
     args = parser.parse_args()
-
-    plot_files_in_folder(args.folder,args.episodesstats,args.print_global_events,args.print_episode_events)
+    if args.makeplots:
+        print("Making plots because makeplots is True")
+    else:
+        print("Not making plots because makeplots is False")
+    plot_files_in_folder(args.folder,args.episodesstats,args.makeplots,args.print_global_events,args.print_episode_events)

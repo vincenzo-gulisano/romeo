@@ -1,6 +1,7 @@
 #!/bin/bash
-base_exp_folder="./data/exp13/4_WEAAW"
-folders_to_explore=(weaaw_linear/1-100 weaaw_synthetic/1-100)
+base_exp_folder="./data/exp14/WEAAW/synthetic"
+folders_to_explore=("14.2")
+plot_probabilities="True"
 for folder_to_explore in "${folders_to_explore[@]}"; do
 
     exp_folder="${base_exp_folder}/${folder_to_explore}"
@@ -18,10 +19,19 @@ for folder_to_explore in "${folders_to_explore[@]}"; do
 
     echo "Trying to extract the action probabilities based on soft max"
     python plotting/create_action_probabilities_csv_from_python_log.py ${exp_folder}/python_agent.log ${exp_folder}/actionsprobs.csv
-    python plotting/plot_action_probabilities.py ${exp_folder}/actionsprobs.csv ${exp_folder}/eps
+    # If statement based on the boolean variable
+    if [ "$plot_probabilities" = "True" ]; then
+        python plotting/plot_action_probabilities.py ${exp_folder}/actionsprobs.csv ${exp_folder}/eps
+    else
+        echo "Not plotting probabilities since plot_probabilities is $plot_probabilities instead of True"
+    fi
 
-    echo "Creating plots"
-    python plotting/plot_experiment_stats_exp.py ${exp_folder}/ ${exp_folder}/episodesstats.csv 
+    echo "Creating plots and stats"
+    if [ "$plot_probabilities" = "True" ]; then
+        python plotting/plot_experiment_stats_exp.py ${exp_folder}/ ${exp_folder}/episodesstats.csv --makeplots
+    else
+        python plotting/plot_experiment_stats_exp.py ${exp_folder}/ ${exp_folder}/episodesstats.csv
+    fi
 
     python plotting/append_episodesstatscsv_to_global_one.py ${exp_folder}/episodesstats.csv ${exp_folder}/compressionandepisodesstats.csv ${folder_to_explore}
 

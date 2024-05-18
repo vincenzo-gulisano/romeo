@@ -108,7 +108,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         logger.debug("{} tuples in input stream", getInput().size());
         while (getInput().size() > 0 || inProcess) {
             logger.debug("Tuples being processed ({})", getInput().size());
-            Util.sleep(50);
+            Util.sleep(200);
         }
         // if (getInput().size() == 0) {
         logger.debug("No tuples in the input stream, resetting");
