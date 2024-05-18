@@ -126,9 +126,24 @@ def plot_graphs(base_folder,rate_file_path,agent_data):
     baseline_df['baseline'] = baseline_df['baseline'].astype(str)
 
     # The values represent: initial size, fine size, initial opacity, final opacity, color, prob. of selection
-    agent_plots = {'13.1': [1,5,0.1,0.8,'red',1],'13.2': [1,5,0.1,0.8,'green',1],'12.1': [1,5,0.1,0.8,'red',1],'12.2': [5,10,0.1,0.8,'green',1]}
+    agent_plots = {
+
+        'weaob_linear': [1,5,0.1,0.8,'green',1],
+        'eaob_linear': [1,5,0.1,0.8,'red',1],
+        'aob_linear': [1,5,0.1,0.8,'black',1],
+        'weaaw_linear': [1,5,0.1,0.8,'purple',1],
+        'weaob_synthetic': [1,5,0.1,0.8,'green',1],
+        'eaob_synthetic': [1,5,0.1,0.8,'red',1],
+        'aob_synthetic': [1,5,0.1,0.8,'black',1],
+        'weaaw_synthetic': [1,5,0.1,0.8,'purple',1],
+        '13.1': [1,5,0.1,0.8,'red',1],
+        '13.2': [1,5,0.1,0.8,'green',1],
+        '12.1': [1,5,0.1,0.8,'red',1],
+        '12.2': [5,10,0.1,0.8,'green',1]}
        
     given_order = ['13.1','13.2','12.1','12.2']  # The desired order for baselines
+    given_order = ['weaob_linear','eaob_linear','aob_linear','weaaw_linear']  # The desired order for baselines
+    given_order = ['weaob_synthetic','eaob_synthetic','aob_synthetic','weaaw_synthetic']  # The desired order for baselines
     
     # Create a set for faster membership tests
     unique_baselines_set = set(baseline_df['baseline'].unique())
@@ -145,8 +160,13 @@ def plot_graphs(base_folder,rate_file_path,agent_data):
             opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
             for j, (index, row) in enumerate(subset.iterrows()):
                 if np.random.rand()<=agent_plots[baseline][5]:
-                    axs[2,1].plot(row['eventtime']- dfrate['x'].min(), row['mean_ratio']/100, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
+                    if index == subset.index[-1]:
+                        label = baseline
+                    else:
+                        label = None
+                    axs[2,1].plot(row['eventtime']- dfrate['x'].min(), row['mean_ratio']/100, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],label=label)
     axs[2,1].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
+    axs[2,1].legend()
     
     for i, baseline in enumerate(unique_baselines):
         subset = baseline_df[baseline_df['baseline'] == baseline] 
