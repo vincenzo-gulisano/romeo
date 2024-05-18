@@ -1,5 +1,5 @@
 #!/bin/bash
-base_exp_folder="./data/exp14/WEAAW/synthetic"
+base_exp_folder="./data/exp14/WEAAW/linear"
 folders_to_explore=("14.2")
 plot_probabilities="True"
 for folder_to_explore in "${folders_to_explore[@]}"; do
@@ -13,7 +13,7 @@ for folder_to_explore in "${folders_to_explore[@]}"; do
 
     echo "Creating extra stats"
     grep -Eo '[0-9]+,[0-9]+,action [0-9]+' ${exp_folder}/episodes.csv | sed -E 's/,action /,/' | cut -d, -f1,3 > ${exp_folder}/actions.csv
-    awk '/^Got a new state\/reward pair: / {sub(/^Got a new state\/reward pair: /, ""); print int($1)} /^reward / {sub(/^reward /, ""); print $1}' ${exp_folder}/python_agent.log | paste -d, - -  > ${exp_folder}/rewards.csv
+    awk '/^Got a new state\/reward\/extrainfo msg: / {sub(/^Got a new state\/reward\/extrainfo msg: /, ""); print int($1)} /^reward / {sub(/^reward /, ""); print $1}' ${exp_folder}/python_agent.log | paste -d, - -  > ${exp_folder}/rewards.csv
     awk -F',' 'BEGIN {OFS=","; sum=0} {sum += $2; print $1, sum}' ${exp_folder}/rewards.csv > ${exp_folder}/cumulativereward.csv
     awk -F',' 'NR > 1 { print $1 "," ($2 == -1 ? -1 : ($2 < 1000 ? 0 : 1)) }' ${exp_folder}/latency.average.csv > ${exp_folder}/latency.violations.csv
 
