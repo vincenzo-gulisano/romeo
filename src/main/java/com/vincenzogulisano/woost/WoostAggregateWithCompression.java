@@ -305,6 +305,18 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
                 if (wToDecompress == null) {
                     logger.warn("Trying to decompress window for {} but it's null! The byte[] length is {}",
                             e1.getKey(), e1.getValue().length);
+                    try {
+                        byte[] snappyUncompress = Snappy.uncompress(e1.getValue());
+                        logger.warn("snappyUncompress length:", snappyUncompress.length);
+                        try {
+                            wToDecompress = (WoostTimeWindow<IN, OUT>) new ObjectInputStream(
+                                    new ByteArrayInputStream(Snappy.uncompress(e1.getValue()))).readObject();
+                        } catch (ClassNotFoundException e) {
+                            logger.warn("Window for {} still null!");
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
 
                 // Get output
