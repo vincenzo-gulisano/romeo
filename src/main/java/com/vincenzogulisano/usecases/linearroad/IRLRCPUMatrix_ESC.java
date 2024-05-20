@@ -116,6 +116,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         for (Entry<Long, HashMap<String, Double>> m : stateMeasurements.entrySet()) {
             if (m.getValue().containsKey("latency") && Double.compare(m.getValue().get("latency"), -1.0) != 0) {
                 found = true;
+                logger.debug("Returning a LatStatus becase on the state entry {}-{}", m.getKey(), m.getValue().get("latency"));
                 if (m.getValue().get("latency") >= hardLatencyThreshold) {
                     aboveHardThreshold = true;
                 } else if (m.getValue().get("latency") >= softLatencyThreshold) {
@@ -138,6 +139,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         boolean valid = false;
         for (Entry<Long, HashMap<String, Double>> m : stateMeasurements.entrySet()) {
             if (m.getValue().containsKey("ratio") && Double.compare(m.getValue().get("ratio"), -1.0) != 0) {
+                logger.debug("Returning a CompressionValue becase on the state entry {}-{}", m.getKey(), m.getValue().get("ratio"));
                 value = m.getValue().get("ratio");
                 valid = true;
             }
