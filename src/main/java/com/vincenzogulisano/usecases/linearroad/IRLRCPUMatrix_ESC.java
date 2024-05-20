@@ -114,19 +114,23 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         boolean aboveSoftThreshold = false;
         boolean found = false;
         for (Entry<Long, HashMap<String, Double>> m : stateMeasurements.entrySet()) {
-            if (m.getValue().containsKey("latency") && Double.compare(m.getValue().get("latency"), -1.0) != 0) {
-                found = true;
-                logger.debug("Returning a LatStatus becase on the state entry {}-{}", m.getKey(), m.getValue().get("latency"));
-                if (m.getValue().get("latency") >= hardLatencyThreshold) {
-                    aboveHardThreshold = true;
-                } else if (m.getValue().get("latency") >= softLatencyThreshold) {
-                    aboveSoftThreshold = true;
+            if (m.getKey() > lastReportedStateMaxTS) {
+                if (m.getValue().containsKey("latency") && Double.compare(m.getValue().get("latency"), -1.0) != 0) {
+                    found = true;
+                    logger.debug("Returning a LatStatus becase of the state entry {}-{}", m.getKey(),
+                            m.getValue().get("latency"));
+                    if (m.getValue().get("latency") >= hardLatencyThreshold) {
+                        aboveHardThreshold = true;
+                    } else if (m.getValue().get("latency") >= softLatencyThreshold) {
+                        aboveSoftThreshold = true;
+                    }
                 }
             }
-
         }
         if (!found) {
-            logger.warn("There seems to be no latency value in the latest state measurements");
+            logger.warn(
+                    "There seems to be no latency value in the latest state measurements (considering values greater than {})",
+                    lastReportedStateMaxTS);
         }
         return found
                 ? (aboveHardThreshold ? (LatStatus.ABOVEHARD)
@@ -138,14 +142,19 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         double value = -1.0;
         boolean valid = false;
         for (Entry<Long, HashMap<String, Double>> m : stateMeasurements.entrySet()) {
-            if (m.getValue().containsKey("ratio") && Double.compare(m.getValue().get("ratio"), -1.0) != 0) {
-                logger.debug("Returning a CompressionValue becase on the state entry {}-{}", m.getKey(), m.getValue().get("ratio"));
-                value = m.getValue().get("ratio");
-                valid = true;
+            if (m.getKey() > lastReportedStateMaxTS) {
+                if (m.getValue().containsKey("ratio") && Double.compare(m.getValue().get("ratio"), -1.0) != 0) {
+                    logger.debug("Returning a CompressionValue becase of the state entry {}-{}", m.getKey(),
+                            m.getValue().get("ratio"));
+                    value = m.getValue().get("ratio");
+                    valid = true;
+                }
             }
         }
         if (!valid) {
-            logger.warn("There seems to be no ratio value in the latest state measurements");
+            logger.warn(
+                    "There seems to be no ratio value in the latest state measurements (considering values greater than {})",
+                    lastReportedStateMaxTS);
         }
         return new CompressionValue(value, valid);
     }
@@ -421,7 +430,10 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         }
         long lastEventTime = (long) lastEventTimeDouble;
         boolean ready = stateMeasurements.lastKey() >= clockTimeBarrier && lastEventTime >= eventTimeBarrier
-                && stateMeasurements.lastKey() > lastReportedStateMaxTS && stateMeasurements.size() >= monitoringPeriod;
+                && stateMeasurements.size() >= monitoringPeriod;
+        // The following was also part of the ready check, but in principle it should
+        // not be there otherwise we cannot enfore the AOB policy!
+        // && stateMeasurements.lastKey() > lastReportedStateMaxTS
         if (ready) {
             logger.debug(
                     "State ready based on barriers (>=)? {} - clock time:{} clock time barrier:{} event time:{} event time barrier:{} lastReportedStateMaxTS:{}, lastReportedState.size():{}",
