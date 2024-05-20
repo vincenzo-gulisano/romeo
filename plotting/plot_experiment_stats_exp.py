@@ -51,6 +51,7 @@ def plot_files_in_folder(folder,episodesstatsfile,makeplots,print_global_events,
 
     print('Computing the minimum value of the first column among all files...')
     min_value = min(pd.read_csv(file).iloc[:, 0].min() for file in valid_csv_files)
+    print('min values from each file: ',[pd.read_csv(file).iloc[:, 0].min() for file in valid_csv_files])
     min_value = min(min_value,episodes_df.iloc[:, 0].min())
     print('...',min_value)
 

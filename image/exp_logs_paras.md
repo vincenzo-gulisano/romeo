@@ -327,3 +327,7 @@ latency for any 3 steps in each episode is higher than 2.5 seconds --> terminate
 (4) +1: latency before and after action are both not high and compression did not increase
 (5) +2: latency before is high and after action is not
 (6) -5: if not above
+# Exp14.2
+1. fixed missing high latencies problem for two queries
+2. run 100 episodes for WEAOB, EAOB and AOB
+3. run 200 episodes for WEEAW

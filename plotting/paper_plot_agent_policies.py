@@ -59,14 +59,14 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
 
     # The values represent: initial size, fine size, initial opacity, final opacity, color, prob. of selection
     agent_plots = {
-        'weaob_linear': [0.5,10,0.4,0.8,'red',0.5],
-        'eaob_linear': [0.5,10,0.4,0.8,'orange',0.5],
-        'aob_linear': [0.5,10,0.4,0.8,'blue',0.5],
-        'weaaw_linear': [0.5,10,0.4,0.8,'green',0.5],
-        'weaob_synthetic': [0.5,10,0.4,0.8,'red',0.5],
-        'eaob_synthetic': [0.5,10,0.4,0.8,'orange',0.5],
-        'aob_synthetic': [0.5,10,0.4,0.8,'blue',0.5],
-        'weaaw_synthetic': [0.5,10,0.4,0.8,'green',0.5],
+        'weaob_linear': [1,1,1,1,'red',1],
+        'eaob_linear': [1,1,1,1,'orange',1],
+        'aob_linear': [1,1,1,1,'blue',1],
+        'weaaw_linear': [1,1,1,1,'green',1],
+        'weaob_synthetic': [1,1,1,1,'red',1],
+        'eaob_synthetic': [1,1,1,1,'orange',1],
+        'aob_synthetic': [1,1,1,1,'blue',1],
+        'weaaw_synthetic': [1,1,1,1,'green',1],
         '13.1': [1,5,0.1,0.8,'red',1],
         '13.2': [1,5,0.1,0.8,'green',1],
         '12.1': [1,5,0.1,0.8,'red',1],
@@ -85,12 +85,12 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
         subset = baseline_df[baseline_df['baseline'] == baseline] 
         if baseline in agent_plots:
             # Determine sizes and opacities based on episode values
-            num_points = len(subset['eventtime'])
+            num_points = len(subset['eventtime_start'])
             sizes = np.geomspace(start=agent_plots[baseline][0], stop=agent_plots[baseline][1], num=num_points)
             opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
             for j, (index, row) in enumerate(subset.iterrows()):
                 if np.random.rand()<=agent_plots[baseline][5]:
-                    axs[2].plot(row['eventtime']- dfrate['x'].min(), row['mean_ratio']/100, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
+                    axs[2].plot(row['eventtime_start']- dfrate['x'].min(), row['mean_ratio']/100, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
     axs[2].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
     axs[2].set_ylim([-0.1,1.1])
     
@@ -98,12 +98,12 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
         subset = baseline_df[baseline_df['baseline'] == baseline] 
         if baseline in agent_plots:
             # Determine sizes and opacities based on episode values
-            num_points = len(subset['eventtime'])
+            num_points = len(subset['eventtime_start'])
             sizes = np.geomspace(start=agent_plots[baseline][0], stop=agent_plots[baseline][1], num=num_points)
             opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
             for j, (index, row) in enumerate(subset.iterrows()):
                 if np.random.rand()<=agent_plots[baseline][5]:
-                    axs[3].plot(row['eventtime']- dfrate['x'].min(), row['latency']/1000, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
+                    axs[3].plot(row['eventtime_start']- dfrate['x'].min(), row['latency_mean']/1000, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
     axs[3].axhline(y=max_latency, color='r', linestyle='--')  # Horizontal line at max_latency
     axs[3].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
     axs[3].set_ylim([0.008,8])
@@ -113,12 +113,12 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
         subset = baseline_df[baseline_df['baseline'] == baseline] 
         if baseline in agent_plots:
             # Determine sizes and opacities based on episode values
-            num_points = len(subset['eventtime'])
+            num_points = len(subset['eventtime_start'])
             sizes = np.geomspace(start=agent_plots[baseline][0], stop=agent_plots[baseline][1], num=num_points)
             opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
             for j, (index, row) in enumerate(subset.iterrows()):
                 if np.random.rand()<=agent_plots[baseline][5]:
-                    axs[4].plot(row['eventtime']- dfrate['x'].min(), row['cpu']/100, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
+                    axs[4].plot(row['eventtime_start']- dfrate['x'].min(), row['cpu_mean']/100, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
     axs[4].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
     axs[4].set_xlabel('Event Time (s)', fontsize=text_fontsize)  # Only the last subplot needs the x-axis label
     axs[4].set_ylim([-0.1,1.1])

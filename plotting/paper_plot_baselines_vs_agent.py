@@ -25,10 +25,12 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
     boundaries = [0.5,7.5,10.5,11.5]
     boundary_text = ['safe','worth','unsafe']
     latency_y_scale = 'log'
-    # This config are for Synthetic
-    boundaries = [0.5,4.5,7.5,11.5]
-    boundary_text = ['safe','worth','unsafe']
-    latency_y_scale = 'log'
+    latency_y_lim = [0.03,6]
+    # # This config are for Synthetic
+    # boundaries = [0.5,4.5,7.5,11.5]
+    # boundary_text = ['safe','worth','unsafe']
+    # latency_y_scale = 'log'
+    # latency_y_lim = [0.005,50]
     
     
     # Specify color and font size
@@ -40,6 +42,9 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
     
     latencies_thresholds=[0.75,1.5]
     latencies_thresholds_ids=['soft','hard']
+
+    latencies_thresholds=[1.5]
+    latencies_thresholds_ids=['hard']
 
     # Read the first and second columns from the CSV
     dfrate = pd.read_csv(rate_file_path, usecols=[0, 1], header=None)
@@ -55,7 +60,7 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
     plt.rcParams.update({'font.size': 8})  # Set global font size to 10
 
     # Create a figure and a set of subplots, now with 4 rows
-    fig, axs = plt.subplots(5, 2, figsize=(10, 6), gridspec_kw={'hspace': 0, 'height_ratios': [1, 0.5, 1, 1, 1]})
+    fig, axs = plt.subplots(5, 2, figsize=(10, 6), gridspec_kw={'hspace': 0, 'wspace': 0, 'height_ratios': [1, 0.5, 1, 1, 1]})
 
     # Plot random data on the new top axes (axs[0])
     axs[0,0].plot(x_data - dfrate['x'].min(), y_data, linestyle='-', color='blue')
@@ -81,7 +86,7 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
     data_latency = [df[df['baseline'] == baseline]['latency'].dropna() / 1000 for baseline in unique_baselines]
     axs[3,1].boxplot(data_latency, labels=unique_baselines)
     axs[3,0].set_ylabel('Latency (s)', fontsize=text_fontsize)
-    axs[3,1].set_ylim([0.008,8])
+    axs[3,1].set_ylim(latency_y_lim)
     axs[3,0].set_xticks([])
     axs[3,1].set_yscale(latency_y_scale)
     for lat_idx,latency_threshold in enumerate(latencies_thresholds): 
@@ -134,7 +139,7 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
     agent_plots = {
         'weaaw_linear': [1,5,0.01,0.99,'green',1],
         'weaaw_synthetic': [1,5,0.01,0.99,'green',1],
-        '14.2': [1,5,0.01,0.99,'green',0.75],
+        '14.2': [1,5,0.01,0.99,'green',0.5],
         '14.1': [1,5,0.01,0.99,'green',0.75],
         '13.1': [1,5,0.1,0.8,'red',1],
         '13.2': [1,5,0.1,0.8,'green',1],
@@ -221,7 +226,7 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
         # axs[3].grid(True, which='both', axis='y', linestyle='--', linewidth=0.5, color='gray')  # Enable y-axis grid
     # axs[3,0].axhline(y=latencies_thresholds, color='r', linestyle='--')  # Horizontal line at max_latency
     axs[3,0].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
-    axs[3,0].set_ylim([0.008,8])
+    axs[3,0].set_ylim(latency_y_lim)
     axs[3,0].set_yscale(latency_y_scale)
 
     for i, baseline in enumerate(unique_baselines):
@@ -284,9 +289,22 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
             # Labeling
             axs[0,1].set_xlabel('Wallclock Time (s)')
             axs[0,1].set_ylabel('Prob.')
-            axs[0,1].set_ylim([0,1])
+            # axs[0,1].set_ylim([0,1])
             # plt.title('Episode 100: Action Time vs Probabilities')
-            axs[0,1].legend()
+            axs[0,1].legend(ncols=3,loc='lower right')
+            # Get current x and y limits
+            x_lim = axs[0,1].get_xlim()
+            y_lim = axs[0,1].get_ylim()
+
+            # Calculate the position for the text
+            x_pos = x_lim[0]+(x_lim[1]-x_lim[0])/2  # Use the maximum x value for right alignment
+            y_pos = y_lim[1]*0.9  # Use the maximum y value for top alignment
+
+            # Place the text in the top right corner
+            # print(x_lim[0])
+            # print(y_lim[0])
+            axs[0,1].text(0,y_lim[0]*1.01, 'Ep. '+str(episode), fontsize=10, color='black')
+
 
             axs[0,1].yaxis.tick_right()  # Move ticks to the right
             axs[0,1].yaxis.set_label_position('right')  # Move the y-axis label to the right
