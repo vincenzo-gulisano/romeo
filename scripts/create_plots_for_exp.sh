@@ -1,6 +1,6 @@
 #!/bin/bash
-base_exp_folder="./data/exp14/WEAAW"
-folders_to_explore=("weaaw_linear" "weaaw_synthetic")
+base_exp_folder="./data/exp14/AOB"
+folders_to_explore=("aob_linear" "aob_synthetic")
 plot_probabilities="True"
 for folder_to_explore in "${folders_to_explore[@]}"; do
 
