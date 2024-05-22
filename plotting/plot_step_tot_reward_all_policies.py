@@ -27,7 +27,7 @@ def plot_figure(base_folder, csv_files, colors):
         ('weaaw', axs[3]),
     ]
 
-    color_index = 0
+    # color_index = 0
     
     for policy, ax in policies:
         relevant_files = [file for file in csv_files if f'{prefix}{policy}' in file]
