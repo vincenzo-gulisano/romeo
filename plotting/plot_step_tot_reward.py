@@ -4,7 +4,7 @@ import os
 import numpy as np
 import matplotlib.colors as mcolors
 import argparse
-from os.path import commonprefix
+#from os.path import commonprefix
 # from matplotlib.colors import Normalize
 
 def plot_figure(base_folder, csv_files, colors):
@@ -13,8 +13,9 @@ def plot_figure(base_folder, csv_files, colors):
     plt.figure(figsize=(10, 6))
 
     # get the common prefix of all file names
-    commonprefix = os.path.commonprefix(csv_files)
-    prefix_len = len(commonprefix)
+    #commonprefix = os.path.commonprefix(csv_files)
+    prefix = 'step_tot_reward_'
+    # prefix_len = len(commonprefix)
     suffix = '.csv'
     
     # create a color map, and start with a darker red
@@ -66,7 +67,7 @@ def plot_figure(base_folder, csv_files, colors):
 
 
     # add legend for CSV files
-    handles = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=cmap(0.7), markersize=10, label=csv_file[prefix_len:-len(suffix)]) 
+    handles = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=cmap(0.7), markersize=10, label=csv_file[len(prefix):-len(suffix)]) 
                for csv_file, cmap in zip(csv_files, [plt.get_cmap(color) for color in colors])]
     plt.legend(handles=handles, title="CSV Files")
 
