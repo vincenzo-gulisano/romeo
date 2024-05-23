@@ -59,10 +59,10 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
 
     # The values represent: initial size, fine size, initial opacity, final opacity, color, prob. of selection
     agent_plots = {
-        'weaob_linear': [1,1,1,1,'red',1],
+        'weaob_linear': [1,1,0.1,1,'red',1],
         'eaob_linear': [1,1,1,1,'orange',1],
         'aob_linear': [1,1,1,1,'blue',1],
-        'weaaw_linear': [1,1,1,1,'green',1],
+        'weaaw_linear': [1,1,0.1,1,'green',1],
         'weaob_synthetic': [1,1,1,1,'red',1],
         'eaob_synthetic': [1,1,1,1,'orange',1],
         'aob_synthetic': [1,1,1,1,'blue',1],
@@ -72,8 +72,8 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
         '12.1': [1,5,0.1,0.8,'red',1],
         '12.2': [5,10,0.1,0.8,'green',1]}
        
-    given_order = ['weaob_linear','eaob_linear','aob_linear','weaaw_linear']  # The desired order for baselines
-    # given_order = ['weaob_synthetic','eaob_synthetic','aob_synthetic','weaaw_synthetic']  # The desired order for baselines
+    # given_order = ['weaob_linear','weaaw_linear']  # The desired order for baselines
+    given_order = ['weaob_synthetic','eaob_synthetic','aob_synthetic','weaaw_synthetic']  # The desired order for baselines
     
     # Create a set for faster membership tests
     unique_baselines_set = set(baseline_df['baseline'].unique())
