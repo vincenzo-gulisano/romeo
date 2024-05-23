@@ -331,3 +331,7 @@ latency for any 3 steps in each episode is higher than 2.5 seconds --> terminate
 1. fixed missing high latencies problem for two queries
 2. run 100 episodes for WEAOB, EAOB and AOB
 3. run 200 episodes for WEEAW
+# Exp14.3
+1. run 100 episodes for all policies again but this time for synthetic only and changing the WA to 20 secs -- basically for linear road OB policies mean more conservative behavior (because most of the rewards are 0, which means the agent tries to reach the end as safe as possible), in that case in theory the behavior of the different policies should be different too, like in linear road I think
+2. starting_time_max=5800 (from 6500 to 5800)
+3. (forgot above) run 100 episodes for synthetic with all policies in WA = 5 (WA changes from 1 to 5)
