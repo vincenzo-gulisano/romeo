@@ -5,7 +5,7 @@ import os
 import numpy as np
 import plotly.tools as tls
 
-def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_episod):
+def plot_graphs(rate_file_path,agent_data,output_pdf):
     # Read the baselines_data.csv file
     # file_path = os.path.join(base_folder, 'baselines_data.csv')
     # df = pd.read_csv(file_path)
@@ -22,14 +22,14 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
 
     # The values represent: initial size, fine size, initial opacity, final opacity, color, prob. of selection
     agent_plots = {
-        'weaob_linear': [1,1,0.1,1,'red',.5],
-        'eaob_linear': [1,1,0.1,1,'orange',.5],
-        'aob_linear': [1,1,1,0.1,'blue',.5],
-        'weaaw_linear': [1,1,0.1,1,'green',.5],
-        'weaob_synthetic': [1,1,0.1,1,'red',.5],
-        'eaob_synthetic': [1,1,0.1,1,'orange',.5],
-        'aob_synthetic': [1,1,0.1,1,'blue',.5],
-        'weaaw_synthetic': [1,1,0.1,1,'green',.5],
+        'weaob_linear': [1,5,0.1,1,'red',.5],
+        'eaob_linear': [1,5,0.1,1,'orange',.5],
+        'aob_linear': [1,5,1,0.1,'blue',.5],
+        'weaaw_linear': [1,5,0.1,1,'green',.5],
+        'weaob_synthetic': [1,5,0.1,1,'red',.5],
+        'eaob_synthetic': [1,5,0.1,1,'orange',.5],
+        'aob_synthetic': [1,5,0.1,1,'blue',.5],
+        'weaaw_synthetic': [1,5,0.1,1,'green',.5],
         '13.1': [1,5,0.1,0.8,'red',1],
         '13.2': [1,5,0.1,0.8,'green',1],
         '12.1': [1,5,0.1,0.8,'red',1],
@@ -300,16 +300,16 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate plots from baselines_data.csv.')
-    parser.add_argument('base_folder', type=str, help='Input folder containing baselines_data.csv.')
+    # parser.add_argument('base_folder', type=str, help='Input folder containing baselines_data.csv.')
     parser.add_argument('rate_file_path', type=str, help='Input file containing per second input rate of the input data.')
     parser.add_argument('agent_data', type=str, help='Input file containing the RL agent stats.')
     parser.add_argument('output_pdf', type=str, help='Output PDF file.')
-    parser.add_argument('probs', type=str, help='CSV with the probabilities')
-    parser.add_argument('probs_episod', type=int, help='Episode of which to plot probabilities')
+    # parser.add_argument('probs', type=str, help='CSV with the probabilities')
+    # parser.add_argument('probs_episod', type=int, help='Episode of which to plot probabilities')
 
     args = parser.parse_args()
     
-    plot_graphs(args.base_folder,args.rate_file_path,args.agent_data,args.output_pdf,args.probs,args.probs_episod)
+    plot_graphs(args.rate_file_path,args.agent_data,args.output_pdf)
 
 # import argparse
 # import pandas as pd
