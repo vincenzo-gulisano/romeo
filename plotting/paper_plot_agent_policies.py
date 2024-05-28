@@ -22,14 +22,14 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
 
     # The values represent: initial size, fine size, initial opacity, final opacity, color, prob. of selection
     agent_plots = {
-        'weaob_linear': [1,10,0.1,1,'red',.25],
+        'weaob_linear': [1,10,0.1,1,'red',0.25],
         'eaob_linear': [1,10,0.1,1,'orange',.25],
         'aob_linear': [1,10,0.1,1,'blue',.25],
-        'weaaw_linear': [1,10,0.1,1,'green',.25],
+        'weaaw_linear': [1,10,0.1,1,'green',.25], # 0.125 for first experiments wince we have 200 episodes
         'weaob_synthetic': [1,10,0.1,1,'red',.25],
         'eaob_synthetic': [1,10,0.1,1,'orange',.25],
         'aob_synthetic': [1,10,0.1,1,'blue',.25],
-        'weaaw_synthetic': [1,10,0.1,1,'green',.25],
+        'weaaw_synthetic': [1,10,0.1,1,'green',.25], # 0.125 for first experiments wince we have 200 episodes
         '13.1': [1,5,0.1,0.8,'red',1],
         '13.2': [1,5,0.1,0.8,'green',1],
         '12.1': [1,5,0.1,0.8,'red',1],
@@ -39,23 +39,23 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
     policies_order = ['weaob_synthetic','eaob_synthetic','aob_synthetic','weaaw_synthetic']  # The desired order for baselines
     
     policies_labels = {
-        'weaob_linear' : 'WEA-OB',
-        'eaob_linear' : 'EA-OB',
-        'aob_linear' : 'A-OB',
-        'weaaw_linear' : 'WEA-AW',
-        'weaob_synthetic' : 'WEA-OB',
-        'eaob_synthetic' : 'EA-OB',
-        'aob_synthetic' : 'A-OB',
-        'weaaw_synthetic' : 'WEA-AW',
+        'weaob_linear' : 'WEL-OB',
+        'eaob_linear' : 'EL-OB',
+        'aob_linear' : 'L-OB',
+        'weaaw_linear' : 'WEL-AW',
+        'weaob_synthetic' : 'WEL-OB',
+        'eaob_synthetic' : 'EL-OB',
+        'aob_synthetic' : 'L-OB',
+        'weaaw_synthetic' : 'WEL-AW',
     }
 
     # This config are for LinearRoad
     boundaries = [0.5,3.5,6.5,9.5,12.5]
-    boundary_text = ['WEAOB','EAOB','AOB','WEAAW']
+    boundary_text = ['WEL-OB','EL-OB','L-OB','WEL-AW']
     latency_y_scale = 'log'
     latency_y_lim = [0.03,6]
     # # This config are for Synthetic
-    latency_y_lim = [0.005,3]
+    latency_y_lim = [0.005,8]
     
 
     # Specify color and font size
@@ -63,7 +63,7 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
     text_fontsize = 8  # Example font size
     
     latencies_thresholds=[1.5]
-    latencies_thresholds_ids=['hard']
+    latencies_thresholds_ids=['QoS threshold']
 
     # Define marker styles for different baselines to ensure uniqueness
     # markers = ['s', '^', 'v', '<', '>', 'p', '*', 'h', 'H', 'D', 'd', '|', '_']
@@ -89,14 +89,20 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
     dfrate.columns = ['x', 'y']
 
     # Adjust x_data to start at 0
-    dfrate['x'] = dfrate['x'] - dfrate['x'].min()
+    # dfrate['x'] = dfrate['x'] - dfrate['x'].min()
 
     # Now, df['x'] and df['y'] are your x_data and y_data
     x_data = dfrate['x']
     y_data = dfrate['y']
 
     # Create a figure and a set of subplots, now with 4 rows
-    fig, axs = plt.subplots(4, 2, figsize=(10, 6), gridspec_kw={'hspace': 0, 'wspace': 0, 'height_ratios': [0.2, 1, 1, 1]})
+    text_width_pt = 506
+    text_height_pt = 180
+    points_per_inch = 72
+    text_width_in = text_width_pt / points_per_inch
+    text_height_in = text_height_pt / points_per_inch
+    
+    fig, axs = plt.subplots(4, 2, figsize=(text_width_in, text_height_in), gridspec_kw={'hspace': 0, 'wspace': 0, 'height_ratios': [0.2, 1, 1, 1],'width_ratios': [1, 0.5]})
 
     # Plot random data on the new top axes (axs[0])
     # axs[0,0].plot(x_data - dfrate['x'].min(), y_data, linestyle='-', color='blue')
@@ -111,11 +117,11 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
     for i, policy in enumerate(policies_order):
         subset = policies_df[policies_df['baseline'] == policy] 
         if policy in agent_plots:
-            data_ratio.append(subset['min_ratio'].dropna() / 100)
-            data_ratio.append(subset['mean_ratio'].dropna() / 100)
-            data_ratio.append(subset['max_ratio'].dropna() / 100)
+            data_ratio.append(subset['q1_ratio'].dropna() / 100)
+            data_ratio.append(subset['q2_ratio'].dropna() / 100)
+            data_ratio.append(subset['q3_ratio'].dropna() / 100)
     axs[1,1].boxplot(data_ratio, showfliers=True, flierprops={'marker':'.', 'markersize':3})
-    axs[1,0].set_ylabel('Compression (%)', fontsize=text_fontsize)
+    axs[1,0].set_ylabel('Ratio (%)', fontsize=text_fontsize)
     # Set specific tick positions
     axs[1,1].set_ylim([-0.1,1.1])
     axs[1,0].set_xticks([])
@@ -130,9 +136,9 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
     for i, policy in enumerate(policies_order):
         subset = policies_df[policies_df['baseline'] == policy] 
         if policy in agent_plots:
-            data_latency.append(subset['latency_min'].dropna() / 1000)
-            data_latency.append(subset['latency_mean'].dropna() / 1000)
-            data_latency.append(subset['latency_max'].dropna() / 1000)
+            data_latency.append(subset['q1_latency'].dropna() / 1000)
+            data_latency.append(subset['q2_latency'].dropna() / 1000)
+            data_latency.append(subset['q3_latency'].dropna() / 1000)
     axs[2,1].boxplot(data_latency, showfliers=True, flierprops={'marker':'.', 'markersize':3})
     axs[2,0].set_ylabel('Latency (s)', fontsize=text_fontsize)
     axs[2,1].set_ylim(latency_y_lim)
@@ -149,9 +155,9 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
     for i, policy in enumerate(policies_order):
         subset = policies_df[policies_df['baseline'] == policy] 
         if policy in agent_plots:
-            data_cpu.append(subset['cpu_min'].dropna() / 100)
-            data_cpu.append(subset['cpu_mean'].dropna() / 100)
-            data_cpu.append(subset['cpu_max'].dropna() / 100)
+            data_cpu.append(subset['q1_cpu'].dropna() / 100)
+            data_cpu.append(subset['q2_cpu'].dropna() / 100)
+            data_cpu.append(subset['q3_cpu'].dropna() / 100)
     axs[3,1].boxplot(data_cpu, showfliers=True, flierprops={'marker':'.', 'markersize':3})
     axs[3,0].set_ylabel('CPU (%)', fontsize=text_fontsize)
     axs[3,1].set_xlabel('Baseline', fontsize=text_fontsize)  # Only the last subplot needs the x-axis label
@@ -202,16 +208,33 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
             for j, (index, row) in enumerate(subset.iterrows()):
                 if np.random.rand()<=agent_plots[baseline][5] or j == len(subset)-1:
                     # This version is to draw the circle
+                    x_points = [row['eventtime_start']- dfrate['x'].min(),row['eventtime_end']- dfrate['x'].min()]
+                    x_mid=(x_points[0]+x_points[1])/2
+                    y_points = [row['q2_ratio']/100,row['q2_ratio']/100]
+                    y_max = row['q1_ratio']/100
+                    y_mid = y_points[0]
+                    y_min = row['q3_ratio']/100
+                    # This version is to plot a line
+                    # axs[2,0].plot(x_points,y_points,linewidth=sizes[j], color=agent_plots[baseline][4], alpha=opacities[j])
+                    # This version is to plot a diamond
+                    # Coordinates
+                    x_coords = [x_points[0], x_mid, x_points[1], x_mid, x_points[0]]  # Start and end at the same point to close the shape
+                    y_coords = [y_mid, y_min, y_mid, y_max, y_mid]  # Top, right-mid, bottom, left-mid, back to top
+                    # axs[2,0].plot(x_coords, y_coords, color=agent_plots[baseline][4], alpha=opacities[j])  # Blue line with a linewidth of 2
+                    axs[1,0].fill(x_coords, y_coords, color=agent_plots[baseline][4], alpha=opacities[j])  # Fill the rhombus with a blue color, semi-transparent
                     if j == len(subset)-1:
-                        axs[1,0].plot(row['eventtime_start']- dfrate['x'].min(), row['mean_ratio']/100, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],label=policies_labels[baseline])
-                    else:
-                        axs[1,0].plot(row['eventtime_start']- dfrate['x'].min(), row['mean_ratio']/100, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
-                    if min_et is None or (row['eventtime_start']- dfrate['x'].min())<min_et:
-                        min_et = (row['eventtime_start']- dfrate['x'].min())
-                    if max_et is None or (row['eventtime_start']- dfrate['x'].min())>max_et:
-                        max_et = row['eventtime_start']- dfrate['x'].min()
-    axs[1,0].legend()
-    axs[1,0].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
+                        axs[1,0].plot(row['eventtime_start']- dfrate['x'].min(), row['q2_ratio']/100, ls='none', ms=1, marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],label=policies_labels[baseline])
+                    if min_et is None or x_points[0]<min_et:
+                        min_et = x_points[0]
+                    if max_et is None or x_points[1]>max_et:
+                        max_et = x_points[1]
+    axs[1, 0].legend(
+        loc='upper center',  # Position the legend at the top center
+        bbox_to_anchor=(0.5, 1.45),  # Adjust the position above the axis
+        ncol=4,  # Number of columns
+        columnspacing=0.4  # Adjust the space between columns
+    )
+    # axs[1,0].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
     axs[1,0].set_ylim([-0.1,1.1])
 
     for i, baseline in enumerate(unique_baselines):
@@ -223,8 +246,22 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
             opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
             for j, (index, row) in enumerate(subset.iterrows()):
                 if np.random.rand()<=agent_plots[baseline][5]:
+                    x_points = [row['eventtime_start']- dfrate['x'].min(),row['eventtime_end']- dfrate['x'].min()]
+                    x_mid=(x_points[0]+x_points[1])/2
+                    y_points = [row['q2_latency']/1000,row['q2_latency']/1000]
+                    y_max = row['q3_latency']/1000
+                    y_mid = y_points[0]
+                    y_min = row['q1_latency']/1000
+                    # This version is to plot a line
+                    # axs[3,0].plot(x_points,y_points,linewidth=sizes[j], color=agent_plots[baseline][4], alpha=opacities[j])
+                    # This version is to plot a diamond
+                    # Coordinates
+                    x_coords = [x_points[0], x_mid, x_points[1], x_mid, x_points[0]]  # Start and end at the same point to close the shape
+                    y_coords = [y_mid, y_min, y_mid, y_max, y_mid]  # Top, right-mid, bottom, left-mid, back to top
+                    # axs[3,0].plot(x_coords, y_coords, color=agent_plots[baseline][4], alpha=opacities[j])  # Blue line with a linewidth of 2
+                    axs[2,0].fill(x_coords, y_coords, color=agent_plots[baseline][4], alpha=opacities[j])  # Fill the rhombus with a blue color, semi-transparent
                     # This version is to draw the circle
-                    axs[2,0].plot(row['eventtime_start']- dfrate['x'].min(), row['latency_mean']/1000, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
+                    # axs[2,0].plot(row['eventtime_start']- dfrate['x'].min(), row['q2_latency']/1000, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
 
     for lat_idx,latency_threshold in enumerate(latencies_thresholds): 
         axs[2,0].axhline(y=latency_threshold, color='r', linestyle='--')  # Horizontal line at max_latency
@@ -232,7 +269,7 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
         axs[2,0].text(0.5, latency_threshold*1.01, latencies_thresholds_ids[lat_idx], color='red', verticalalignment='bottom', horizontalalignment='left', fontsize=8, transform=axs[2,1].transData)
         # axs[3].grid(True, which='both', axis='y', linestyle='--', linewidth=0.5, color='gray')  # Enable y-axis grid
     # axs[3,0].axhline(y=latencies_thresholds, color='r', linestyle='--')  # Horizontal line at max_latency
-    axs[2,0].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
+    # axs[2,0].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
     axs[2,0].set_ylim(latency_y_lim)
     axs[2,0].set_yscale(latency_y_scale)
 
@@ -245,18 +282,32 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
             opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
             for j, (index, row) in enumerate(subset.iterrows()):
                 if np.random.rand()<=agent_plots[baseline][5]:
+                    x_points = [row['eventtime_start']- dfrate['x'].min(),row['eventtime_end']- dfrate['x'].min()]
+                    x_mid=(x_points[0]+x_points[1])/2
+                    y_points = [row['q2_cpu']/100,row['q2_cpu']/100]
+                    y_max = row['q3_cpu']/100
+                    y_mid = y_points[0]
+                    y_min = row['q1_cpu']/100
+                    # This version is to plot a line
+                    # axs[4,0].plot(x_points,y_points,linewidth=sizes[j], color=agent_plots[baseline][4], alpha=opacities[j])
+                    # This version is to plot a diamond
+                    # Coordinates
+                    x_coords = [x_points[0], x_mid, x_points[1], x_mid, x_points[0]]  # Start and end at the same point to close the shape
+                    y_coords = [y_mid, y_min, y_mid, y_max, y_mid]  # Top, right-mid, bottom, left-mid, back to top
+                    # axs[4,0].plot(x_coords, y_coords, color=agent_plots[baseline][4], alpha=opacities[j])  # Blue line with a linewidth of 2
+                    axs[3,0].fill(x_coords, y_coords, color=agent_plots[baseline][4], alpha=opacities[j])  # Fill the rhombus with a blue color, semi-transparent
                     # This version is to draw the circle
-                    axs[3,0].plot(row['eventtime_start']- dfrate['x'].min(), row['cpu_mean']/100, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
-    axs[3,0].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
+                    # axs[3,0].plot(row['eventtime_start']- dfrate['x'].min(), row['q2_cpu']/100, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
+    # axs[3,0].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
     axs[3,0].set_xlabel('Event Time (s)', fontsize=text_fontsize)  # Only the last subplot needs the x-axis label
     axs[3,0].set_ylim([-0.1,1.1])
     
     # adjust x lim of left plots
-    axs[0,0].set_xlim([min_et*0.99,max_et*1.01])
-    axs[1,0].set_xlim([min_et*0.99,max_et*1.01])
-    axs[2,0].set_xlim([min_et*0.99,max_et*1.01])
-    axs[3,0].set_xlim([min_et*0.99,max_et*1.01])
-    # axs[4,0].set_xlim([min_et*0.99,max_et*1.01])
+    axs[0,0].set_xlim([min_et*0.95,max_et*1.05])
+    axs[1,0].set_xlim([min_et*0.95,max_et*1.05])
+    axs[2,0].set_xlim([min_et*0.95,max_et*1.05])
+    axs[3,0].set_xlim([min_et*0.95,max_et*1.05])
+    # axs[4,0].set_xlim([min_et*0.95,max_et*1.05])
 
     # # Now plotting probabilities
     # # Load the data

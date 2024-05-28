@@ -1,8 +1,8 @@
 #!/bin/bash
-base_exp_folder="./data/10/synthetic-CCR/1/900"
-folders_to_explore=("0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" "r")
+base_exp_folder="./data/exp14_policies_synth5WA/AOB"
+folders_to_explore=("aob_synthetic")
 plot_probabilities="False"
-reward_pattern="Old" # OLD FOR BASELINES
+reward_pattern="New" # OLD FOR BASELINES
 for folder_to_explore in "${folders_to_explore[@]}"; do
 
     exp_folder="${base_exp_folder}/${folder_to_explore}"
