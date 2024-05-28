@@ -22,14 +22,14 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
 
     # The values represent: initial size, fine size, initial opacity, final opacity, color, prob. of selection
     agent_plots = {
-        'weaob_linear': [1,5,0.1,1,'red',.5],
-        'eaob_linear': [1,5,0.1,1,'orange',.5],
-        'aob_linear': [1,5,1,0.1,'blue',.5],
-        'weaaw_linear': [1,5,0.1,1,'green',.5],
-        'weaob_synthetic': [1,5,0.1,1,'red',.5],
-        'eaob_synthetic': [1,5,0.1,1,'orange',.5],
-        'aob_synthetic': [1,5,0.1,1,'blue',.5],
-        'weaaw_synthetic': [1,5,0.1,1,'green',.5],
+        'weaob_linear': [1,10,0.1,1,'red',.25],
+        'eaob_linear': [1,10,0.1,1,'orange',.25],
+        'aob_linear': [1,10,0.1,1,'blue',.25],
+        'weaaw_linear': [1,10,0.1,1,'green',.25],
+        'weaob_synthetic': [1,10,0.1,1,'red',.25],
+        'eaob_synthetic': [1,10,0.1,1,'orange',.25],
+        'aob_synthetic': [1,10,0.1,1,'blue',.25],
+        'weaaw_synthetic': [1,10,0.1,1,'green',.25],
         '13.1': [1,5,0.1,0.8,'red',1],
         '13.2': [1,5,0.1,0.8,'green',1],
         '12.1': [1,5,0.1,0.8,'red',1],
@@ -38,6 +38,16 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
     policies_order = ['weaob_linear','eaob_linear','aob_linear','weaaw_linear']  # The desired order for baselines
     policies_order = ['weaob_synthetic','eaob_synthetic','aob_synthetic','weaaw_synthetic']  # The desired order for baselines
     
+    policies_labels = {
+        'weaob_linear' : 'WEA-OB',
+        'eaob_linear' : 'EA-OB',
+        'aob_linear' : 'A-OB',
+        'weaaw_linear' : 'WEA-AW',
+        'weaob_synthetic' : 'WEA-OB',
+        'eaob_synthetic' : 'EA-OB',
+        'aob_synthetic' : 'A-OB',
+        'weaaw_synthetic' : 'WEA-AW',
+    }
 
     # This config are for LinearRoad
     boundaries = [0.5,3.5,6.5,9.5,12.5]
@@ -86,7 +96,7 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
     y_data = dfrate['y']
 
     # Create a figure and a set of subplots, now with 4 rows
-    fig, axs = plt.subplots(5, 2, figsize=(10, 6), gridspec_kw={'hspace': 0, 'wspace': 0, 'height_ratios': [1, 0.5, 1, 1, 1]})
+    fig, axs = plt.subplots(4, 2, figsize=(10, 6), gridspec_kw={'hspace': 0, 'wspace': 0, 'height_ratios': [0.2, 1, 1, 1]})
 
     # Plot random data on the new top axes (axs[0])
     # axs[0,0].plot(x_data - dfrate['x'].min(), y_data, linestyle='-', color='blue')
@@ -104,16 +114,16 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
             data_ratio.append(subset['min_ratio'].dropna() / 100)
             data_ratio.append(subset['mean_ratio'].dropna() / 100)
             data_ratio.append(subset['max_ratio'].dropna() / 100)
-    axs[2,1].boxplot(data_ratio, showfliers=True, flierprops={'marker':'.', 'markersize':3})
-    axs[2,0].set_ylabel('Compression (%)', fontsize=text_fontsize)
+    axs[1,1].boxplot(data_ratio, showfliers=True, flierprops={'marker':'.', 'markersize':3})
+    axs[1,0].set_ylabel('Compression (%)', fontsize=text_fontsize)
     # Set specific tick positions
-    axs[2,1].set_ylim([-0.1,1.1])
-    axs[2,0].set_xticks([])
-    axs[2,1].set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
-    axs[2,1].set_yticklabels(['0', '', '', '', '', '1'])
+    axs[1,1].set_ylim([-0.1,1.1])
+    axs[1,0].set_xticks([])
+    axs[1,1].set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
+    axs[1,1].set_yticklabels(['0', '', '', '', '', '1'])
     # Enable the grid
-    axs[2,0].grid(True, which='major', axis='y', linestyle='-', color='gray', linewidth=0.5)
-    axs[2,1].grid(True, which='major', axis='y', linestyle='-', color='gray', linewidth=0.5)
+    axs[1,0].grid(True, which='major', axis='y', linestyle='-', color='gray', linewidth=0.5)
+    axs[1,1].grid(True, which='major', axis='y', linestyle='-', color='gray', linewidth=0.5)
 
     # latency, divided by 1000
     data_latency = []
@@ -123,15 +133,15 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
             data_latency.append(subset['latency_min'].dropna() / 1000)
             data_latency.append(subset['latency_mean'].dropna() / 1000)
             data_latency.append(subset['latency_max'].dropna() / 1000)
-    axs[3,1].boxplot(data_latency, showfliers=True, flierprops={'marker':'.', 'markersize':3})
-    axs[3,0].set_ylabel('Latency (s)', fontsize=text_fontsize)
-    axs[3,1].set_ylim(latency_y_lim)
-    axs[3,0].set_xticks([])
-    axs[3,1].set_yscale(latency_y_scale)
+    axs[2,1].boxplot(data_latency, showfliers=True, flierprops={'marker':'.', 'markersize':3})
+    axs[2,0].set_ylabel('Latency (s)', fontsize=text_fontsize)
+    axs[2,1].set_ylim(latency_y_lim)
+    axs[2,0].set_xticks([])
+    axs[2,1].set_yscale(latency_y_scale)
     for lat_idx,latency_threshold in enumerate(latencies_thresholds): 
-        axs[3,1].axhline(y=latency_threshold, color='r', linestyle='--')  # Horizontal line at max_latency
+        axs[2,1].axhline(y=latency_threshold, color='r', linestyle='--')  # Horizontal line at max_latency
         # Add text for threshold latency
-        axs[3,1].text(0.5, latency_threshold*1.01, latencies_thresholds_ids[lat_idx], color='red', verticalalignment='bottom', horizontalalignment='left', fontsize=8, transform=axs[3,1].transData)
+        axs[2,1].text(0.5, latency_threshold*1.01, latencies_thresholds_ids[lat_idx], color='red', verticalalignment='bottom', horizontalalignment='left', fontsize=8, transform=axs[2,1].transData)
         # axs[3].grid(True, which='both', axis='y', linestyle='--', linewidth=0.5, color='gray')  # Enable y-axis grid
 
     # cpu, divided by 100
@@ -142,19 +152,19 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
             data_cpu.append(subset['cpu_min'].dropna() / 100)
             data_cpu.append(subset['cpu_mean'].dropna() / 100)
             data_cpu.append(subset['cpu_max'].dropna() / 100)
-    axs[4,1].boxplot(data_cpu, showfliers=True, flierprops={'marker':'.', 'markersize':3})
-    axs[4,0].set_ylabel('CPU (%)', fontsize=text_fontsize)
-    axs[4,1].set_xlabel('Baseline', fontsize=text_fontsize)  # Only the last subplot needs the x-axis label
-    axs[4,1].set_xticklabels(xtick_labels, fontsize=text_fontsize)
-    axs[4,1].set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
-    axs[4,1].set_yticklabels(['0', '', '', '', '', '1'])
-    axs[4,1].set_ylim([-0.1,1.1])
+    axs[3,1].boxplot(data_cpu, showfliers=True, flierprops={'marker':'.', 'markersize':3})
+    axs[3,0].set_ylabel('CPU (%)', fontsize=text_fontsize)
+    axs[3,1].set_xlabel('Baseline', fontsize=text_fontsize)  # Only the last subplot needs the x-axis label
+    axs[3,1].set_xticklabels(xtick_labels, fontsize=text_fontsize)
+    axs[3,1].set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
+    axs[3,1].set_yticklabels(['0', '', '', '', '', '1'])
+    axs[3,1].set_ylim([-0.1,1.1])
     # Enable the grid
-    axs[4,0].grid(True, which='major', axis='y', linestyle='-', color='gray', linewidth=0.5)
-    axs[4,1].grid(True, which='major', axis='y', linestyle='-', color='gray', linewidth=0.5)
+    axs[3,0].grid(True, which='major', axis='y', linestyle='-', color='gray', linewidth=0.5)
+    axs[3,1].grid(True, which='major', axis='y', linestyle='-', color='gray', linewidth=0.5)
     
     # Add vertical lines in all axes for each X value in boundaries (adjusting index for axs)
-    for ax in axs[2:,1]:
+    for ax in axs[1:,1]:
         for boundary in boundaries:
             ax.axvline(x=boundary, color='g', linestyle='--')
 
@@ -163,14 +173,14 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
         # Calculate the position to place the text (middle between boundaries)
         x_pos = (boundaries[i] + boundaries[i + 1]) / 2
         # Place the text at the calculated position, with a slight offset upwards
-        axs[2,1].text(x_pos, 1.01, text, transform=axs[2,1].get_xaxis_transform(), ha='center', va='bottom', color=text_color, fontsize=text_fontsize)
+        axs[1,1].text(x_pos, 1.01, text, transform=axs[1,1].get_xaxis_transform(), ha='center', va='bottom', color=text_color, fontsize=text_fontsize)
 
     # Disable y-axis labels and tick marks on the right-side axes
-    for ax in axs[1:, 1]:  # Loop through second column axes
+    for ax in axs[0:, 1]:  # Loop through second column axes
         ax.yaxis.set_tick_params(labelleft=False)  # Disable y-axis tick labels
         ax.set_ylabel('')  # Clear y-axis label
-    axs[1,0].set_visible(False)
-    axs[1,1].set_visible(False)
+    axs[0,0].set_visible(False)
+    axs[0,1].set_visible(False)
     
     # Create a set for faster membership tests
     unique_baselines_set = set(policies_df['baseline'].unique())
@@ -190,16 +200,19 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
             sizes = np.geomspace(start=agent_plots[baseline][0], stop=agent_plots[baseline][1], num=num_points)
             opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
             for j, (index, row) in enumerate(subset.iterrows()):
-                if np.random.rand()<=agent_plots[baseline][5]:
+                if np.random.rand()<=agent_plots[baseline][5] or j == len(subset)-1:
                     # This version is to draw the circle
-                    axs[2,0].plot(row['eventtime_start']- dfrate['x'].min(), row['mean_ratio']/100, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
+                    if j == len(subset)-1:
+                        axs[1,0].plot(row['eventtime_start']- dfrate['x'].min(), row['mean_ratio']/100, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],label=policies_labels[baseline])
+                    else:
+                        axs[1,0].plot(row['eventtime_start']- dfrate['x'].min(), row['mean_ratio']/100, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
                     if min_et is None or (row['eventtime_start']- dfrate['x'].min())<min_et:
                         min_et = (row['eventtime_start']- dfrate['x'].min())
                     if max_et is None or (row['eventtime_start']- dfrate['x'].min())>max_et:
                         max_et = row['eventtime_start']- dfrate['x'].min()
-                        
-    axs[2,0].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
-    axs[2,0].set_ylim([-0.1,1.1])
+    axs[1,0].legend()
+    axs[1,0].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
+    axs[1,0].set_ylim([-0.1,1.1])
 
     for i, baseline in enumerate(unique_baselines):
         subset = policies_df[policies_df['baseline'] == baseline] 
@@ -211,17 +224,17 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
             for j, (index, row) in enumerate(subset.iterrows()):
                 if np.random.rand()<=agent_plots[baseline][5]:
                     # This version is to draw the circle
-                    axs[3,0].plot(row['eventtime_start']- dfrate['x'].min(), row['latency_mean']/1000, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
+                    axs[2,0].plot(row['eventtime_start']- dfrate['x'].min(), row['latency_mean']/1000, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
 
     for lat_idx,latency_threshold in enumerate(latencies_thresholds): 
-        axs[3,0].axhline(y=latency_threshold, color='r', linestyle='--')  # Horizontal line at max_latency
+        axs[2,0].axhline(y=latency_threshold, color='r', linestyle='--')  # Horizontal line at max_latency
         # Add text for threshold latency
-        axs[3,0].text(0.5, latency_threshold*1.01, latencies_thresholds_ids[lat_idx], color='red', verticalalignment='bottom', horizontalalignment='left', fontsize=8, transform=axs[3,1].transData)
+        axs[2,0].text(0.5, latency_threshold*1.01, latencies_thresholds_ids[lat_idx], color='red', verticalalignment='bottom', horizontalalignment='left', fontsize=8, transform=axs[2,1].transData)
         # axs[3].grid(True, which='both', axis='y', linestyle='--', linewidth=0.5, color='gray')  # Enable y-axis grid
     # axs[3,0].axhline(y=latencies_thresholds, color='r', linestyle='--')  # Horizontal line at max_latency
-    axs[3,0].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
-    axs[3,0].set_ylim(latency_y_lim)
-    axs[3,0].set_yscale(latency_y_scale)
+    axs[2,0].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
+    axs[2,0].set_ylim(latency_y_lim)
+    axs[2,0].set_yscale(latency_y_scale)
 
     for i, baseline in enumerate(unique_baselines):
         subset = policies_df[policies_df['baseline'] == baseline] 
@@ -233,17 +246,17 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
             for j, (index, row) in enumerate(subset.iterrows()):
                 if np.random.rand()<=agent_plots[baseline][5]:
                     # This version is to draw the circle
-                    axs[4,0].plot(row['eventtime_start']- dfrate['x'].min(), row['cpu_mean']/100, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
-    axs[4,0].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
-    axs[4,0].set_xlabel('Event Time (s)', fontsize=text_fontsize)  # Only the last subplot needs the x-axis label
-    axs[4,0].set_ylim([-0.1,1.1])
+                    axs[3,0].plot(row['eventtime_start']- dfrate['x'].min(), row['cpu_mean']/100, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
+    axs[3,0].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
+    axs[3,0].set_xlabel('Event Time (s)', fontsize=text_fontsize)  # Only the last subplot needs the x-axis label
+    axs[3,0].set_ylim([-0.1,1.1])
     
     # adjust x lim of left plots
     axs[0,0].set_xlim([min_et*0.99,max_et*1.01])
     axs[1,0].set_xlim([min_et*0.99,max_et*1.01])
     axs[2,0].set_xlim([min_et*0.99,max_et*1.01])
     axs[3,0].set_xlim([min_et*0.99,max_et*1.01])
-    axs[4,0].set_xlim([min_et*0.99,max_et*1.01])
+    # axs[4,0].set_xlim([min_et*0.99,max_et*1.01])
 
     # # Now plotting probabilities
     # # Load the data

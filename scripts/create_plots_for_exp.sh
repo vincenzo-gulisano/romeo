@@ -1,7 +1,7 @@
 #!/bin/bash
-base_exp_folder="./data/exp14_policies_synth5WA/AOB"
-folders_to_explore=("aob_synthetic")
-plot_probabilities="True"
+base_exp_folder="./data/10/linearroad-CCR/5/600"
+folders_to_explore=("0 1 2 3 4 5 6 7 8 9 10 r")
+plot_probabilities="False"
 for folder_to_explore in "${folders_to_explore[@]}"; do
 
     exp_folder="${base_exp_folder}/${folder_to_explore}"
