@@ -1,6 +1,6 @@
 #!/bin/bash
-base_exp_folder="./data/exp14_policies/AOB"
-folders_to_explore=("aob_synthetic" "aob_linear")
+base_exp_folder="./data/10/linearroad-CCR/5/600"
+folders_to_explore=("0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" "r")
 plot_probabilities="True"
 for folder_to_explore in "${folders_to_explore[@]}"; do
 

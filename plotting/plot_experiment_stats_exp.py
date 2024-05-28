@@ -127,7 +127,7 @@ def plot_files_in_folder(folder,episodesstatsfile,makeplots,print_global_events,
 
                 # Append the steps stat only for the first csv, no need to append it every time
                 if i == 0:
-                    stats.append({'episode': episode_value, 'stat': 'steps', 'min': action_count, 'mean': action_count,  'sum': action_count,  'max': action_count})
+                    stats.append({'episode': episode_value, 'stat': 'steps', 'q1': action_count, 'q2': action_count,  'sum': action_count,  'q2': action_count})
 
                 # Filter data based on the 'start' and 'stop' columns in episode_data
                 # for _, episode_entry in episode_data.iterrows(): ### COMMENTED THIS BECAUSE I THINK IT IS NOT NEEDED
@@ -155,10 +155,10 @@ def plot_files_in_folder(folder,episodesstatsfile,makeplots,print_global_events,
                 stats.append({
                     'episode': episode_value,
                     'stat': os.path.splitext(os.path.basename(file_path))[0],
-                    'min': filtered_values.quantile(0.25) if not filtered_values.empty else np.nan,
-                    'mean': np.mean(filtered_values) if not filtered_values.empty else np.nan,
+                    'q1': filtered_values.quantile(0.25) if not filtered_values.empty else np.nan,
+                    'q2': filtered_values.quantile(0.5) if not filtered_values.empty else np.nan,
                     'sum': np.sum(filtered_values) if not filtered_values.empty else np.nan,
-                    'max': filtered_values.quantile(0.75) if not filtered_values.empty else np.nan
+                    'q3': filtered_values.quantile(0.75) if not filtered_values.empty else np.nan
                 })
 
                 # Convert the list of dictionaries to a DataFrame
