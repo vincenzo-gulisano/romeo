@@ -10,6 +10,8 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
     file_path = os.path.join(base_folder, 'baselines_data.csv')
     df = pd.read_csv(file_path)
     
+    plt.rcParams.update({'font.size': 7})  # Set global font size to 10
+
     # Define marker styles for different baselines to ensure uniqueness
     markers = ['s', '^', 'v', '<', '>', 'p', '*', 'h', 'H', 'D', 'd', '|', '_']
     
@@ -22,20 +24,34 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
     unique_baselines = [baseline for baseline in given_order if baseline in unique_baselines_set]
 
     # This config are for LinearRoad
-    boundaries = [0.5,7.5,10.5,11.5]
-    boundary_text = ['safe','worth','unsafe']
+    boundaries = [0.5,10.5,11.5]
+    boundary_text = ['safe','unsafe']
+    boundary_text_align = ['left','left']
     latency_y_scale = 'log'
     latency_y_lim = [0.03,6]
     # # This config are for Synthetic
-    # boundaries = [0.5,4.5,7.5,11.5]
-    # boundary_text = ['safe','worth','unsafe']
-    # latency_y_scale = 'log'
-    # latency_y_lim = [0.005,50]
+    boundaries = [0.5,4.5,11.5,11.5]
+    boundary_text = ['safe','','unsafe']
+    boundary_text_align = ['left','left','right']
+    latency_y_scale = 'log'
+    latency_y_lim = [0.005,50]
     
+    # The values represent: initial size, fine size, initial opacity, final opacity, color, prob. of selection
+    agent_plots = {
+        'weaaw_linear': [1,5,0.01,0.99,'green',0.5],
+        'weaaw_synthetic': [1,5,0.01,0.99,'green',0.5],
+        '14.2': [1,5,0.01,0.99,'green',0.5],
+        '14.1': [1,5,0.01,0.99,'green',0.75],
+        '13.1': [1,5,0.1,0.8,'red',1],
+        '13.2': [1,5,0.1,0.8,'green',1],
+        '12.1': [1,5,0.1,0.8,'red',1],
+        '12.2': [5,10,0.1,0.8,'green',1]}
+       
+    given_order = ['weaaw_synthetic']  # The desired order for baselines
     
     # Specify color and font size
     text_color = 'green'  # Example color
-    text_fontsize = 8  # Example font size
+    text_fontsize = 7  # Example font size
     
     if len(unique_baselines) > len(markers):
         print("Warning: Not enough unique markers defined for the number of baselines.")
@@ -44,7 +60,7 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
     latencies_thresholds_ids=['soft','hard']
 
     latencies_thresholds=[1.5]
-    latencies_thresholds_ids=['hard']
+    latencies_thresholds_ids=['QoS threshold']
 
     # Read the first and second columns from the CSV
     dfrate = pd.read_csv(rate_file_path, usecols=[0, 1], header=None)
@@ -57,33 +73,36 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
     x_data = dfrate['x']
     y_data = dfrate['y']
 
-    plt.rcParams.update({'font.size': 8})  # Set global font size to 10
-
     # Create a figure and a set of subplots, now with 4 rows
-    fig, axs = plt.subplots(5, 2, figsize=(10, 6), gridspec_kw={'hspace': 0, 'wspace': 0, 'height_ratios': [1, 0.5, 1, 1, 1]})
+    text_width_pt = 506
+    text_height_pt = 270
+    points_per_inch = 72
+    text_width_in = text_width_pt / points_per_inch
+    text_height_in = text_height_pt / points_per_inch
+    fig, axs = plt.subplots(5, 2, figsize=(text_width_in, text_height_in), gridspec_kw={'hspace': 0, 'wspace': 0, 'height_ratios': [1, 0.5, 1, 1, 1]})
 
     # Plot random data on the new top axes (axs[0])
-    axs[0,0].plot(x_data - dfrate['x'].min(), y_data, linestyle='-', color='blue')
+    axs[0,0].plot(x_data - dfrate['x'].min(), y_data/1000, linestyle='-', color='blue')
     axs[0,0].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
     axs[0,0].set_ylabel(r'Input rate ($10^3$ t/s)', fontsize=text_fontsize)
     axs[0,1].set_xlabel('Time (s)', fontsize=text_fontsize)
 
     # Adjust the indices for the other axes since we added a new one at the top
     # mean_ratio, divided by 100
-    data_mean_ratio = [df[df['baseline'] == baseline]['mean_ratio'].dropna() / 100 for baseline in unique_baselines]
+    data_mean_ratio = [df[df['baseline'] == baseline]['q2_ratio'].dropna() / 100 for baseline in unique_baselines]
     axs[2,1].boxplot(data_mean_ratio, labels=unique_baselines)
-    axs[2,0].set_ylabel('Compression (%)', fontsize=text_fontsize)
+    axs[2,0].set_ylabel('Ratio (%)', fontsize=text_fontsize)
     # Set specific tick positions
     axs[2,1].set_ylim([-0.1,1.1])
     axs[2,0].set_xticks([])
-    axs[2,1].set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
-    axs[2,1].set_yticklabels(['0', '', '', '', '', '1'])
+    # axs[2,1].set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
+    # axs[2,1].set_yticklabels(['0', '', '', '', '', '1'])
     # Enable the grid
     axs[2,0].grid(True, which='major', axis='y', linestyle='-', color='gray', linewidth=0.5)
     axs[2,1].grid(True, which='major', axis='y', linestyle='-', color='gray', linewidth=0.5)
 
     # latency, divided by 1000
-    data_latency = [df[df['baseline'] == baseline]['latency'].dropna() / 1000 for baseline in unique_baselines]
+    data_latency = [df[df['baseline'] == baseline]['q2_latency'].dropna() / 1000 for baseline in unique_baselines]
     axs[3,1].boxplot(data_latency, labels=unique_baselines)
     axs[3,0].set_ylabel('Latency (s)', fontsize=text_fontsize)
     axs[3,1].set_ylim(latency_y_lim)
@@ -92,17 +111,17 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
     for lat_idx,latency_threshold in enumerate(latencies_thresholds): 
         axs[3,1].axhline(y=latency_threshold, color='r', linestyle='--')  # Horizontal line at max_latency
         # Add text for threshold latency
-        axs[3,1].text(0.5, latency_threshold*1.05, latencies_thresholds_ids[lat_idx], color='red', verticalalignment='bottom', horizontalalignment='left', fontsize=8, transform=axs[3,1].transData)
+        axs[3,1].text(0.5, latency_threshold*1.05, latencies_thresholds_ids[lat_idx], color='red', verticalalignment='bottom', horizontalalignment='left', fontsize=text_fontsize, transform=axs[3,1].transData)
         # axs[3].grid(True, which='both', axis='y', linestyle='--', linewidth=0.5, color='gray')  # Enable y-axis grid
 
     # cpu, divided by 100
-    data_cpu = [df[df['baseline'] == baseline]['cpu'].dropna() / 100 for baseline in unique_baselines]
+    data_cpu = [df[df['baseline'] == baseline]['q2_cpu'].dropna() / 100 for baseline in unique_baselines]
     axs[4,1].boxplot(data_cpu, labels=unique_baselines)
     axs[4,0].set_ylabel('CPU (%)', fontsize=text_fontsize)
     axs[4,1].set_xlabel('Baseline', fontsize=text_fontsize)  # Only the last subplot needs the x-axis label
     axs[4,1].set_xticklabels(xtick_labels, fontsize=text_fontsize)
-    axs[4,1].set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
-    axs[4,1].set_yticklabels(['0', '', '', '', '', '1'])
+    # axs[4,1].set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
+    # axs[4,1].set_yticklabels(['0', '', '', '', '', '1'])
     axs[4,1].set_ylim([-0.1,1.1])
     # Enable the grid
     axs[4,0].grid(True, which='major', axis='y', linestyle='-', color='gray', linewidth=0.5)
@@ -116,9 +135,10 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
     # Add text on top of the second axes (previously first) in between consecutive pairs of boundaries
     for i, text in enumerate(boundary_text):
         # Calculate the position to place the text (middle between boundaries)
-        x_pos = (boundaries[i] + boundaries[i + 1]) / 2
+        # x_pos = (boundaries[i] + boundaries[i + 1]) / 2
+        x_pos = boundaries[i]
         # Place the text at the calculated position, with a slight offset upwards
-        axs[2,1].text(x_pos, 1.01, text, transform=axs[2,1].get_xaxis_transform(), ha='center', va='bottom', color=text_color, fontsize=text_fontsize)
+        axs[2,1].text(x_pos, 1.01, text, transform=axs[2,1].get_xaxis_transform(), ha=boundary_text_align[i], va='bottom', color=text_color, fontsize=text_fontsize)
 
     # Disable y-axis labels and tick marks on the right-side axes
     for ax in axs[1:, 1]:  # Loop through second column axes
@@ -135,19 +155,7 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
     # Convert the 'baseline' column to text (object) type
     baseline_df['baseline'] = baseline_df['baseline'].astype(str)
 
-    # The values represent: initial size, fine size, initial opacity, final opacity, color, prob. of selection
-    agent_plots = {
-        'weaaw_linear': [1,5,0.01,0.99,'green',1],
-        'weaaw_synthetic': [1,5,0.01,0.99,'green',1],
-        '14.2': [1,5,0.01,0.99,'green',0.5],
-        '14.1': [1,5,0.01,0.99,'green',0.75],
-        '13.1': [1,5,0.1,0.8,'red',1],
-        '13.2': [1,5,0.1,0.8,'green',1],
-        '12.1': [1,5,0.1,0.8,'red',1],
-        '12.2': [5,10,0.1,0.8,'green',1]}
-       
-    given_order = ['weaaw_linear']  # The desired order for baselines
-    given_order = ['weaaw_synthetic']  # The desired order for baselines
+    # given_order = ['weaaw_synthetic']  # The desired order for baselines
     # given_order = ['14.2']  # The desired order for baselines
     
     # Create a set for faster membership tests
@@ -171,10 +179,10 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
                 if np.random.rand()<=agent_plots[baseline][5]:
                     x_points = [row['eventtime_start']- dfrate['x'].min(),row['eventtime_end']- dfrate['x'].min()]
                     x_mid=(x_points[0]+x_points[1])/2
-                    y_points = [row['mean_ratio']/100,row['mean_ratio']/100]
-                    y_max = row['max_ratio']/100
+                    y_points = [row['q2_ratio']/100,row['q2_ratio']/100]
+                    y_max = row['q1_ratio']/100
                     y_mid = y_points[0]
-                    y_min = row['min_ratio']/100
+                    y_min = row['q3_ratio']/100
                     # This version is to plot a line
                     # axs[2,0].plot(x_points,y_points,linewidth=sizes[j], color=agent_plots[baseline][4], alpha=opacities[j])
                     # This version is to plot a diamond
@@ -204,10 +212,10 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
                 if np.random.rand()<=agent_plots[baseline][5]:
                     x_points = [row['eventtime_start']- dfrate['x'].min(),row['eventtime_end']- dfrate['x'].min()]
                     x_mid=(x_points[0]+x_points[1])/2
-                    y_points = [row['latency_mean']/1000,row['latency_mean']/1000]
-                    y_max = row['latency_min']/1000
+                    y_points = [row['q2_latency']/1000,row['q2_latency']/1000]
+                    y_max = row['q3_latency']/1000
                     y_mid = y_points[0]
-                    y_min = row['latency_max']/1000
+                    y_min = row['q1_latency']/1000
                     # This version is to plot a line
                     # axs[3,0].plot(x_points,y_points,linewidth=sizes[j], color=agent_plots[baseline][4], alpha=opacities[j])
                     # This version is to plot a diamond
@@ -222,7 +230,7 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
     for lat_idx,latency_threshold in enumerate(latencies_thresholds): 
         axs[3,0].axhline(y=latency_threshold, color='r', linestyle='--')  # Horizontal line at max_latency
         # Add text for threshold latency
-        axs[3,0].text(0.5, latency_threshold*1.05, latencies_thresholds_ids[lat_idx], color='red', verticalalignment='bottom', horizontalalignment='left', fontsize=8, transform=axs[3,1].transData)
+        axs[3,0].text(0.5, latency_threshold*1.05, latencies_thresholds_ids[lat_idx], color='red', verticalalignment='bottom', horizontalalignment='left', fontsize=text_fontsize, transform=axs[3,1].transData)
         # axs[3].grid(True, which='both', axis='y', linestyle='--', linewidth=0.5, color='gray')  # Enable y-axis grid
     # axs[3,0].axhline(y=latencies_thresholds, color='r', linestyle='--')  # Horizontal line at max_latency
     axs[3,0].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
@@ -240,10 +248,10 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
                 if np.random.rand()<=agent_plots[baseline][5]:
                     x_points = [row['eventtime_start']- dfrate['x'].min(),row['eventtime_end']- dfrate['x'].min()]
                     x_mid=(x_points[0]+x_points[1])/2
-                    y_points = [row['cpu_mean']/100,row['cpu_mean']/100]
-                    y_max = row['cpu_min']/100
+                    y_points = [row['q2_cpu']/100,row['q2_cpu']/100]
+                    y_max = row['q3_cpu']/100
                     y_mid = y_points[0]
-                    y_min = row['cpu_max']/100
+                    y_min = row['q1_cpu']/100
                     # This version is to plot a line
                     # axs[4,0].plot(x_points,y_points,linewidth=sizes[j], color=agent_plots[baseline][4], alpha=opacities[j])
                     # This version is to plot a diamond
@@ -303,7 +311,7 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
             # Place the text in the top right corner
             # print(x_lim[0])
             # print(y_lim[0])
-            axs[0,1].text(0,y_lim[0]*1.01, 'Ep. '+str(episode), fontsize=10, color='black')
+            # axs[0,1].text(0,y_lim[0]*1.01, 'Ep. '+str(episode), fontsize=10, color='black')
 
 
             axs[0,1].yaxis.tick_right()  # Move ticks to the right

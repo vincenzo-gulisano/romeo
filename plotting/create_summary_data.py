@@ -18,40 +18,40 @@ def process_subfolder(subfolder):
         episode_data = df[df['episode'] == episode]
         
         # Extract required stats for the episode
-        mean_rate = episode_data[episode_data['stat'] == 'injectionrate.rate']['mean'].values[0]
+        q2_rate = episode_data[episode_data['stat'] == 'injectionrate.rate']['q2'].values[0]
         cum_reward = episode_data[episode_data['stat'] == 'rewards']['sum'].values[0]
-        min_ratio = episode_data[episode_data['stat'] == 'ratio.percent']['min'].values[0]
-        mean_ratio = episode_data[episode_data['stat'] == 'ratio.percent']['mean'].values[0]
-        max_ratio = episode_data[episode_data['stat'] == 'ratio.percent']['max'].values[0]
-        mean_violations = episode_data[episode_data['stat'] == 'latency.violations']['mean'].values[0]
+        q1_ratio = episode_data[episode_data['stat'] == 'ratio.percent']['q1'].values[0]
+        q2_ratio = episode_data[episode_data['stat'] == 'ratio.percent']['q2'].values[0]
+        q3_ratio = episode_data[episode_data['stat'] == 'ratio.percent']['q3'].values[0]
+        q2_violations = episode_data[episode_data['stat'] == 'latency.violations']['q2'].values[0]
         sum_violations = episode_data[episode_data['stat'] == 'latency.violations']['sum'].values[0]
-        latency_min = episode_data[episode_data['stat'] == 'latency.average']['min'].values[0]
-        latency_mean = episode_data[episode_data['stat'] == 'latency.average']['mean'].values[0]
-        latency_max = episode_data[episode_data['stat'] == 'latency.average']['max'].values[0]
-        cpu_min = episode_data[episode_data['stat'] == 'CPU-agg.average']['min'].values[0]
-        cpu_mean = episode_data[episode_data['stat'] == 'CPU-agg.average']['mean'].values[0]
-        cpu_max = episode_data[episode_data['stat'] == 'CPU-agg.average']['max'].values[0]
+        q1_latency = episode_data[episode_data['stat'] == 'latency.average']['q1'].values[0]
+        q2_latency = episode_data[episode_data['stat'] == 'latency.average']['q2'].values[0]
+        q3_latency = episode_data[episode_data['stat'] == 'latency.average']['q3'].values[0]
+        q1_cpu = episode_data[episode_data['stat'] == 'CPU-agg.average']['q1'].values[0]
+        q2_cpu = episode_data[episode_data['stat'] == 'CPU-agg.average']['q2'].values[0]
+        q3_cpu = episode_data[episode_data['stat'] == 'CPU-agg.average']['q3'].values[0]
         steps = episode_data[episode_data['stat'] == 'steps']['sum'].values[0]
-        eventtime_start = episode_data[episode_data['stat'] == 'eventtime.max']['min'].values[0]
-        eventtime_end = episode_data[episode_data['stat'] == 'eventtime.max']['max'].values[0]
+        eventtime_start = episode_data[episode_data['stat'] == 'eventtime.max']['q1'].values[0]
+        eventtime_end = episode_data[episode_data['stat'] == 'eventtime.max']['q3'].values[0]
         
         # Append to data list
         data.append({
             'baseline': os.path.basename(subfolder),
             'episode': episode,
-            'mean_rate': mean_rate,
+            'q2_rate': q2_rate,
             'cum_reward': cum_reward,
-            'min_ratio': min_ratio,
-            'mean_ratio': mean_ratio,
-            'max_ratio': max_ratio,
-            'mean_violations': mean_violations,
+            'q1_ratio': q1_ratio,
+            'q2_ratio': q2_ratio,
+            'q3_ratio': q3_ratio,
+            'q2_violations': q2_violations,
             'sum_violations': sum_violations,
-            'latency_min': latency_min,
-            'latency_mean': latency_mean,
-            'latency_max': latency_max,
-            'cpu_min': cpu_min,
-            'cpu_mean': cpu_mean,
-            'cpu_max': cpu_max,
+            'q1_latency': q1_latency,
+            'q2_latency': q2_latency,
+            'q3_latency': q3_latency,
+            'q1_cpu': q1_cpu,
+            'q2_cpu': q2_cpu,
+            'q3_cpu': q3_cpu,
             'steps': steps,
             'eventtime_start': eventtime_start,
             'eventtime_end': eventtime_end
@@ -60,8 +60,8 @@ def process_subfolder(subfolder):
     return pd.DataFrame(data)
 
 def aggregate_data(base_folder):
-    baselines_data = pd.DataFrame(columns=['baseline', 'episode', 'mean_rate', 'cum_reward', 'min_ratio', 'mean_ratio', 'max_ratio', 
-                                           'mean_violations','sum_violations','latency_min','latency_mean','latency_max','cpu_min','cpu_mean','cpu_max',
+    baselines_data = pd.DataFrame(columns=['baseline', 'episode', 'q2_rate', 'cum_reward', 'q1_ratio', 'q2_ratio', 'q3_ratio', 
+                                           'q2_violations','sum_violations','q1_latency','q2_latency','q3_latency','q1_cpu','q2_cpu','q3_cpu',
                                            'steps','eventtime_start','eventtime_end'])
     
     for subfolder in os.listdir(base_folder):
