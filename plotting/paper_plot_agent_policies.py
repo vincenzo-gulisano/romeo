@@ -25,11 +25,11 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
         'weaob_linear': [1,10,0.1,1,'red',0.25],
         'eaob_linear': [1,10,0.1,1,'orange',.25],
         'aob_linear': [1,10,0.1,1,'blue',.25],
-        'weaaw_linear': [1,10,0.1,1,'green',.25], # 0.125 for first experiments wince we have 200 episodes
+        'weaaw_linear': [1,10,0.1,1,'green',.125], # 0.125 for first experiments wince we have 200 episodes
         'weaob_synthetic': [1,10,0.1,1,'red',.25],
         'eaob_synthetic': [1,10,0.1,1,'orange',.25],
         'aob_synthetic': [1,10,0.1,1,'blue',.25],
-        'weaaw_synthetic': [1,10,0.1,1,'green',.25], # 0.125 for first experiments wince we have 200 episodes
+        'weaaw_synthetic': [1,10,0.1,1,'green',.125], # 0.125 for first experiments wince we have 200 episodes
         '13.1': [1,5,0.1,0.8,'red',1],
         '13.2': [1,5,0.1,0.8,'green',1],
         '12.1': [1,5,0.1,0.8,'red',1],

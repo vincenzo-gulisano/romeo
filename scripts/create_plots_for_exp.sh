@@ -1,6 +1,6 @@
 #!/bin/bash
-base_exp_folder="./data/exp14_policies_synth5WA/AOB"
-folders_to_explore=("aob_synthetic")
+base_exp_folder="./data/exp14_policies/WEAAW"
+folders_to_explore=("weaaw_linear" "weaaw_synthetic")
 plot_probabilities="False"
 reward_pattern="New" # OLD FOR BASELINES
 for folder_to_explore in "${folders_to_explore[@]}"; do
