@@ -319,19 +319,24 @@ if (latency was smaller than threshold AND (compression ratio decreased OR compr
 latency for any 3 steps in each episode is higher than 2.5 seconds --> terminate this episode, then go to next one
 5. run 200 episodes 50 steps for each episode
 6. change tau within [5,1] ([10,3] to [5,1])
-# Exp14.1
+## Exp14.1
 1. change reward function
-(1) +2: latency before and after action are both below soft and compression increased
-(2) +1: latency before and after action are both below soft and compression did not increase
-(3) +2: latency before and after action are both not high and compression increased
-(4) +1: latency before and after action are both not high and compression did not increase
-(5) +2: latency before is high and after action is not
-(6) -5: if not above
-# Exp14.2
+- +2: latency before and after action are both below soft and compression increased
+- +1: latency before and after action are both below soft and compression did not increase
+- +2: latency before and after action are both not high and compression increased
+- +1: latency before and after action are both not high and compression did not increase
+- +2: latency before is high and after action is not
+- -5: if not above
+## Exp14.2
 1. fixed missing high latencies problem for two queries
 2. run 100 episodes for WEAOB, EAOB and AOB
 3. run 200 episodes for WEEAW
-# Exp14.3
+## Exp14.3
 1. run 100 episodes for all policies again but this time for synthetic only and changing the WA to 20 secs -- basically for linear road OB policies mean more conservative behavior (because most of the rewards are 0, which means the agent tries to reach the end as safe as possible), in that case in theory the behavior of the different policies should be different too, like in linear road I think
 2. starting_time_max=5800 (from 6500 to 5800)
 3. (forgot above) run 100 episodes for synthetic with all policies in WA = 5 (WA changes from 1 to 5)
+
+# Exp15
+1. change the reward function
+
+2. 150 episodes for linear and synthetic
