@@ -29,7 +29,8 @@ maybe the reward should be based also on how long the agent keeps the latency be
 - ...
 - 10 means set compression to 100%
 - 
-`self.action_space = spaces.Discrete(11,)``
+`self.action_space = spaces.Discrete(11,)`
+
 4. reward function
     public String getRewardAsString() {
         if (L > 1000) {
@@ -37,6 +38,7 @@ maybe the reward should be based also on how long the agent keeps the latency be
         }
         return Long.toString((long) (100 - R));
     }
+    
 5. (02-05-24 on slack by sup.) [Exp2] Changes:
 - while training based on the average latency in the last 20 seconds is probably not the best, having the latest statistic rather than an aggregation of the last X seconds is not a good idea either. This is because for the input rate, if the system is saturated, the latest rate could be small but that does not mean the injection is low, only that the system is saturated. So now I do average input rate / average latency / max latency in the last 10 seconds. So basically from 20 seconds to 10 seconds (so experiments should be also faster) and latency is max not average.
 - Based on Exp1. I also decided to add a measurement of the CPU. so that if the average input rate is low because the system is saturated, the CPU consumption will be high, and the agent will probably understand better.
@@ -339,6 +341,6 @@ latency for any 3 steps in each episode is higher than 2.5 seconds --> terminate
 
 # Exp15
 1. change the reward function
-![Alt text](reward_function_1.png)
-![Alt text](reward_function_2.png)
+![Alt text](/image/Exp15/reward_function_exp15_1.png)
+![Alt text](/image/Exp15/reward_function_exp15_2.png)
 2. 150 episodes for linear and synthetic
