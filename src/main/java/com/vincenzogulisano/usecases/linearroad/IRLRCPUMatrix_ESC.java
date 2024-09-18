@@ -242,108 +242,84 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
 
     private long computeRewardBasedOnActionLatencyAndCompression() {
 
-        // long prvD = varDValues.get(0);
-        // long lstD = varDValues.get(1);
-        // LatencyAboveThreshold latencyAboveThreshold =
-        // latencyGreaterThanOrEqualToThresholdInReportedStates.get(0);
         LatStatus pstLatStatus = latStatusInStates.get(0);
         LatStatus lstLatStatus = latStatusInStates.get(1);
         CompressionValue pstRatio = latestCompressionsInReportedStates.get(0);
         CompressionValue lstRatio = latestCompressionsInReportedStates.get(1);
 
-        if (pstLatStatus == LatStatus.UNKNOWN || lstLatStatus == LatStatus.UNKNOWN) {
-            logger.warn(
-                    "Reward cannot be computed because we do not know if the latency was above or below the threshold. Returning 0");
+        if (pstLatStatus == LatStatus.UNKNOWN) {
+            logger.warn("Reward cannot be computed. Past latency unkown.");
+            return 0;
+        }
+        if (lstLatStatus == LatStatus.UNKNOWN) {
+            logger.warn("Reward cannot be computed. Last latency unkown.");
             return 0;
         }
         if (!pstRatio.valid) {
-            logger.warn(
-                    "Reward cannot be computed because we do not know the past compression value");
+            logger.warn("Reward cannot be computed. Past ratio unkown.");
             return 0;
         }
         if (!lstRatio.valid) {
-            logger.warn(
-                    "Reward cannot be computed because we do not know the last compression value");
+            logger.warn("Reward cannot be computed. Last ratio unkown.");
             return 0;
         }
 
-        /**
-         * 
-         * 
-         * If latency before and after action are both below soft
-         * and compression increased +2
-         * or +1
-         * If latency before and after action are both not high
-         * and compression increased +2
-         * or +1
-         * If latency before is high and after action is not +1
-         * Otherwise -5
-         * 
-         */
-        if (pstLatStatus == LatStatus.BELOWSOFT && lstLatStatus == LatStatus.BELOWSOFT) {
-            if (lstRatio.value < pstRatio.value) {
-                logger.debug("latency before and after action are both below soft and compression increased +2");
-                return +2;
-            } else {
-                logger.debug("latency before and after action are both below soft and compression did not increase +1");
-                return +1;
+        if (lstRatio.value < pstRatio.value) { // If n/c decreased, and
+            if (pstLatStatus == LatStatus.BELOWSOFT) { // was below soft, and
+                if (lstLatStatus == LatStatus.BELOWSOFT) { // and still is
+                    return 4;
+                }
+                if (lstLatStatus == LatStatus.BELOWSOFT) { // and went inbetween soft and hard
+                    return 2;
+                }
+                if (lstLatStatus == LatStatus.BELOWSOFT) { // and exceeded threshold
+                    return 1;
+                }
+            }
+            if (pstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // was inbetween soft and hard, and
+                if (lstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // stayed there
+                    return 1;
+                }
             }
         }
-        if (pstLatStatus != LatStatus.ABOVEHARD && lstLatStatus != LatStatus.ABOVEHARD) {
-            if (lstRatio.value < pstRatio.value) {
-                logger.debug("latency before and after action are both not high and compression increased +2");
-                return +2;
-            } else {
-                logger.debug("latency before and after action are both not high and compression did not increase +1");
-                return +1;
+        if (lstRatio.value >= pstRatio.value) { // If n/c increased or stayed the same, and
+            if (pstLatStatus == LatStatus.BELOWSOFT) { // was below soft, and
+                if (lstLatStatus == LatStatus.BELOWSOFT) { // and still is
+                    return 2;
+                }
+                if (lstLatStatus == LatStatus.BELOWSOFT) { // and went inbetween soft and hard
+                    return -1;
+                }
+                if (lstLatStatus == LatStatus.BELOWSOFT) { // and exceeded threshold
+                    return -5;
+                }
+            }
+            if (pstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // was inbetween soft and hard, and
+                if (lstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // stayed there
+                    return -2;
+                }
             }
         }
-        if (pstLatStatus == LatStatus.ABOVEHARD && lstLatStatus != LatStatus.ABOVEHARD) {
-            logger.debug("latency before is high and after action is not +2");
-            return +2;
+
+        if (pstLatStatus == LatStatus.INBETWEENSOFTANDHARD && lstLatStatus == LatStatus.BELOWSOFT) {
+            // If went from inbetween soft and hard to below soft
+            return 2;
         }
-        logger.debug("Either breaking latency or staying above -5");
-        return -5;
-        /**
-         * This are the case of interest (in the given order)
-         * Both belowsoft and compression higher
-         * One of them belowsoft and other inbetweensoftandhard and compression higher
-         * One of them above hard and compression lower
-         * Anything else
-         */
-        // if ((pstLatStatus == LatStatus.BELOWSOFT && lstLatStatus ==
-        // LatStatus.BELOWSOFT)
-        // && (lstRatio.value < pstRatio.value || (lstRatio == pstRatio &&
-        // lstRatio.value == 0)
-        // || lstD < prvD || (lstD == prvD && lstD == 0))) {
-        // logger.debug("soft latency not exceeded and compression increased if
-        // possible. Very Good!");
-        // return +2;
-        // }
-        // if (((pstLatStatus == LatStatus.INBETWEENSOFTANDHARD && lstLatStatus ==
-        // LatStatus.BELOWSOFT) ||
-        // (pstLatStatus == LatStatus.BELOWSOFT && lstLatStatus ==
-        // LatStatus.INBETWEENSOFTANDHARD) ||
-        // (pstLatStatus == LatStatus.INBETWEENSOFTANDHARD && lstLatStatus ==
-        // LatStatus.INBETWEENSOFTANDHARD))
-        // && (lstRatio.value < pstRatio.value || (lstRatio == pstRatio &&
-        // lstRatio.value == 0)
-        // || lstD < prvD || (lstD == prvD && lstD == 0))) {
-        // logger.debug("hard latency not exceeded and compression increased if
-        // possible. Good!");
-        // return +1;
-        // }
-        // if ((pstLatStatus == LatStatus.ABOVEHARD || lstLatStatus ==
-        // LatStatus.ABOVEHARD)
-        // && (lstRatio.value > pstRatio.value || (lstRatio == pstRatio &&
-        // lstRatio.value == 100)
-        // || lstD > prvD || (lstD == prvD && lstD == 10))) {
-        // logger.debug("hard latency exceeded and compression decreased if possible.
-        // Good!");
-        // return +1;
-        // }
-        // logger.debug("Not behaving!");
-        // return -1;
+        if (pstLatStatus == LatStatus.INBETWEENSOFTANDHARD && lstLatStatus == LatStatus.ABOVEHARD) {
+            // If went from inbetween soft and hard to above
+            return -5;
+        }
+        if (pstLatStatus == LatStatus.ABOVEHARD && lstLatStatus == LatStatus.INBETWEENSOFTANDHARD) {
+            // If went from above to inbetween soft and hard
+            return 2;
+        }
+        if (pstLatStatus == LatStatus.ABOVEHARD && lstLatStatus == LatStatus.BELOWSOFT) {
+            // If went from above to below soft
+            return 4;
+        }
+
+        assert (false);
+        return 0;
 
     }
 
