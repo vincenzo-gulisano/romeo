@@ -269,10 +269,10 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
                 if (lstLatStatus == LatStatus.BELOWSOFT) { // and still is
                     return 4;
                 }
-                if (lstLatStatus == LatStatus.BELOWSOFT) { // and went inbetween soft and hard
+                if (lstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // and went inbetween soft and hard
                     return 2;
                 }
-                if (lstLatStatus == LatStatus.BELOWSOFT) { // and exceeded threshold
+                if (lstLatStatus == LatStatus.ABOVEHARD) { // and exceeded threshold
                     return 1;
                 }
             }
@@ -287,10 +287,10 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
                 if (lstLatStatus == LatStatus.BELOWSOFT) { // and still is
                     return 2;
                 }
-                if (lstLatStatus == LatStatus.BELOWSOFT) { // and went inbetween soft and hard
+                if (lstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // and went inbetween soft and hard
                     return -1;
                 }
-                if (lstLatStatus == LatStatus.BELOWSOFT) { // and exceeded threshold
+                if (lstLatStatus == LatStatus.ABOVEHARD) { // and exceeded threshold
                     return -5;
                 }
             }
@@ -316,6 +316,10 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         if (pstLatStatus == LatStatus.ABOVEHARD && lstLatStatus == LatStatus.BELOWSOFT) {
             // If went from above to below soft
             return 4;
+        }
+        if (pstLatStatus == LatStatus.ABOVEHARD && lstLatStatus == LatStatus.ABOVEHARD) {
+            // If went from above to below soft
+            return -5;
         }
 
         assert (false);
