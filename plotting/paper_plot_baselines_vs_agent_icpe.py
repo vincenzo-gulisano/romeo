@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import os
 import numpy as np
 import plotly.tools as tls
+from scipy import interpolate
 
 def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_episod):
     # Read the baselines_data.csv file
@@ -39,7 +40,7 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
     # The values represent: initial size, fine size, initial opacity, final opacity, color, prob. of selection
     agent_plots = {
         'weaaw_linear': [1,5,0.01,0.99,'green',0.5],
-        'weaaw_synthetic': [1,5,0.01,0.99,'green',1],
+        'weaaw_synthetic': [1,5,0.3,0.9,'green',1],
         '14.2': [1,5,0.01,0.99,'green',0.5],
         '14.1': [1,5,0.01,0.99,'green',0.75],
         '13.1': [1,5,0.1,0.8,'red',1],
@@ -48,7 +49,13 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
         '12.2': [5,10,0.1,0.8,'green',1]}
        
     given_order = ['weaaw_synthetic']  # The desired order for baselines
-    
+        
+    splits = 4  # Number of portions to divide the subset into
+    max_line_width = 2.5  # Set your desired maximum line width
+    # base_dash_length = 1  # Base dash length
+    # min_gap_length = 0.3    # Minimum gap between dashes
+    smoothing_window_size = 5
+
     # Specify color and font size
     text_color = 'green'  # Example color
     text_fontsize = 7  # Example font size
@@ -169,63 +176,101 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
     max_et = None
 
     for i, baseline in enumerate(unique_baselines):
-        subset = baseline_df[baseline_df['baseline'] == baseline] 
+        subset = baseline_df[baseline_df['baseline'] == baseline]
+
         if baseline in agent_plots:
-            # Determine sizes and opacities based on episode values
-            num_points = len(subset['eventtime_start'])
-            sizes = np.geomspace(start=agent_plots[baseline][0], stop=agent_plots[baseline][1], num=num_points)
-            opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
-            for j, (index, row) in enumerate(subset.iterrows()):
-                if np.random.rand()<=agent_plots[baseline][5]:
-                    x_points = [row['eventtime_start']- dfrate['x'].min(),row['eventtime_end']- dfrate['x'].min()]
-                    x_mid=(x_points[0]+x_points[1])/2
-                    y_points = [row['q2_ratio']/100,row['q2_ratio']/100]
-                    y_max = row['q1_ratio']/100
-                    y_mid = y_points[0]
-                    y_min = row['q3_ratio']/100
-                    # This version is to plot a line
-                    # axs[2,0].plot(x_points,y_points,linewidth=sizes[j], color=agent_plots[baseline][4], alpha=opacities[j])
-                    # This version is to plot a diamond
-                    # Coordinates
-                    x_coords = [x_points[0], x_mid, x_points[1], x_mid, x_points[0]]  # Start and end at the same point to close the shape
-                    y_coords = [y_mid, y_min, y_mid, y_max, y_mid]  # Top, right-mid, bottom, left-mid, back to top
-                    # axs[2,0].plot(x_coords, y_coords, color=agent_plots[baseline][4], alpha=opacities[j])  # Blue line with a linewidth of 2
-                    axs[2,0].fill(x_coords, y_coords, color=agent_plots[baseline][4], alpha=opacities[j])  # Fill the rhombus with a blue color, semi-transparent
-                    # This version is to draw the circle
-                    # axs[2,0].plot(row['eventtime_start']- dfrate['x'].min(), row['mean_ratio']/100, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
-                    if min_et is None or x_points[0]<min_et:
-                        min_et = x_points[0]
-                    if max_et is None or x_points[1]>max_et:
-                        max_et = x_points[1]
-                        
+
+            opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=splits)
+
+            # Split the subset into `n` portions
+            portions = np.array_split(subset, splits)
+
+            for portion_num, portion in enumerate(portions, 1):
+                if portion.empty:
+                    continue  # Skip if the portion is empty
+
+                # Sort subset by 'eventtime_start'
+                portion = portion.sort_values(by='eventtime_start')
+
+                # Line width proportional to portion number, scaled between 1 and max_line_width
+                line_width = 1 + (portion_num - 1) * (max_line_width - 1) / (splits - 1)
+
+                # # Gap length decreases as portion_num increases
+                # gap_length = base_dash_length - (portion_num - 1) * (base_dash_length - min_gap_length) / (splits - 1)
+
+                # Extract x and y coordinates
+                x_coords = portion['eventtime_start'] - dfrate['x'].min()
+                y_coords_ratio = portion['q2_ratio'] / 100
+                y_coords_latency = portion['q2_latency'] / 1000
+                y_coords_cpu = portion['q2_cpu']/100
+
+                # smooth the line
+                smooth_points_ratio = pd.Series(y_coords_ratio).rolling(window=smoothing_window_size, center=True).mean()
+                smooth_points_latency = pd.Series(y_coords_latency).rolling(window=smoothing_window_size, center=True).mean()
+                smooth_points_cpu = pd.Series(y_coords_cpu).rolling(window=smoothing_window_size, center=True).mean()
+
+                # Plot the line for the current portion with line thickness proportional to portion number
+                # line, = axs[2, 0].plot(x_coords, y_coords_ratio, color=agent_plots[baseline][4], 
+                #             linewidth=line_width, alpha=opacities[portion_num-1])
+                # Plot the smooth line
+                axs[2, 0].plot(x_coords, smooth_points_ratio, color=agent_plots[baseline][4], 
+                                    linewidth=line_width, alpha=opacities[portion_num-1])
+                # line.set_dashes([base_dash_length, gap_length])
+
+                # Plot the line for the current portion with line thickness proportional to portion number
+                # line, = axs[3, 0].plot(x_coords, y_coords_latency, color=agent_plots[baseline][4], 
+                #             linewidth=line_width, alpha=opacities[portion_num-1])
+                # Plot the smooth line
+                axs[3, 0].plot(x_coords, smooth_points_latency, color=agent_plots[baseline][4], 
+                                    linewidth=line_width, alpha=opacities[portion_num-1])
+                # line.set_dashes([base_dash_length, gap_length])
+
+                # Plot the line for the current portion with line thickness proportional to portion number
+                # line, = axs[4, 0].plot(x_coords, y_coords_cpu, color=agent_plots[baseline][4], 
+                #             linewidth=line_width, alpha=opacities[portion_num-1])
+                # Plot the smooth line
+                axs[4, 0].plot(x_coords, smooth_points_cpu, color=agent_plots[baseline][4], 
+                                    linewidth=line_width, alpha=opacities[portion_num-1])
+                
+                # Update min_et and max_et based on the current portion
+                if min_et is None or x_coords.min() < min_et:
+                    min_et = x_coords.min()
+                if max_et is None or x_coords.max() > max_et:
+                    max_et = x_coords.max()
+
     axs[2,0].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
     axs[2,0].set_ylim([-0.1,1.1])
 
-    for i, baseline in enumerate(unique_baselines):
-        subset = baseline_df[baseline_df['baseline'] == baseline] 
-        if baseline in agent_plots:
-            # Determine sizes and opacities based on episode values
-            num_points = len(subset['eventtime_start'])
-            sizes = np.geomspace(start=agent_plots[baseline][0], stop=agent_plots[baseline][1], num=num_points)
-            opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
-            for j, (index, row) in enumerate(subset.iterrows()):
-                if np.random.rand()<=agent_plots[baseline][5]:
-                    x_points = [row['eventtime_start']- dfrate['x'].min(),row['eventtime_end']- dfrate['x'].min()]
-                    x_mid=(x_points[0]+x_points[1])/2
-                    y_points = [row['q2_latency']/1000,row['q2_latency']/1000]
-                    y_max = row['q3_latency']/1000
-                    y_mid = y_points[0]
-                    y_min = row['q1_latency']/1000
-                    # This version is to plot a line
-                    # axs[3,0].plot(x_points,y_points,linewidth=sizes[j], color=agent_plots[baseline][4], alpha=opacities[j])
-                    # This version is to plot a diamond
-                    # Coordinates
-                    x_coords = [x_points[0], x_mid, x_points[1], x_mid, x_points[0]]  # Start and end at the same point to close the shape
-                    y_coords = [y_mid, y_min, y_mid, y_max, y_mid]  # Top, right-mid, bottom, left-mid, back to top
-                    # axs[3,0].plot(x_coords, y_coords, color=agent_plots[baseline][4], alpha=opacities[j])  # Blue line with a linewidth of 2
-                    axs[3,0].fill(x_coords, y_coords, color=agent_plots[baseline][4], alpha=opacities[j])  # Fill the rhombus with a blue color, semi-transparent
-                    # This version is to draw the circle
-                    # axs[3,0].plot(row['eventtime_start']- dfrate['x'].min(), row['latency']/1000, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
+    # for i, baseline in enumerate(unique_baselines):
+    #     subset = baseline_df[baseline_df['baseline'] == baseline]
+
+    #     if baseline in agent_plots:
+    #         # Split the subset into `n` portions
+    #         portions = np.array_split(subset, splits)
+
+    #         for portion_num, portion in enumerate(portions, 1):
+    #             if portion.empty:
+    #                 continue  # Skip if the portion is empty
+
+    #             # Sort subset by 'eventtime_start'
+    #             portion = portion.sort_values(by='eventtime_start')
+
+    #             # Line width proportional to portion number, scaled between 1 and max_line_width
+    #             line_width = 1 + (portion_num - 1) * (max_line_width - 1) / (splits - 1)
+
+    #             # Extract x and y coordinates
+    #             x_coords = portion['eventtime_start'] - dfrate['x'].min()
+    #             y_coords_latency = portion['q2_latency'] / 1000
+
+    #             # Plot the line for the current portion with line thickness proportional to portion number
+    #             axs[3, 0].plot(x_coords, y_coords_latency, color=agent_plots[baseline][4], 
+    #                         linewidth=line_width, alpha=agent_plots[baseline][3])
+
+    #             # Update min_et and max_et based on the current portion
+    #             if min_et is None or x_coords.min() < min_et:
+    #                 min_et = x_coords.min()
+    #             if max_et is None or x_coords.max() > max_et:
+    #                 max_et = x_coords.max()
 
     for lat_idx,latency_threshold in enumerate(latencies_thresholds): 
         axs[3,0].axhline(y=latency_threshold, color='r', linestyle='--')  # Horizontal line at max_latency
@@ -237,31 +282,31 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
     axs[3,0].set_ylim(latency_y_lim)
     axs[3,0].set_yscale(latency_y_scale)
 
-    for i, baseline in enumerate(unique_baselines):
-        subset = baseline_df[baseline_df['baseline'] == baseline] 
-        if baseline in agent_plots:
-            # Determine sizes and opacities based on episode values
-            num_points = len(subset['eventtime_start'])
-            sizes = np.geomspace(start=agent_plots[baseline][0], stop=agent_plots[baseline][1], num=num_points)
-            opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
-            for j, (index, row) in enumerate(subset.iterrows()):
-                if np.random.rand()<=agent_plots[baseline][5]:
-                    x_points = [row['eventtime_start']- dfrate['x'].min(),row['eventtime_end']- dfrate['x'].min()]
-                    x_mid=(x_points[0]+x_points[1])/2
-                    y_points = [row['q2_cpu']/100,row['q2_cpu']/100]
-                    y_max = row['q3_cpu']/100
-                    y_mid = y_points[0]
-                    y_min = row['q1_cpu']/100
-                    # This version is to plot a line
-                    # axs[4,0].plot(x_points,y_points,linewidth=sizes[j], color=agent_plots[baseline][4], alpha=opacities[j])
-                    # This version is to plot a diamond
-                    # Coordinates
-                    x_coords = [x_points[0], x_mid, x_points[1], x_mid, x_points[0]]  # Start and end at the same point to close the shape
-                    y_coords = [y_mid, y_min, y_mid, y_max, y_mid]  # Top, right-mid, bottom, left-mid, back to top
-                    # axs[4,0].plot(x_coords, y_coords, color=agent_plots[baseline][4], alpha=opacities[j])  # Blue line with a linewidth of 2
-                    axs[4,0].fill(x_coords, y_coords, color=agent_plots[baseline][4], alpha=opacities[j])  # Fill the rhombus with a blue color, semi-transparent
-                    # This version is to draw the circle
-                    # axs[4,0].plot(row['eventtime_start']- dfrate['x'].min(), row['cpu']/100, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
+    # for i, baseline in enumerate(unique_baselines):
+    #     subset = baseline_df[baseline_df['baseline'] == baseline] 
+    #     if baseline in agent_plots:
+    #         # Determine sizes and opacities based on episode values
+    #         num_points = len(subset['eventtime_start'])
+    #         sizes = np.geomspace(start=agent_plots[baseline][0], stop=agent_plots[baseline][1], num=num_points)
+    #         opacities = np.geomspace(start=agent_plots[baseline][2], stop=agent_plots[baseline][3], num=num_points)
+    #         for j, (index, row) in enumerate(subset.iterrows()):
+    #             if np.random.rand()<=agent_plots[baseline][5]:
+    #                 x_points = [row['eventtime_start']- dfrate['x'].min(),row['eventtime_end']- dfrate['x'].min()]
+    #                 x_mid=(x_points[0]+x_points[1])/2
+    #                 y_points = [row['q2_cpu']/100,row['q2_cpu']/100]
+    #                 y_max = row['q3_cpu']/100
+    #                 y_mid = y_points[0]
+    #                 y_min = row['q1_cpu']/100
+    #                 # This version is to plot a line
+    #                 # axs[4,0].plot(x_points,y_points,linewidth=sizes[j], color=agent_plots[baseline][4], alpha=opacities[j])
+    #                 # This version is to plot a diamond
+    #                 # Coordinates
+    #                 x_coords = [x_points[0], x_mid, x_points[1], x_mid, x_points[0]]  # Start and end at the same point to close the shape
+    #                 y_coords_ratio = [y_mid, y_min, y_mid, y_max, y_mid]  # Top, right-mid, bottom, left-mid, back to top
+    #                 # axs[4,0].plot(x_coords, y_coords, color=agent_plots[baseline][4], alpha=opacities[j])  # Blue line with a linewidth of 2
+    #                 axs[4,0].fill(x_coords, y_coords_ratio, color=agent_plots[baseline][4], alpha=opacities[j])  # Fill the rhombus with a blue color, semi-transparent
+    #                 # This version is to draw the circle
+    #                 # axs[4,0].plot(row['eventtime_start']- dfrate['x'].min(), row['cpu']/100, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
     axs[4,0].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
     axs[4,0].set_xlabel('Event Time (s)', fontsize=text_fontsize)  # Only the last subplot needs the x-axis label
     axs[4,0].set_ylim([-0.1,1.1])
