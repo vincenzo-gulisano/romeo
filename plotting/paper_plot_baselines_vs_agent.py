@@ -39,7 +39,7 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
     # The values represent: initial size, fine size, initial opacity, final opacity, color, prob. of selection
     agent_plots = {
         'weaaw_linear': [1,5,0.01,0.99,'green',0.5],
-        'weaaw_synthetic': [1,5,0.01,0.99,'green',0.5],
+        'weaaw_synthetic': [1,5,0.01,0.99,'green',1],
         '14.2': [1,5,0.01,0.99,'green',0.5],
         '14.1': [1,5,0.01,0.99,'green',0.75],
         '13.1': [1,5,0.1,0.8,'red',1],
