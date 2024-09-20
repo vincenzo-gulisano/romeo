@@ -20,9 +20,11 @@ maybe the reward should be based also on how long the agent keeps the latency be
 1. change target_update
     target_update = 1
 2. Define a 2-D observation space --> states: injection rate, latency, compression, CPU consumption
+   
     self.observation_space = spaces.Box(low = np.array([0,0,0,0]), 
                                         high = np.array([np.inf, np.inf, 100, 100]),
                                         dtype = np.float32)
+                                        
 3. Define an action space ranging from 0 to 11
 - 0 means set compression to 0%
 - 1 means set compression to 10%
@@ -31,22 +33,22 @@ maybe the reward should be based also on how long the agent keeps the latency be
 - 
 `self.action_space = spaces.Discrete(11,)`
 
-4. reward function
+1. reward function
     public String getRewardAsString() {
         if (L > 1000) {
             return Long.toString((long) -(L - 1000) / 10);
         }
         return Long.toString((long) (100 - R));
     }
-    
-5. (02-05-24 on slack by sup.) [Exp2] Changes:
+
+2. (02-05-24 on slack by sup.) [Exp2] Changes:
 - while training based on the average latency in the last 20 seconds is probably not the best, having the latest statistic rather than an aggregation of the last X seconds is not a good idea either. This is because for the input rate, if the system is saturated, the latest rate could be small but that does not mean the injection is low, only that the system is saturated. So now I do average input rate / average latency / max latency in the last 10 seconds. So basically from 20 seconds to 10 seconds (so experiments should be also faster) and latency is max not average.
 - Based on Exp1. I also decided to add a measurement of the CPU. so that if the average input rate is low because the system is saturated, the CPU consumption will be high, and the agent will probably understand better.
 - I also changed the reward, now positive/negative are on the same order of magnitude.
 ## Exp2.2
 1. training another 50 episodes based on Exp2
 use 50 episodes' paras to train model, get a model for episode 51-100 episodes
-2. (02-07-24 on slack by sup.) [Exp2.2] Changes:
+1. (02-07-24 on slack by sup.) [Exp2.2] Changes:
 basically now you must pass the number of episodes and steps as parameters and you can pass two additional parameters (optional) to specify whether the agent should learn or not and whether a pre-trained state should be loaded or not
 ## Exp2.3
 1. training another 200 episodes based on Exp2.2
@@ -343,4 +345,10 @@ latency for any 3 steps in each episode is higher than 2.5 seconds --> terminate
 1. change the reward function
 ![Alt text](/image/Exp15/reward_function_exp15_1.png)
 ![Alt text](/image/Exp15/reward_function_exp15_2.png)
-2. 150 episodes for linear and synthetic
+2. 150 episodes for linear and synthetic with WEAAW policy
+   
+## Exp15.1
+1. another 150 episodes for synthetic with WEAAW
+   
+## Exp15.2
+1. 150 episodes for linear and synthetic with WEAOB, EAOB and AOB
