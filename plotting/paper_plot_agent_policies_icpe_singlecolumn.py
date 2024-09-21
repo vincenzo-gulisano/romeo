@@ -6,7 +6,7 @@ import numpy as np
 import plotly.tools as tls
 
 
-def plot_graphs(rate_file_path, agent_data, output_pdf):
+def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
     
 
     plt.rcParams.update({"font.size": 8})  # Set global font size to 10
@@ -34,10 +34,10 @@ def plot_graphs(rate_file_path, agent_data, output_pdf):
 
     # The values represent: initial size, fine size, initial opacity, final opacity, color, prob. of selection
     agent_plots = {
-        "weaob_linear": [1, 10, 0.1, 1, "red", 0.25],
-        "eaob_linear": [1, 10, 0.1, 1, "orange", 0.25],
-        "aob_linear": [1, 10, 0.1, 1, "blue", 0.25],
-        "weaaw_linear": [
+        "welob_linear": [1, 10, 0.1, 1, "red", 0.25],
+        "elob_linear": [1, 10, 0.1, 1, "orange", 0.25],
+        "lob_linear": [1, 10, 0.1, 1, "blue", 0.25],
+        "welaw_linear": [
             1,
             10,
             0.1,
@@ -45,10 +45,10 @@ def plot_graphs(rate_file_path, agent_data, output_pdf):
             "green",
             0.125,
         ],  # 0.125 for first experiments wince we have 200 episodes
-        "weaob_synthetic": [1, 10, 0.1, 1, "red", 0.25],
-        "eaob_synthetic": [1, 10, 0.1, 1, "orange", 0.25],
-        "aob_synthetic": [1, 10, 0.1, 1, "blue", 0.25],
-        "weaaw_synthetic": [
+        "welob_synthetic": [1, 10, 0.1, 1, "red", 0.25],
+        "elob_synthetic": [1, 10, 0.1, 1, "orange", 0.25],
+        "lob_synthetic": [1, 10, 0.1, 1, "blue", 0.25],
+        "welaw_synthetic": [
             1,
             10,
             0.1,
@@ -62,28 +62,46 @@ def plot_graphs(rate_file_path, agent_data, output_pdf):
         "12.2": [5, 10, 0.1, 0.8, "green", 1],
     }
 
-    policies_order = [
-        "weaob_linear",
-        "eaob_linear",
-        "aob_linear",
-        "weaaw_linear",
-    ]  # The desired order for baselines
-    # policies_order = [
-    #     "weaob_synthetic",
-    #     "eaob_synthetic",
-    #     "aob_synthetic",
-    #     "weaaw_synthetic",
-    # ]  # The desired order for baselines
+    if usecase == 'linearroad':
+        policies_order = [
+            "welob_linear",
+            "elob_linear",
+            "lob_linear",
+            "welaw_linear",
+        ]  # The desired order for baselines
+        cpu_ylim = [0,0.1]
+        latency_ylim = [0,2]
+        ncratio_ylim = [-0.1,1.1]
+    elif usecase == 'synthetic':
+        policies_order = [
+            "welob_synthetic",
+            "elob_synthetic",
+            "lob_synthetic",
+            "welaw_synthetic",
+        ]  # The desired order for baselines
+        cpu_ylim = [0,1]
+        latency_ylim = [0,2]
+        ncratio_ylim = [0.5,1.0]
+    elif usecase == 'synthetic5s':
+        policies_order = [
+            "welob_synthetic",
+            "elob_synthetic",
+            "lob_synthetic",
+            "welaw_synthetic",
+        ]  # The desired order for baselines
+        cpu_ylim = [-0.1,1.1]
+        latency_ylim = [0,2]
+        ncratio_ylim = [-0.1,1.1]
 
     policies_labels = {
-        "weaob_linear": "WEL-OB",
-        "eaob_linear": "EL-OB",
-        "aob_linear": "L-OB",
-        "weaaw_linear": "WEL-AW",
-        "weaob_synthetic": "WEL-OB",
-        "eaob_synthetic": "EL-OB",
-        "aob_synthetic": "L-OB",
-        "weaaw_synthetic": "WEL-AW",
+        "welob_linear": "WEL-OB",
+        "elob_linear": "EL-OB",
+        "lob_linear": "L-OB",
+        "welaw_linear": "WEL-AW",
+        "welob_synthetic": "WEL-OB",
+        "elob_synthetic": "EL-OB",
+        "lob_synthetic": "L-OB",
+        "welaw_synthetic": "WEL-AW",
     }
     
     initial_opacity = 0.3
@@ -101,9 +119,9 @@ def plot_graphs(rate_file_path, agent_data, output_pdf):
     latency_y_scale = "log"
 
     # This config are for LinearRoad
-    latency_y_lim = [0.03, 6]
+    # latency_y_lim = [0.03, 6]
     # # This config are for Synthetic
-    latency_y_lim = [0.005, 8]
+    # latency_y_lim = [0.005, 8]
 
     # Specify color and font size
     text_fontsize = 8  # Example font size
@@ -124,7 +142,7 @@ def plot_graphs(rate_file_path, agent_data, output_pdf):
 
     axs[0].set_visible(False)
     
-    axs[1].set_ylabel("Ratio (%)", fontsize=text_fontsize)
+    axs[1].set_ylabel("n/c ratio", fontsize=text_fontsize)
     axs[1].set_xticks([])
     axs[1].grid(
         True, which="major", axis="y", linestyle="-", color="gray", linewidth=0.5
@@ -154,18 +172,14 @@ def plot_graphs(rate_file_path, agent_data, output_pdf):
         subset = policies_df[policies_df["baseline"] == baseline]
             
         if baseline in agent_plots:
-                    
-            print(baseline)
-                    
+                     
             # Split the subset into `n` portions
             portions = np.array_split(subset, splits)
 
             for portion_num, portion in enumerate(portions, 1):
                 if portion.empty or portion_num!=splits:
-                    print('skipping portion',portion_num)
                     continue  # Skip if the portion is empty
 
-                print('portion',portion_num)
                 # Sort subset by 'eventtime_start'
                 portion = portion.sort_values(by="eventtime_start")
 
@@ -312,7 +326,9 @@ def plot_graphs(rate_file_path, agent_data, output_pdf):
         columnspacing=0.4,  # Adjust the space between columns
     )
     # axs[1].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
-    axs[1].set_ylim([-0.1, 1.1])
+    axs[1].set_ylim(ncratio_ylim)
+    
+    axs[2].set_ylim(latency_ylim)
 
     # for i, baseline in enumerate(unique_baselines):
     #     subset = policies_df[policies_df["baseline"] == baseline]
@@ -368,21 +384,21 @@ def plot_graphs(rate_file_path, agent_data, output_pdf):
     #                 # This version is to draw the circle
     #                 # axs[2].plot(row['eventtime_start']- dfrate['x'].min(), row['q2_latency']/1000, ls='none', ms=sizes[j], marker='o', mfc=agent_plots[baseline][4], alpha=opacities[j],mec=agent_plots[baseline][4],)
 
-    # for lat_idx, latency_threshold in enumerate(latencies_thresholds):
-    #     axs[2].axhline(
-    #         y=latency_threshold, color="r", linestyle="--"
-    #     )  # Horizontal line at max_latency
-    #     # Add text for threshold latency
-    #     axs[2].text(
-    #         0.5,
-    #         latency_threshold * 1.01,
-    #         latencies_thresholds_ids[lat_idx],
-    #         color="red",
-    #         verticalalignment="bottom",
-    #         horizontalalignment="left",
-    #         fontsize=8,
-    #         transform=axs[2].transData,
-    #     )
+    for lat_idx, latency_threshold in enumerate(latencies_thresholds):
+        axs[2].axhline(
+            y=latency_threshold, color="r", linestyle="--"
+        )  # Horizontal line at max_latency
+        # Add text for threshold latency
+        axs[2].text(
+            2000,
+            latency_threshold * 1.01,
+            latencies_thresholds_ids[lat_idx],
+            color="red",
+            verticalalignment="bottom",
+            horizontalalignment="left",
+            fontsize=8,
+            transform=axs[2].transData,
+        )
     #     # axs[3].grid(True, which='both', axis='y', linestyle='--', linewidth=0.5, color='gray')  # Enable y-axis grid
     # # axs[3].axhline(y=latencies_thresholds, color='r', linestyle='--')  # Horizontal line at max_latency
     # # axs[2].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
@@ -446,7 +462,7 @@ def plot_graphs(rate_file_path, agent_data, output_pdf):
     axs[3].set_xlabel(
         "Event Time (s)", fontsize=text_fontsize
     )  # Only the last subplot needs the x-axis label
-    axs[3].set_ylim([-0.1, 1.1])
+    axs[3].set_ylim(cpu_ylim)
 
     # adjust x lim of left plots
     axs[0].set_xlim([min_et * 0.95, max_et * 1.05])
@@ -522,9 +538,8 @@ if __name__ == "__main__":
         "agent_data", type=str, help="Input file containing the RL agent stats."
     )
     parser.add_argument("output_pdf", type=str, help="Output PDF file.")
-    # parser.add_argument('probs', type=str, help='CSV with the probabilities')
-    # parser.add_argument('probs_episod', type=int, help='Episode of which to plot probabilities')
+    parser.add_argument("usecase", type=str, help="usecase")
 
     args = parser.parse_args()
 
-    plot_graphs(args.rate_file_path, args.agent_data, args.output_pdf)
+    plot_graphs(args.rate_file_path, args.agent_data, args.output_pdf, args.usecase)

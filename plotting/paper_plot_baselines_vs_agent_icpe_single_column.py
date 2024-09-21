@@ -147,7 +147,7 @@ def plot_graphs(
         pc.set_facecolor("#D43F3A")
         pc.set_edgecolor("black")
         pc.set_alpha(1)
-    axs[6].set_ylabel("Ratio (%)", fontsize=text_fontsize)
+    axs[6].set_ylabel("n/c ratio", fontsize=text_fontsize)
     # Set specific tick positions
     axs[6].set_ylim([-0.1, 1.1])
     # Enable the grid
@@ -341,7 +341,7 @@ def plot_graphs(
         if max_et is None or x_coords.max() > max_et:
             max_et = x_coords.max()
 
-    axs[2].set_ylabel("Ratio (%)", fontsize=text_fontsize)
+    axs[2].set_ylabel("n/c ratio", fontsize=text_fontsize)
     axs[2].set_ylim(ratio_y_lim)
     axs[2].set_xticks([])
     axs[2].grid(
