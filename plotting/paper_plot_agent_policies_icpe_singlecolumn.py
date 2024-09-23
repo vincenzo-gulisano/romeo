@@ -12,8 +12,8 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
     plt.rcParams.update({"font.size": 8})  # Set global font size to 10
 
     # Create a figure and a set of subplots, now with 4 rows
-    text_width_pt = 506 / 2
-    text_height_pt = 180
+    text_width_pt = 506 / 2 * 2
+    text_height_pt = 180 * 2
     points_per_inch = 72
     text_width_in = text_width_pt / points_per_inch
     text_height_in = text_height_pt / points_per_inch
@@ -108,7 +108,7 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
     final_opacity = 0.9
     splits = 3  # Number of portions to divide the subset into
     max_line_width = 2.5  # Set your desired maximum line width
-    smoothing_window_size = 5
+    smoothing_window_size = 2
     
     opacities = np.geomspace(
         start=initial_opacity,
@@ -177,7 +177,7 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
             portions = np.array_split(subset, splits)
 
             for portion_num, portion in enumerate(portions, 1):
-                if portion.empty or portion_num!=splits:
+                if portion.empty: # or portion_num!=splits:
                     continue  # Skip if the portion is empty
 
                 # Sort subset by 'eventtime_start'
