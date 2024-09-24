@@ -1,7 +1,22 @@
 #!/bin/bash
-base_exp_folder="./data/exp14_policies/WEAAW"
-folders_to_explore=("weaaw_linear" "weaaw_synthetic")
-plot_probabilities="False"
+
+# Assign the first parameter to base_exp_folder
+base_exp_folder=$1
+
+# Assign the second parameter to plot_probabilities
+plot_probabilities=$2
+
+# Shift the parameters so that $@ now contains only the remaining parameters (extra arguments)
+shift 2
+
+# Assign all remaining parameters to the folders_to_explore array
+folders_to_explore=("$@")
+
+# Debug output (optional, you can remove this)
+echo "Base experiment folder: $base_exp_folder"
+echo "Plot probabilities: $plot_probabilities"
+echo "Folders to explore: ${folders_to_explore[@]}"
+
 reward_pattern="New" # OLD FOR BASELINES
 for folder_to_explore in "${folders_to_explore[@]}"; do
 
