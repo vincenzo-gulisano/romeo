@@ -36,7 +36,7 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
         '12.2': [5,10,0.1,0.8,'green',1]}
        
     policies_order = ['weaob_linear','eaob_linear','aob_linear','weaaw_linear']  # The desired order for baselines
-    policies_order = ['weaob_synthetic','eaob_synthetic','aob_synthetic','weaaw_synthetic']  # The desired order for baselines
+    # policies_order = ['weaob_synthetic','eaob_synthetic','aob_synthetic','weaaw_synthetic']  # The desired order for baselines
     
     policies_labels = {
         'weaob_linear' : 'WEL-OB',
@@ -55,7 +55,7 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
     latency_y_scale = 'log'
     latency_y_lim = [0.03,6]
     # # This config are for Synthetic
-    latency_y_lim = [0.005,8]
+    # latency_y_lim = [0.005,8]
     
 
     # Specify color and font size
@@ -121,7 +121,7 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
             data_ratio.append(subset['q2_ratio'].dropna() / 100)
             data_ratio.append(subset['q3_ratio'].dropna() / 100)
     axs[1,1].boxplot(data_ratio, showfliers=True, flierprops={'marker':'.', 'markersize':3})
-    axs[1,0].set_ylabel('Ratio (%)', fontsize=text_fontsize)
+    axs[1,0].set_ylabel('n/c ratio', fontsize=text_fontsize)
     # Set specific tick positions
     axs[1,1].set_ylim([-0.1,1.1])
     axs[1,0].set_xticks([])
@@ -140,7 +140,7 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
             data_latency.append(subset['q2_latency'].dropna() / 1000)
             data_latency.append(subset['q3_latency'].dropna() / 1000)
     axs[2,1].boxplot(data_latency, showfliers=True, flierprops={'marker':'.', 'markersize':3})
-    axs[2,0].set_ylabel('Latency (s)', fontsize=text_fontsize)
+    axs[2,0].set_ylabel('latency (s)', fontsize=text_fontsize)
     axs[2,1].set_ylim(latency_y_lim)
     axs[2,0].set_xticks([])
     axs[2,1].set_yscale(latency_y_scale)
@@ -159,7 +159,7 @@ def plot_graphs(rate_file_path,agent_data,output_pdf):
             data_cpu.append(subset['q2_cpu'].dropna() / 100)
             data_cpu.append(subset['q3_cpu'].dropna() / 100)
     axs[3,1].boxplot(data_cpu, showfliers=True, flierprops={'marker':'.', 'markersize':3})
-    axs[3,0].set_ylabel('CPU (%)', fontsize=text_fontsize)
+    axs[3,0].set_ylabel('CPU', fontsize=text_fontsize)
     axs[3,1].set_xlabel('Baseline', fontsize=text_fontsize)  # Only the last subplot needs the x-axis label
     axs[3,1].set_xticklabels(xtick_labels, fontsize=text_fontsize)
     axs[3,1].set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
