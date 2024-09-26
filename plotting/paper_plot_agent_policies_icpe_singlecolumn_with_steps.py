@@ -20,14 +20,15 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
     initial_opacity = 0.3
     final_opacity = 0.9
     splits = 3  # Number of portions to divide the subset into
-    max_line_width = 2.5  # Set your desired maximum line width
+    min_line_width = 2  # Set your desired maximum line width
+    max_line_width = 2  # Set your desired maximum line width
     smoothing_window_size = 5
     
     fig, axs = plt.subplots(
-        5,
+        6,
         splits,
         figsize=(text_width_in, text_height_in),
-        gridspec_kw={"hspace": 0, "wspace": 0, "height_ratios": [0.2, 1, 1, 1, 1]},
+        gridspec_kw={"hspace": 0, "wspace": 0, "height_ratios": [0.2, 1, 1, 1, 1, 1]},
     )
 
     # Read the RL policies file
@@ -77,6 +78,8 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
         cpu_ylim = [0,0.1]
         latency_ylim = [0,2]
         ncratio_ylim = [-0.1,1.1]
+        steps_ylim = [0,51]
+        reward_ylim = [0,100]
     elif usecase == 'synthetic':
         policies_order = [
             "welob_synthetic",
@@ -87,6 +90,8 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
         cpu_ylim = [0,1]
         latency_ylim = [0,2]
         ncratio_ylim = [0.5,1.0]
+        steps_ylim = [0,51]
+        reward_ylim = [0,100]
     elif usecase == 'synthetic5s':
         policies_order = [
             "welob_synthetic",
@@ -97,6 +102,8 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
         cpu_ylim = [-0.1,1.1]
         latency_ylim = [0,2]
         ncratio_ylim = [-0.1,1.1]
+        steps_ylim = [0,51]
+        reward_ylim = [0,100]
 
     policies_labels = {
         "welob_linear": "WEL-OB",
@@ -140,9 +147,11 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
     
     for ax in axs[2, 0:]:
         ax.set_xticks([])
+
+    axs[3,0].set_ylabel("CPU (%)", fontsize=text_fontsize)
     
     for ax in axs[3, 0:]:
-        ax.set_ylabel("CPU (%)", fontsize=text_fontsize)
+        ax.set_xticks([])
         ax.grid(
             True, which="major", axis="y", linestyle="-", color="gray", linewidth=0.5
         )
@@ -175,7 +184,7 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
                 portion = portion.sort_values(by="eventtime_start")
 
                 # Line width proportional to portion number, scaled between 1 and max_line_width
-                line_width = 1 + (portion_num - 1) * (max_line_width - 1) / (splits - 1)
+                line_width = min_line_width + (portion_num - 1) * (max_line_width - 1) / (splits - 1)
 
                 # Extract x and y coordinates
                 x_coords = portion["eventtime_start"] - dfrate["x"].min()
@@ -183,6 +192,7 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
                 y_coords_latency = portion["q2_latency"] / 1000
                 y_coords_cpu = portion["q2_cpu"] / 100
                 y_coords_steps = portion["steps"]
+                y_coords_reward = portion["cum_reward"]
 
                 # smooth the line
                 smooth_points_ratio = (
@@ -202,6 +212,11 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
                 )
                 smooth_points_steps = (
                     pd.Series(y_coords_steps)
+                    .rolling(window=smoothing_window_size, center=True)
+                    .mean()
+                )
+                smooth_points_reward = (
+                    pd.Series(y_coords_reward)
                     .rolling(window=smoothing_window_size, center=True)
                     .mean()
                 )
@@ -254,6 +269,15 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
                     alpha=opacities[portion_num - 1],
                 )
                 
+                axs[5,portion_num-1].plot(
+                    x_coords,
+                    smooth_points_reward,
+                    color=agent_plots[baseline][4],
+                    label=policies_labels[baseline],
+                    linewidth=line_width,
+                    alpha=opacities[portion_num - 1],
+                )
+                
                 # Update min_et and max_et based on the current portion
                 if min_et is None or x_coords.min() < min_et:
                     min_et = x_coords.min()
@@ -261,7 +285,7 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
                     max_et = x_coords.max()
             
     
-    for ax in axs[1, (splits-1):]:
+    for ax in axs[1, (splits-2):(splits-1)]:
         ax.legend(
             loc="upper center",  # Position the legend at the top center
             bbox_to_anchor=(0.5, 1.25),  # Adjust the position above the axis
@@ -271,9 +295,13 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
         # axs[1].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
     for ax in axs[1, 0:]:
         ax.set_ylim(ncratio_ylim)
-    
+    for ax in axs[1, 1:]:
+        ax.set_yticklabels([])
+
     for ax in axs[2, 0:]:
         ax.set_ylim(latency_ylim)
+    for ax in axs[2, 1:]:
+        ax.set_yticklabels([])
 
     for lat_idx, latency_threshold in enumerate(latencies_thresholds):
         for ax in axs[2, 0:]:
@@ -293,10 +321,26 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
         )
     
     for ax in axs[3, 0:]:
+        ax.set_ylim(cpu_ylim)
+    for ax in axs[3, 1:]:
+        ax.set_yticklabels([])
+
+    
+    axs[4,0].set_ylabel("steps", fontsize=text_fontsize)
+    for ax in axs[4, 0:]:
+        ax.set_ylim(steps_ylim)
+        ax.set_xticks([])
+    for ax in axs[4, 1:]:
+        ax.set_yticklabels([])
+
+    axs[5,0].set_ylabel("Reward only acts?", fontsize=text_fontsize)
+    for ax in axs[5, 0:]:
         ax.set_xlabel(
             "Event Time (s)", fontsize=text_fontsize
         )  # Only the last subplot needs the x-axis label
-        ax.set_ylim(cpu_ylim)
+        ax.set_ylim(reward_ylim)
+    for ax in axs[5, 1:]:
+        ax.set_yticklabels([])
 
     # adjust x lim of left plots
     
