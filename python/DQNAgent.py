@@ -66,9 +66,22 @@ class Net(nn.Module):
     def init_weights(self): 
         # Initialize weights and biases for each layer 
         for m in self.modules(): 
+
             if isinstance(m, nn.Linear): 
-                init.uniform_(m.weight, -0.03, 0.03) 
-                m.bias.data.fill_(0.05)
+                if m == self.Linear3:
+                    init.constant_(m.weight, 0)
+                    init.constant_(m.bias, 0)
+                else:
+                    init.uniform_(m.weight, -0.03, 0.03) 
+                    m.bias.data.fill_(0.05)
+    
+    # def reinitialize_final_layer(self):
+    #     init.uniform_(self.Linear3.weight, -0.03, 0.03)
+    #     self.Linear3.bias.data.fill_(0.05)
+    def reinitialized_weights(self):
+        print("Reinitializing final layer weights...")
+        init.uniform_(self.Linear3.weight, -0.03, 0.03)
+        self.Linear3.bias.data.fill_(0.03)
 
 
 # nametuple container
@@ -108,6 +121,9 @@ class DQN(object):
         self.sample_count = 0
         self.reset_compression()
 
+        # self.first_step = True # flag to track the first step
+        self.reinitialized = False
+
     def reset_compression(self):
         self.current_compression = 100
 
@@ -118,6 +134,13 @@ class DQN(object):
         # eps_threshold = random.random()
         #action = self.net(torch.Tensor(state))
         self.sample_count += 1
+
+        # if self.first_step:
+        #     self.first_step = False
+        #     self.net.reinitialize_final_layer()
+        if self.sample_count == batch_size + 1 and not self.reinitialized:
+            self.net.reinitialized_weights()
+            self.reinitialized = True
 
         # Boltzmann(softmax) exploration strategy
         self.tau = TAU_END + (TAU_START - TAU_END) * math.exp(-1 * self.sample_count / TAU_DECAY)
@@ -455,7 +478,7 @@ class SPEEnvironment(Env):
         if self.remaingSteps <= 0 or self.consumer.tracker.numberOfTimesLatencyExceededTheEarlyTerminationThresholdSinceLastAction >= self.latency_violations_per_episode:
             done = True
             if(self.consumer.tracker.numberOfTimesLatencyExceededTheEarlyTerminationThresholdSinceLastAction >= self.latency_violations_per_episode):
-                print("Hihg latency observed")
+                print("High latency observed")
             # apply bonus if conditions are met at the end of an episode
             valid_latencies = [latency for _, latency in self.latency_record[-10:]]  # extract only the latency values from the last 10 records
             if len(valid_latencies) == self.bonus_step_interval and all(latency <= self.bonus_latency_threshold for latency in valid_latencies):
@@ -597,17 +620,17 @@ if __name__ == "__main__":
     # input_shape = (11, 7)
     input_shape = (6, 7)
     hidden_size = 128
-    output_sie = env.action_space.n
-    Agent = DQN(input_shape, hidden_size, output_sie)
+    output_size = env.action_space.n
+    Agent = DQN(input_shape, hidden_size, output_size)
 
     # load saved net's paras
-    # model_file = 'image/Exp13.1/1_WEAOB/weaob_synthetic/1-100/Exp13-1_WEAOB_paras-1-100/exp13-1_weaob_dqn_model_episode_100.pth'
+    # model_file = 'image/Exp15/4_WEAAW/synthetic/Exp15_WEAAW_s_paras-1-150/exp15_weaaw_s_dqn_model_episode_150.pth'
     # if os.path.exists(model_file):
     #     Agent.net.load_state_dict(torch.load(model_file))
     #     print("loaded net's paras...")
 
     # load replay buffer
-    # replay_buffer = f'image/Exp13.1/1_WEAOB/weaob_synthetic/1-100/Exp13-1_WEAOB_replay_buffer-1-100/exp13-1_weaob_buffer_after_100_episodes.pkl'
+    # replay_buffer = 'image/Exp15/4_WEAAW/synthetic/Exp15_WEAAW_s_replay_buffer-1-150/exp15_weaaw_s_buffer_after_150_episodes.pkl'
     # with open (replay_buffer, 'rb') as f:
     #     Agent.buffer = pickle.load(f)
     # print('loaded replay buffer from last round...')
@@ -618,46 +641,46 @@ if __name__ == "__main__":
     incremental_average_reward = 0  # average reward of all episodes for incermental averaging
 
     # create folder to store paras (linear)
-    paras_folder_name = 'data/output/WEAAW/linear/5/600/5000000000/10/Exp14-2_WEAAW_l_paras-1-200'
+    paras_folder_name = 'data/output/WELAW/linear/5/600/5000000000/10/Exp15-5_welaw_l_paras-1-150'
     if not os.path.exists(paras_folder_name):
         os.makedirs(paras_folder_name)
 
     # create folder to store paras (synthetic)
-    # paras_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp14-2_WEAAW_s_paras-1-200'
+    # paras_folder_name = 'data/output/AOB/synthetic/1/900/5000000000/10/Exp15-4_AOB_s_paras-1-150'
     # if not os.path.exists(paras_folder_name):
     #     os.makedirs(paras_folder_name)
 
     # create folder to store q value plots (linear)
-    q_value_folder_name = 'data/output/WEAAW/linear/5/600/5000000000/10/Exp14-2_WEAAW_l_q_value_plot-1-200'
+    q_value_folder_name = 'data/output/WELAW/linear/5/600/5000000000/10/Exp15-5_welaw_l_q_value_plot-1-150'
     if not os.path.exists(q_value_folder_name):
         os.makedirs(q_value_folder_name)
 
     # create folder to store q value plots (synthetic)
-    # q_value_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp14-2_WEAAW_s_q_values_plot-1-200'
+    # q_value_folder_name = 'data/output/AOB/synthetic/1/900/5000000000/10/Exp15-4_AOB_s_q_values_plot-1-150'
     # if not os.path.exists(q_value_folder_name):
     #     os.makedirs(q_value_folder_name)
     
     # create folder to store replay buffer (linear)
-    replay_buffer_folder_name = 'data/output/WEAAW/linear/5/600/5000000000/10/Exp14-2_WEAAW_l_replay_buffer-1-200'
+    replay_buffer_folder_name = 'data/output/WELAW/linear/5/600/5000000000/10/Exp15-5_welaw_l_replay_buffer-1-150'
     if not os.path.exists(replay_buffer_folder_name):
         os.makedirs(replay_buffer_folder_name)
     
     # create folder to store replay buffer (synthetic)
-    # replay_buffer_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/Exp14-2_WEAAW_s_replay_buffer-1-200'
+    # replay_buffer_folder_name = 'data/output/AOB/synthetic/1/900/5000000000/10/Exp15-4_AOB_s_replay_buffer-1-150'
     # if not os.path.exists(replay_buffer_folder_name):
     #     os.makedirs(replay_buffer_folder_name)
 
-    # create csv file to save episode - #step - total reward
-    step_tot_reward_folder_name = 'data/output/WEAAW/linear/5/600/5000000000/10'
+    # create csv file to save episode - #step - total reward (linear)
+    step_tot_reward_folder_name = 'data/output/WELAW/linear/5/600/5000000000/10'
     if not os.path.exists(step_tot_reward_folder_name):
         os.makedirs(step_tot_reward_folder_name)
-    step_tot_reward_path = os.path.join(step_tot_reward_folder_name, 'step_tot_reward_l_14-2.csv')
+    step_tot_reward_path = os.path.join(step_tot_reward_folder_name, 'step_tot_reward_welaw_l_exp15-5.csv')
 
-    # create csv file to save episode - #step - total reward
-    # step_tot_reward_folder_name = 'data/output/WEAAW/synthetic/1/900/5000000000/10/'
+    # create csv file to save episode - #step - total reward (synthetic)
+    # step_tot_reward_folder_name = 'data/output/AOB/synthetic/1/900/5000000000/10/'
     # if not os.path.exists(step_tot_reward_folder_name):
     #     os.makedirs(step_tot_reward_folder_name)
-    # step_tot_reward_path = os.path.join(step_tot_reward_folder_name, 'step_tot_reward_s_14-2.csv')
+    # step_tot_reward_path = os.path.join(step_tot_reward_folder_name, 'step_tot_reward_aob_s_exp15-4.csv')
 
     with open(step_tot_reward_path, mode = 'w', newline = '') as file:
         writer = csv.writer(file)
@@ -755,20 +778,18 @@ if __name__ == "__main__":
         plt.ylabel('Q Values')
         plt.title(f'Q Values Over Episodes (Episode {i_episode + 1})')
         plt.legend()
-        q_value_file_path = os.path.join(q_value_folder_name, f'exp14-2_weaaw_l_values_plot_{i_episode + 1}.png')
+        q_value_file_path = os.path.join(q_value_folder_name, f'exp15-5_welaw_l_values_plot_{i_episode + 1}.png')
         plt.savefig(q_value_file_path)
         plt.close()
             
         # saving paras and replay buffer per 10 episodes
         if (i_episode + 1) % 10 == 0: 
             # save model paras every 10 episodes
-            paras_file_path = os.path.join(paras_folder_name, f'exp14-2_weaaw_l_dqn_model_episode_{i_episode + 1}.pth')
+            paras_file_path = os.path.join(paras_folder_name, f'exp15-5_welaw_l_dqn_model_episode_{i_episode + 1}.pth')
             torch.save(Agent.net.state_dict(), paras_file_path)
-            replay_buffer_file_path = os.path.join(replay_buffer_folder_name, f'exp14-2_weaaw_l_buffer_after_{i_episode + 1}_episodes.pkl')
+            replay_buffer_file_path = os.path.join(replay_buffer_folder_name, f'exp15-5_welaw_l_buffer_after_{i_episode + 1}_episodes.pkl')
             with open (replay_buffer_file_path, 'wb') as f:
                 pickle.dump(Agent.buffer, f)
-            # print(f'Saved replay buffer after {i_episode + 1} episodes ...')
                  
-
     print('closing')
     env.close()

@@ -352,3 +352,11 @@ latency for any 3 steps in each episode is higher than 2.5 seconds --> terminate
    
 ## Exp15.2
 1. 150 episodes for linear and synthetic with WEAOB, EAOB and AOB
+
+## Exp15.4
+1. 150 episodes again for linear and synthetic with all four policies from scratch to see if the behaviour across policies is consistent or not
+
+## Exp15.5.0
+1. change maximum steps for each epiosde to 150 (50-->150)
+2. initialize the weight and bias for first 128 steps (equal to the size of replay buffer) with zero q values and 1/3 probability for each action
+3. update NN's paras from step 129
