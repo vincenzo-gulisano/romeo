@@ -1,5 +1,6 @@
 package com.vincenzogulisano.javapythoncommunicator;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -9,12 +10,15 @@ import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.vincenzogulisano.util.EpisodesLogger;
+
+import common.util.Util;
 
 public abstract class EnvironmentStateCalculator implements StatReporter {
 
@@ -62,12 +66,17 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
     protected boolean resetAllMeasurementsAfterReport;
     protected boolean keepOnlyMonitoringPeriodData;
 
+    boolean dataSpansAtLeastTheMonitoringPeriod;
+
     // The following list keeps track of the D values passed by the agent. It's
     // protected so classes extending this one can operate on it as they wish. The
     // maxVarDValues is used to limit the max number of values stored in the list
     // (in case the extending class does not use them at all).
     protected final int maxVarDValues = 1000;
     protected List<Long> varDValues;
+
+    private boolean runInternalThread;
+    private final int internalThreadPeriod = 100;
 
     public EnvironmentStateCalculator(long monitoringPeriod, Producer<String, String> producer, String separator,
             boolean resetAllMeasurementsAfterReport, boolean keepOnlyMonitoringPeriodData) {
@@ -82,8 +91,24 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
         this.lock = new ReentrantLock();
         this.resetAllMeasurementsAfterReport = resetAllMeasurementsAfterReport;
         this.keepOnlyMonitoringPeriodData = keepOnlyMonitoringPeriodData;
+        this.dataSpansAtLeastTheMonitoringPeriod = false;
 
         varDValues = new LinkedList<>();
+
+        runInternalThread = true;
+
+        try {
+
+            Thread internalThread = new Thread(() -> sendStateAndRewardIfAvailable());
+            // Set the thread as a daemon so it doesn't prevent the program from exiting
+            internalThread.setDaemon(true);
+            // Start the thread
+            internalThread.start();
+
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+
     }
 
     public EnvironmentStateCalculator(long monitoringPeriod, Producer<String, String> producer, String separator) {
@@ -93,6 +118,7 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
     public void close() {
         this.lock.lock();
         this.producer.close();
+        runInternalThread = false;
         this.lock.unlock();
     }
 
@@ -146,6 +172,7 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
         measurements.clear();
         logger.debug("Clearing varDValues");
         varDValues.clear();
+        dataSpansAtLeastTheMonitoringPeriod = false;
     }
 
     @Override
@@ -185,9 +212,7 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
 
         // System.out.println(String.format("Storing %d,%s,%.2f", ts, id, value));
 
-        // Check if there's something older than the monitoring period. If that is the
-        // case, remove old stuff, report, and empty
-        boolean dataSpansAtLeastTheMonitoringPeriod = false;
+        dataSpansAtLeastTheMonitoringPeriod = false;
 
         HashSet<String> keysToRemove = new HashSet<>();
 
@@ -217,34 +242,36 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
             measurements.remove(keyToRemove);
         }
 
-        if (dataSpansAtLeastTheMonitoringPeriod)
+        // if (dataSpansAtLeastTheMonitoringPeriod)
 
-        {
+        // {
 
-            logger.debug(
-                    "Checking if state measurement is available and there is at least one token to send the state...");
-            if (sendStateTokens.get() > 0) {
-                logger.debug("One token is available");
-                if (areRewardAndNewStateMeasurementAvailable()) {
-                    logger.debug("And state/reward/extrainfo too");
-                    sendStateTokens.set(0);
+        // logger.debug(
+        // "Checking if state measurement is available and there is at least one token
+        // to send the state...");
+        // if (sendStateTokens.get() > 0) {
+        // logger.debug("One token is available");
+        // if (areRewardAndNewStateMeasurementAvailable()) {
+        // logger.debug("And state/reward/extrainfo too");
+        // sendStateTokens.set(0);
 
-                    String msg = getStateMeasurementAsString() + separator + getReward() + separator + getExtraInfo();
-                    logger.debug("Sending state/reward/extrainfo {}", msg);
-                    producer.send(new ProducerRecord<>("stats", msg));
-                    if (episodesLogger != null) {
-                        episodesLogger.writeMeasurementEvent();
-                    }
-                }
-            }
+        // String msg = getStateMeasurementAsString() + separator + getReward() +
+        // separator + getExtraInfo();
+        // logger.debug("Sending state/reward/extrainfo {}", msg);
+        // producer.send(new ProducerRecord<>("stats", msg));
+        // if (episodesLogger != null) {
+        // episodesLogger.writeMeasurementEvent();
+        // }
+        // }
+        // }
 
-            if (resetAllMeasurementsAfterReport) {
-                measurements.clear();
-            }
-            // System.out.println(String.format("Sending message %s", msg));
-            // logger.debug(logMsg);
+        // if (resetAllMeasurementsAfterReport) {
+        // measurements.clear();
+        // }
+        // // System.out.println(String.format("Sending message %s", msg));
+        // // logger.debug(logMsg);
 
-        }
+        // }
 
         if (valueIsToBeRegistered(id, value)) {
             if (!measurements.containsKey(id)) {
@@ -257,6 +284,44 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
         }
 
         this.lock.unlock();
+    }
+
+    private void sendStateAndRewardIfAvailable() {
+
+        while (runInternalThread) {
+
+            this.lock.lock();
+
+            if (dataSpansAtLeastTheMonitoringPeriod && sendStateTokens.get() > 0
+                    && areRewardAndNewStateMeasurementAvailable())
+
+            {
+
+                logger.debug(
+                        "Data spans monitoring period, one token is available and reward/state are ready...");
+
+                sendStateTokens.set(0);
+
+                String msg = getStateMeasurementAsString() + separator + getReward() + separator + getExtraInfo();
+                logger.debug("Sending state/reward/extrainfo {}", msg);
+                producer.send(new ProducerRecord<>("stats", msg));
+                if (episodesLogger != null) {
+                    episodesLogger.writeMeasurementEvent();
+                }
+
+                if (resetAllMeasurementsAfterReport) {
+                    measurements.clear();
+                    dataSpansAtLeastTheMonitoringPeriod = false;
+                }
+
+            }
+
+            this.lock.unlock();
+
+            Util.sleep(internalThreadPeriod);
+
+        }
+
     }
 
     @Override

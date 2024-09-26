@@ -30,11 +30,11 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
     latency_y_scale = 'log'
     latency_y_lim = [0.03,6]
     # # This config are for Synthetic
-    boundaries = [0.5,4.5,11.5,11.5]
-    boundary_text = ['safe','','unsafe']
-    boundary_text_align = ['left','left','right']
-    latency_y_scale = 'log'
-    latency_y_lim = [0.005,50]
+    # boundaries = [0.5,4.5,11.5,11.5]
+    # boundary_text = ['safe','','unsafe']
+    # boundary_text_align = ['left','left','right']
+    # latency_y_scale = 'log'
+    # latency_y_lim = [0.005,50]
     
     # The values represent: initial size, fine size, initial opacity, final opacity, color, prob. of selection
     agent_plots = {
@@ -47,7 +47,8 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
         '12.1': [1,5,0.1,0.8,'red',1],
         '12.2': [5,10,0.1,0.8,'green',1]}
        
-    given_order = ['weaaw_synthetic']  # The desired order for baselines
+    given_order = ['weaaw_linear']  # The desired order for baselines
+    # given_order = ['weaaw_synthetic']  # The desired order for baselines
     
     # Specify color and font size
     text_color = 'green'  # Example color
@@ -84,14 +85,14 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
     # Plot random data on the new top axes (axs[0])
     axs[0,0].plot(x_data - dfrate['x'].min(), y_data/1000, linestyle='-', color='blue')
     axs[0,0].set_xlim([0,dfrate['x'].max()-dfrate['x'].min()])
-    axs[0,0].set_ylabel(r'Input rate ($10^3$ t/s)', fontsize=text_fontsize)
+    axs[0,0].set_ylabel(r'input rate ($10^3$ t/s)', fontsize=text_fontsize)
     axs[0,1].set_xlabel('Time (s)', fontsize=text_fontsize)
 
     # Adjust the indices for the other axes since we added a new one at the top
     # mean_ratio, divided by 100
     data_mean_ratio = [df[df['baseline'] == baseline]['q2_ratio'].dropna() / 100 for baseline in unique_baselines]
     axs[2,1].boxplot(data_mean_ratio, labels=unique_baselines)
-    axs[2,0].set_ylabel('Ratio (%)', fontsize=text_fontsize)
+    axs[2,0].set_ylabel('n/c ratio', fontsize=text_fontsize)
     # Set specific tick positions
     axs[2,1].set_ylim([-0.1,1.1])
     axs[2,0].set_xticks([])
@@ -104,7 +105,7 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
     # latency, divided by 1000
     data_latency = [df[df['baseline'] == baseline]['q2_latency'].dropna() / 1000 for baseline in unique_baselines]
     axs[3,1].boxplot(data_latency, labels=unique_baselines)
-    axs[3,0].set_ylabel('Latency (s)', fontsize=text_fontsize)
+    axs[3,0].set_ylabel('latency (s)', fontsize=text_fontsize)
     axs[3,1].set_ylim(latency_y_lim)
     axs[3,0].set_xticks([])
     axs[3,1].set_yscale(latency_y_scale)
@@ -117,7 +118,7 @@ def plot_graphs(base_folder,rate_file_path,agent_data,output_pdf,probs,probs_epi
     # cpu, divided by 100
     data_cpu = [df[df['baseline'] == baseline]['q2_cpu'].dropna() / 100 for baseline in unique_baselines]
     axs[4,1].boxplot(data_cpu, labels=unique_baselines)
-    axs[4,0].set_ylabel('CPU (%)', fontsize=text_fontsize)
+    axs[4,0].set_ylabel('CPU', fontsize=text_fontsize)
     axs[4,1].set_xlabel('Baseline', fontsize=text_fontsize)  # Only the last subplot needs the x-axis label
     axs[4,1].set_xticklabels(xtick_labels, fontsize=text_fontsize)
     # axs[4,1].set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
