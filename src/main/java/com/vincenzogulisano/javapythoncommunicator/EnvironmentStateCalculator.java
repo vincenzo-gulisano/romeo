@@ -64,7 +64,7 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
     protected ReentrantLock lock;
 
     protected boolean resetAllMeasurementsAfterReport;
-    protected boolean keepOnlyMonitoringPeriodData;
+    // protected boolean keepOnlyMonitoringPeriodData;
 
     private boolean dataSpansAtLeastTheMonitoringPeriod;
 
@@ -90,7 +90,7 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
         this.sendStateTokens = new AtomicInteger();
         this.lock = new ReentrantLock();
         this.resetAllMeasurementsAfterReport = resetAllMeasurementsAfterReport;
-        this.keepOnlyMonitoringPeriodData = keepOnlyMonitoringPeriodData;
+        // this.keepOnlyMonitoringPeriodData = keepOnlyMonitoringPeriodData;
         this.dataSpansAtLeastTheMonitoringPeriod = false;
 
         varDValues = new LinkedList<>();
@@ -228,19 +228,21 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
                 while (!measurements.get(id_).isEmpty()
                         && measurements.get(id_).peek().getTimestamp() <= ts - monitoringPeriod) {
                     dataSpansAtLeastTheMonitoringPeriod = true;
-
-                    if (keepOnlyMonitoringPeriodData) {
-                        measurements.get(id_).poll();
-                    } else {
-                        // Notice that if we keep all the data, we need to break
-                        // Otherwise we stay in this loop forever
-                        break;
-                    }
+                        
+                    logger.debug("dataSpansAtLeastTheMonitoringPeriod --> true");
+                    // if (keepOnlyMonitoringPeriodData) {
+                    //     measurements.get(id_).poll();
+                    // } else {
+                    //     // Notice that if we keep all the data, we need to break
+                    //     // Otherwise we stay in this loop forever
+                    //     break;
+                    // }
+                    break;
 
                 }
-                if (keepOnlyMonitoringPeriodData && measurements.get(id_).isEmpty()) {
-                    keysToRemove.add(id_);
-                }
+                // if (keepOnlyMonitoringPeriodData && measurements.get(id_).isEmpty()) {
+                //     keysToRemove.add(id_);
+                // }
             }
         }
         for (String keyToRemove : keysToRemove) {

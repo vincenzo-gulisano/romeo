@@ -354,25 +354,25 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         logger.debug("Reward computed, lastReportedStateMaxTS updated to {}", lastReportedStateMaxTS);
         logger.debug("\n*************\n* Reward: {}\n*************\n", reward);
 
-        HashSet<String> keysToRemove = new HashSet<>();
+        // HashSet<String> keysToRemove = new HashSet<>();
 
-        // Checking if we have enought measurements
-        // If more than enough and keepOnlyMonitoringPeriodData, removing them
-        // logger.debug("cleaning measurements");
-        if (!measurements.isEmpty()) {
-            for (String id_ : measurements.keySet()) {
-                while (!measurements.get(id_).isEmpty()
-                        && measurements.get(id_).peek().getTimestamp() <= lastReportedStateMaxTS - monitoringPeriod) {
-                    measurements.get(id_).poll();
-                }
-                if (measurements.get(id_).isEmpty()) {
-                    keysToRemove.add(id_);
-                }
-            }
-        }
-        for (String keyToRemove : keysToRemove) {
-            measurements.remove(keyToRemove);
-        }
+        // // Checking if we have enought measurements
+        // // If more than enough and keepOnlyMonitoringPeriodData, removing them
+        // // logger.debug("cleaning measurements");
+        // if (!measurements.isEmpty()) {
+        //     for (String id_ : measurements.keySet()) {
+        //         while (!measurements.get(id_).isEmpty()
+        //                 && measurements.get(id_).peek().getTimestamp() <= lastReportedStateMaxTS - monitoringPeriod) {
+        //             measurements.get(id_).poll();
+        //         }
+        //         if (measurements.get(id_).isEmpty()) {
+        //             keysToRemove.add(id_);
+        //         }
+        //     }
+        // }
+        // for (String keyToRemove : keysToRemove) {
+        //     measurements.remove(keyToRemove);
+        // }
         while (!stateMeasurements.isEmpty()
                 && stateMeasurements.firstKey() < lastReportedStateMaxTS - monitoringPeriod) {
             Entry<Long, HashMap<String, Double>> firstEntry = stateMeasurements.pollFirstEntry();
