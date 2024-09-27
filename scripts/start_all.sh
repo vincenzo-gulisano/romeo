@@ -33,7 +33,7 @@ sleep_until_time_or_pid() {
 }
 
 # This is for Linear Road
-# base_folder="/home/jingyu/romeo/data/output/WEAAW/linear"
+# base_folder="/home/jingyu/romeo/data/output/WELOB/linear"
 # input_file="/home/vincenzo/woost/data/input/input.txt"
 # wa=5
 # ws=600
@@ -43,22 +43,22 @@ sleep_until_time_or_pid() {
 # usecase="LinearRoad"
 
 # # This is for the synthetic query
-base_folder="/home/jingyu/romeo/data/output/WEAAW/synthetic"
+base_folder="/home/jingyu/romeo/data/output/WELOB/synthetic"
 input_file="/home/vincenzo/romeo/data/input/synthetic.csv"
 wa=1
 ws=900
 d=10
 starting_time_min=1200
-starting_time_max=6500
+starting_time_max=5800
 usecase="Synthetic"
 
 # Define lists of values
-#policy="WEAOB" # Wallclock, Event time, Aggregate OBlivios
-# policy="EAOB" # Event time, Aggregate OBlivios
-# policy="AOB" # Aggregate OBlivios
-policy="WEAAW" # Wallclock, Event time, Aggregate AWare
+policy="WELOB" # Wallclock, Event time, Aggregate OBlivios -- WELOB
+# policy="ELOB" # Event time, Aggregate OBlivios -- ELOB
+# policy="LOB" # Aggregate OBlivios -- LOB
+# policy="WELAW" # Wallclock, Event time, Aggregate AWare -- WELAW
 duration=5000000000
-episodes=200
+episodes=10
 steps=50
 
 # Define id variable with concatenation of values
