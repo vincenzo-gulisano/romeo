@@ -301,7 +301,7 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
             } else {
 
                 logger.debug(
-                        "Data spans monitoring period, one token is available and reward/state are ready...");
+                        "Internal thread, data spans monitoring period, one token is available and reward/state are ready...");
 
                 sendStateTokens.set(0);
 

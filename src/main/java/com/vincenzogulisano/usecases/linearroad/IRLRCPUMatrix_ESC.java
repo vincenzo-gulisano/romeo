@@ -374,10 +374,9 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
             measurements.remove(keyToRemove);
         }
         while (!stateMeasurements.isEmpty()
-                && stateMeasurements.firstKey() <= lastReportedStateMaxTS - monitoringPeriod) {
+                && stateMeasurements.firstKey() < lastReportedStateMaxTS - monitoringPeriod) {
             Entry<Long, HashMap<String, Double>> firstEntry = stateMeasurements.pollFirstEntry();
-            // logger.debug("Removed entry with ts {} from lastReportedState",
-            // firstEntry.getKey());
+            logger.debug("Removed entry with ts {} from lastReportedState", firstEntry.getKey());
         }
 
         return reward;
