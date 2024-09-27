@@ -1,8 +1,8 @@
 package com.vincenzogulisano.javapythoncommunicator;
 
 public enum PolicyBarrier {
-    WEAOB, // Wallclock, Event time, and Aggregate OBlivious
-    EAOB, // Event time, and Aggregate OBlivious
-    AOB, // Aggregate OBlivious
-    WEAAW;// Wallclock, Event time, and Aggregate Aware
+    WELOB, // Wallclock, Event time, and Latency OBlivious
+    ELOB, // Event time, and Latency OBlivious
+    LOB, // Latency OBlivious
+    WELAW;// Wallclock, Event time, and Latency Aware
 }
