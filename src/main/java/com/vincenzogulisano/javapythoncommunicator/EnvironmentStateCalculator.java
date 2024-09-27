@@ -66,7 +66,7 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
     protected boolean resetAllMeasurementsAfterReport;
     protected boolean keepOnlyMonitoringPeriodData;
 
-    boolean dataSpansAtLeastTheMonitoringPeriod;
+    private boolean dataSpansAtLeastTheMonitoringPeriod;
 
     // The following list keeps track of the D values passed by the agent. It's
     // protected so classes extending this one can operate on it as they wish. The
@@ -221,7 +221,7 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
         if (!measurements.isEmpty()) {
             for (String id_ : measurements.keySet()) {
                 while (!measurements.get(id_).isEmpty()
-                        && measurements.get(id_).peek().getTimestamp() < ts - monitoringPeriod) {
+                        && measurements.get(id_).peek().getTimestamp() <= ts - monitoringPeriod) {
                     dataSpansAtLeastTheMonitoringPeriod = true;
 
                     if (keepOnlyMonitoringPeriodData) {
