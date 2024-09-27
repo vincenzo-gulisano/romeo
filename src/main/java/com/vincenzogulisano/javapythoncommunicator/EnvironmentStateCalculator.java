@@ -212,6 +212,7 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
 
         // System.out.println(String.format("Storing %d,%s,%.2f", ts, id, value));
 
+        logger.debug("dataSpansAtLeastTheMonitoringPeriod --> false");
         dataSpansAtLeastTheMonitoringPeriod = false;
 
         HashSet<String> keysToRemove = new HashSet<>();
@@ -220,6 +221,10 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
         // If more than enough and keepOnlyMonitoringPeriodData, removing them
         if (!measurements.isEmpty()) {
             for (String id_ : measurements.keySet()) {
+                if (!measurements.get(id_).isEmpty()) {
+                    logger.debug("ID: {}, peek().getTimestamp(): {}, ts: {}, monitoringPeriod: {}", id_,
+                            measurements.get(id_).peek().getTimestamp(), ts, monitoringPeriod);
+                }
                 while (!measurements.get(id_).isEmpty()
                         && measurements.get(id_).peek().getTimestamp() <= ts - monitoringPeriod) {
                     dataSpansAtLeastTheMonitoringPeriod = true;
