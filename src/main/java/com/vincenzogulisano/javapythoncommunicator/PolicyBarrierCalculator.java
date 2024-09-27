@@ -25,13 +25,13 @@ public class PolicyBarrierCalculator {
     public static PolicyBarrierCalculator getBarriers(PolicyBarrier policyBarrier, long latestClockTime,
             long latestEventTime, long wa, long ws) {
         switch (policyBarrier) {
-            case WEAOB:
-                return new PolicyBarrierCalculator(latestClockTime, latestEventTime);
-            case EAOB:
-                return new PolicyBarrierCalculator(latestClockTime + 1, latestEventTime);
-            case AOB:
+            case WELOB:
+                return new PolicyBarrierCalculator(-1, -1);
+            case ELOB:
+                return new PolicyBarrierCalculator(latestClockTime + 1, -1);
+            case LOB:
                 return new PolicyBarrierCalculator(latestClockTime + 1, latestEventTime + 1);
-            case WEAAW:
+            case WELAW:
 
                 return new PolicyBarrierCalculator(latestClockTime + 1,
                         getEarliestWinStartTS(latestEventTime, wa, ws) + ws + 1);

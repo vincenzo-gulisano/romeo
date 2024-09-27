@@ -312,7 +312,12 @@ public class QuerySynthetic implements Actionable, EnvironmentMonitor {
         long latestClockTime = System.currentTimeMillis() / 1000;
         // In this case I pass the barriers automatically since it is the beginning of
         // an episode
-        reporter.addSendStateToken(latestClockTime, latestEventTime, valueDAtEpisodeStart);
+        PolicyBarrierCalculator barrier = PolicyBarrierCalculator.getBarriers(policyBarrier, latestClockTime,
+                latestEventTime, wa, ws);
+        logger.debug(
+                "Reset completed at event time {} and clock time {}. Barriers: event time >= {} and clock time >= {}",
+                latestEventTime, latestClockTime, barrier.getEventTimeBarrier(), barrier.getWallclockTimeBarrier());
+        reporter.addSendStateToken(barrier.getWallclockTimeBarrier(), barrier.getEventTimeBarrier(), valueDAtEpisodeStart);
 
     }
 
