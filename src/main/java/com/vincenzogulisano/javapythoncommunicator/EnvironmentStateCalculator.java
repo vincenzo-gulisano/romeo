@@ -292,10 +292,13 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
 
             this.lock.lock();
 
-            if (dataSpansAtLeastTheMonitoringPeriod && sendStateTokens.get() > 0
-                    && areRewardAndNewStateMeasurementAvailable())
-
-            {
+            if (!dataSpansAtLeastTheMonitoringPeriod) {
+                logger.debug("Internal thread, data does not span monitoring period");
+            } else if (!(sendStateTokens.get() > 0)) {
+                logger.debug("Internal thread, no send state tokens");
+            } else if (!areRewardAndNewStateMeasurementAvailable()) {
+                logger.debug("Internal thread, rewards and state not available");
+            } else {
 
                 logger.debug(
                         "Data spans monitoring period, one token is available and reward/state are ready...");
