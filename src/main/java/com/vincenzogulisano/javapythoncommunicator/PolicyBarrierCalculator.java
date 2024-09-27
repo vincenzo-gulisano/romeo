@@ -28,12 +28,12 @@ public class PolicyBarrierCalculator {
             case WELOB:
                 return new PolicyBarrierCalculator(-1, -1);
             case ELOB:
-                return new PolicyBarrierCalculator(latestClockTime + 1, -1);
+                return new PolicyBarrierCalculator(latestClockTime, -1);
             case LOB:
-                return new PolicyBarrierCalculator(latestClockTime + 1, latestEventTime + 1);
+                return new PolicyBarrierCalculator(latestClockTime, latestEventTime + 1);
             case WELAW:
 
-                return new PolicyBarrierCalculator(latestClockTime + 1,
+                return new PolicyBarrierCalculator(latestClockTime,
                         getEarliestWinStartTS(latestEventTime, wa, ws) + ws + 1);
 
             default:
