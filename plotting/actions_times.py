@@ -50,5 +50,5 @@ def main(directory):
 
 if __name__ == "__main__":
     # Replace 'your_directory_path' with the actual directory path where the search should begin
-    directory = 'data/exp15.4'
+    directory = 'data/exp15.6'
     main(directory)

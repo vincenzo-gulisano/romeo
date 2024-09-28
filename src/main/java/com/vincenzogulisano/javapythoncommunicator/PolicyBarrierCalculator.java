@@ -34,7 +34,7 @@ public class PolicyBarrierCalculator {
             case WELAW:
 
                 return new PolicyBarrierCalculator(latestClockTime + 1,
-                        getEarliestWinStartTS(latestEventTime, wa, ws) + ws + 1);
+                        getEarliestWinStartTS(latestEventTime, wa, ws) + ws);
 
             default:
                 throw new RuntimeException("Unknown PolicyBarrier " + policyBarrier);
