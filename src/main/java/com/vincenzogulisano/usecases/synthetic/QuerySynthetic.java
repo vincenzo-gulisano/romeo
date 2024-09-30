@@ -280,13 +280,16 @@ public class QuerySynthetic implements Actionable, EnvironmentMonitor {
 
         long newCompression = (long) ((double) ws * ((double) valueDAtEpisodeStart / 10.0));
         logger.debug("Reset compression threshold of the Aggregate to {}", newCompression);
-        woostAgg.changeD(newCompression);
+        long latestEventTime = woostAgg.changeD(newCompression);
+        logger.debug("latestEventTime returned by changeD: {} (not used, logging to make sure we reach this point)",latestEventTime);
 
         // logger.debug("Sleeping 2 seconds before giving green light for state filling
         // tuples");
         // Util.sleep(2000);
 
+        logger.debug("invoking giveGreenlightToStartSendingStateFillingTuples");
         sourceFunction.giveGreenlightToStartSendingStateFillingTuples();
+        logger.debug("giveGreenlightToStartSendingStateFillingTuples invoked");
 
         while (!sourceFunction.areAllStateFillingTuplesSent()) {
             Util.sleep(50);

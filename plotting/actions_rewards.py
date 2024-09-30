@@ -25,5 +25,5 @@ def process_reward_file(file_path):
         print(f"Error processing file {file_path}: {e}")
 
 if __name__ == "__main__":
-    folder = 'data/exp15.6'
+    folder = 'data/exp15.7'
     find_reward_files(folder)

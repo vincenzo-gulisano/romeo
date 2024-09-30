@@ -285,7 +285,7 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
                 measurements.put(id, new LinkedList<>());
             }
             measurements.get(id).add(new Pair<Long, Double>(ts, value));
-            logger.debug("Registering {},{},{}", ts, id, String.format("%.2f", value));
+            // logger.debug("Registering {},{},{}", ts, id, String.format("%.2f", value));
             // System.out.println(String.format("EnvironmentStateCalculator registering
             // (%d,%s,%.2f)", ts, id, value));
         }
@@ -300,11 +300,11 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
             this.lock.lock();
 
             if (!dataSpansAtLeastTheMonitoringPeriod) {
-                logger.debug("Internal thread, data does not span monitoring period");
+                // logger.debug("Internal thread, data does not span monitoring period");
             } else if (!(sendStateTokens.get() > 0)) {
-                logger.debug("Internal thread, no send state tokens");
+                // logger.debug("Internal thread, no send state tokens");
             } else if (!areRewardAndNewStateMeasurementAvailable()) {
-                logger.debug("Internal thread, rewards and state not available");
+                // logger.debug("Internal thread, rewards and state not available");
             } else {
 
                 logger.debug(
