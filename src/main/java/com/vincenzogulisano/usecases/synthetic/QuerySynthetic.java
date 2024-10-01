@@ -280,8 +280,9 @@ public class QuerySynthetic implements Actionable, EnvironmentMonitor {
 
         long newCompression = (long) ((double) ws * ((double) valueDAtEpisodeStart / 10.0));
         logger.debug("Reset compression threshold of the Aggregate to {}", newCompression);
-        long latestEventTime = woostAgg.changeD(newCompression);
-        logger.debug("latestEventTime returned by changeD: {} (not used, logging to make sure we reach this point)",latestEventTime);
+        long changeDEventTime = woostAgg.changeD(newCompression);
+        logger.debug("latestEventTime returned by changeD: {} (not used, logging to make sure we reach this point)",
+                changeDEventTime);
 
         // logger.debug("Sleeping 2 seconds before giving green light for state filling
         // tuples");
@@ -320,7 +321,8 @@ public class QuerySynthetic implements Actionable, EnvironmentMonitor {
         logger.debug(
                 "Reset completed at event time {} and clock time {}. Barriers: event time >= {} and clock time >= {}",
                 latestEventTime, latestClockTime, barrier.getEventTimeBarrier(), barrier.getWallclockTimeBarrier());
-        reporter.addSendStateToken(barrier.getWallclockTimeBarrier(), barrier.getEventTimeBarrier(), valueDAtEpisodeStart);
+        reporter.addSendStateToken(barrier.getWallclockTimeBarrier(), barrier.getEventTimeBarrier(),
+                valueDAtEpisodeStart);
 
     }
 
