@@ -19,8 +19,9 @@ def plot_files_in_folder(folder,episodesstatsfile,makeplots,print_global_events,
 
     for file in csv_files_to_process:
         file_path = os.path.join(folder, file)
+        print(file_path)
         try:
-            df = pd.read_csv(file_path)
+            df = pd.read_csv(file_path, dtype={0: 'int64', 1: 'float64'}, header=None)
             # Check if the CSV file has exactly 2 columns and contains numerical values
             if len(df.columns) == 2 and all(df.map(lambda x: isinstance(x, (int, float))).all(axis=1)):
                 # print(file_path,'is a valid file path')
@@ -28,14 +29,24 @@ def plot_files_in_folder(folder,episodesstatsfile,makeplots,print_global_events,
             else:
                 print(file_path,'is not a valid file path')
                 print('len(df.columns) == 2',len(df.columns) == 2)
-                print('all(df.map(lambda x: isinstance(x, (int, float))).all(axis=1))',all(df.map(lambda x: isinstance(x, (int, float))).all(axis=1)))
-                # Create a mask where True means the value is an int or float
-                mask = df.applymap(lambda x: isinstance(x, (int, float)))
-                # Find where the mask is False, which indicates non-int/float entries
-                non_int_float_entries = df[~mask]
-                # Display the result
-                print("Entries that are not integers or floats:")
-                print(non_int_float_entries)
+
+                # Check if all entries are int or float
+                is_valid_data = df.applymap(lambda x: isinstance(x, (int, float)))
+
+                print('All values are int or float:', is_valid_data.all(axis=None))
+
+                # Find rows that contain invalid (non-int, non-float) data
+                invalid_entries = df[~is_valid_data]
+
+                if not invalid_entries.empty:
+                    # Print rows and details of invalid entries
+                    for index, row in invalid_entries.iterrows():
+                        for col in row.index:
+                            value = row[col]
+                            if not isinstance(value, (int, float)):
+                                print(f"Row {index}, Column '{col}' has invalid type: {type(value).__name__}, value: {value}")
+                else:
+                    print('No invalid entries found.')
         except pd.errors.EmptyDataError:
             pass  # Handle empty CSV files
 

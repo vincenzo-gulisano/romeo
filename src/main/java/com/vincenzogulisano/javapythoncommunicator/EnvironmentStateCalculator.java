@@ -181,8 +181,6 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
         this.lock.lock();
 
         if (resetRequest) {
-            // System.out.println("EnvironmentStateCalculator - got a reset request, stop
-            // storing stats for now");
             resetRequest = false;
             resetCompleted = false;
             resetAcknowledged = true;
@@ -203,82 +201,27 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
         }
 
         if (resetAcknowledged && resetCompleted) {
-            // System.out.println("EnvironmentStateCalculator - reset acknowledge and
-            // completed. Storing stats");
             resetAcknowledged = false;
             resetCompleted = false;
             logger.debug("Setting resetAcknowledged and resetCompleted to false");
         }
 
-        // System.out.println(String.format("Storing %d,%s,%.2f", ts, id, value));
-
-        // logger.debug("dataSpansAtLeastTheMonitoringPeriod --> false");
         dataSpansAtLeastTheMonitoringPeriod = false;
-
-        HashSet<String> keysToRemove = new HashSet<>();
 
         // Checking if we have enought measurements
         // If more than enough and keepOnlyMonitoringPeriodData, removing them
         if (!measurements.isEmpty()) {
             for (String id_ : measurements.keySet()) {
-                // if (!measurements.get(id_).isEmpty()) {
-                //     logger.debug("ID: {}, peek().getTimestamp(): {}, ts: {}, monitoringPeriod: {}", id_,
-                //             measurements.get(id_).peek().getTimestamp(), ts, monitoringPeriod);
-                // }
                 while (!measurements.get(id_).isEmpty()
                         && measurements.get(id_).peek().getTimestamp() <= ts - monitoringPeriod) {
+                    if (!dataSpansAtLeastTheMonitoringPeriod) {
+                        logger.debug("dataSpansAtLeastTheMonitoringPeriod to true thanks to stat {}, ts {}, and current ts {}", id_,  measurements.get(id_).peek().getTimestamp(),ts);
+                    }
                     dataSpansAtLeastTheMonitoringPeriod = true;
-                        
-                    // logger.debug("dataSpansAtLeastTheMonitoringPeriod --> true");
-                    // if (keepOnlyMonitoringPeriodData) {
-                    //     measurements.get(id_).poll();
-                    // } else {
-                    //     // Notice that if we keep all the data, we need to break
-                    //     // Otherwise we stay in this loop forever
-                    //     break;
-                    // }
                     break;
-
                 }
-                // if (keepOnlyMonitoringPeriodData && measurements.get(id_).isEmpty()) {
-                //     keysToRemove.add(id_);
-                // }
             }
         }
-        for (String keyToRemove : keysToRemove) {
-            measurements.remove(keyToRemove);
-        }
-
-        // if (dataSpansAtLeastTheMonitoringPeriod)
-
-        // {
-
-        // logger.debug(
-        // "Checking if state measurement is available and there is at least one token
-        // to send the state...");
-        // if (sendStateTokens.get() > 0) {
-        // logger.debug("One token is available");
-        // if (areRewardAndNewStateMeasurementAvailable()) {
-        // logger.debug("And state/reward/extrainfo too");
-        // sendStateTokens.set(0);
-
-        // String msg = getStateMeasurementAsString() + separator + getReward() +
-        // separator + getExtraInfo();
-        // logger.debug("Sending state/reward/extrainfo {}", msg);
-        // producer.send(new ProducerRecord<>("stats", msg));
-        // if (episodesLogger != null) {
-        // episodesLogger.writeMeasurementEvent();
-        // }
-        // }
-        // }
-
-        // if (resetAllMeasurementsAfterReport) {
-        // measurements.clear();
-        // }
-        // // System.out.println(String.format("Sending message %s", msg));
-        // // logger.debug(logMsg);
-
-        // }
 
         if (valueIsToBeRegistered(id, value)) {
             if (!measurements.containsKey(id)) {
@@ -286,8 +229,6 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
             }
             measurements.get(id).add(new Pair<Long, Double>(ts, value));
             // logger.debug("Registering {},{},{}", ts, id, String.format("%.2f", value));
-            // System.out.println(String.format("EnvironmentStateCalculator registering
-            // (%d,%s,%.2f)", ts, id, value));
         }
 
         this.lock.unlock();

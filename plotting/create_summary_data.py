@@ -67,6 +67,7 @@ def aggregate_data(base_folder):
     for subfolder in os.listdir(base_folder):
         subfolder_path = os.path.join(base_folder, subfolder)
         if os.path.isdir(subfolder_path):
+            
             subfolder_data = process_subfolder(subfolder_path)
             if subfolder_data is not None:
                 baselines_data = pd.concat([baselines_data, subfolder_data], ignore_index=True)
