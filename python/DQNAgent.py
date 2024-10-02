@@ -3,6 +3,7 @@ import time
 import argparse
 from confluent_kafka import Producer, Consumer, KafkaError
 import numpy as np 
+import pandas as pd
 import cv2 
 import matplotlib.pyplot as plt
 import PIL.Image as Image
@@ -22,6 +23,8 @@ import math
 import os
 import pickle
 import csv
+
+from scipy.stats import linregress
 
 
 GAMMA = 0.99
@@ -237,6 +240,7 @@ class DQN(object):
 
 font = cv2.FONT_HERSHEY_COMPLEX_SMALL 
 
+
 class SPEEnvironment(Env):
     def __init__(self, stepsPerEpisode):
         super(SPEEnvironment, self).__init__()
@@ -276,20 +280,8 @@ class SPEEnvironment(Env):
                                                  np.full(self.valuesPerObservation, np.inf)
                                                  ]),
                                             dtype = np.float32)
-        # self.observation_space = spaces.Box(low = np.array([0,0,0,0]), 
-        #                                     high = np.array([np.inf, np.inf, 100, 100]),
-        #                                     dtype = np.float32)
-        
-        # Define an action space ranging from 0 to 11
-        # 0 means set compression to 0%
-        # 1 means set compression to 10%
-        # ...
-        # 10 means set compression to 100%
-        # self.action_space = spaces.Discrete(11,)
 
-        # 3 actions: reduce compression by 10, no change, increase compression by 10
         self.action_space = spaces.Discrete(3,)
-
         self.consumer = KafkaStatsConsumer(self.valuesPerObservation)
         self.producer = KafkaActionsProducer(self.consumer)
 
@@ -298,47 +290,62 @@ class SPEEnvironment(Env):
 
         self.prev_stat_time = time.time()
 
-        # Start the producer thread - NOT NEEDED IN PRINCIPLE
-        # kafka_actions_producer.start_producer()
-
         # Start the consumer thread
         self.consumer.start_consumer()
 
-        # track negative reward
-        # self.negative_reward_counter = 0
-
-        # track latency
-        #self.latency_threshold = 2500
-        #self.latency_counter = 0
         self.latency_last_events = -1
-        # # define thresholds for negative reward 
-        # self.negative_reward_threshold = -150
-        # define latency violations
-        self.latency_violations_per_episode = 3
 
+        self.latency_violations_per_episode = 1
+        self.cpu_violations_per_episode = 1
         # define initial compression ratio
         self.current_compression = 100 
-
         self.bonus_latency_threshold = 1000
         self.latency_record = []
         # track the number of steps since last reward
         self.steps_since_last_bonus = 0
         self.bonus_step_interval = 10
-        # indicator for extra +5
-        # self.bonus_given = False 
+
 
         # self.state_labels = ["injectionrate", "throughput", "outrate", "latency", "compressionratio", "CPU-agg", "eventtime"]
         self.state_labels = ["injectionrate", "throughput", "outrate", "latency", "compressionratio", "CPU-agg"]
-
-    def print_state(self, state):
+        
+    def print_state(self, transformed_state, original_state):
         # get the maxmimum length of state labels for alignment
         max_label_length = max(len(label) for label in self.state_labels)
-        max_value_length = max(max(len(f"{value:.2f}") for value in values) for values in state)
+        max_value_length = max(max(len(f"{value:.2f}") for value in values) for values in original_state)
         column_width = max(max_label_length, max_value_length)
-        for label, values in zip(self.state_labels, state):
+        for label, (slope,intercept), original_values in zip(self.state_labels, transformed_state, original_state):
             formatted_label = label.ljust(column_width)
-            formatted_values = ' '.join(f'{value:{column_width}.2f}' for value in values)
-            print(f"{formatted_label} {formatted_values}")
+            # formatted_values = ' '.join(f'{value:{column_width}.2f}' for value in values)
+            transformed_values = f'{slope:>{column_width}.2f} {intercept:>{column_width}.2f}'
+            original_values = ' '.join(f'{value:>{column_width}.2f}' for value in original_values)
+            print(f"{formatted_label} {transformed_values} || {original_values}")
+
+    def linear_regression_transform(self, state_matrix):
+        slopes = []
+        intercepts = []
+
+        # Time points for linear regression (assuming 0, 1, 2,... for the 7 time steps)
+        time_points = np.arange(state_matrix.shape[1])
+
+        for row in state_matrix:
+            # Ignore NaN values
+            mask = ~np.isnan(row)
+            time_valid = time_points[mask]
+            values_valid = row[mask]
+
+            # If more than one valid point, perform linear regression
+            if len(time_valid) > 1:
+                slope, intercept, _, _, _ = linregress(time_valid, values_valid)
+            else:
+                slope, intercept = 0.0, values_valid[0] if len(values_valid) > 0 else 0.0
+            
+            slopes.append(slope)
+            intercepts.append(intercept)
+
+        # Return a transformed matrix with slopes and intercepts
+        transformed_state = np.column_stack((slopes, intercepts))
+        return transformed_state
 
     def reset(self):
 
@@ -364,28 +371,23 @@ class SPEEnvironment(Env):
         state_measurement_available = False
         print('Waiting for new observation')
         while not state_measurement_available:
-            time.sleep(1)
+            time.sleep(0.1)
             with self.consumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by other threads
                 # print('self.consumer.tracker.state is not None',(self.consumer.tracker.state is not None),'self.consumer.tracker.last_time',self.consumer.tracker.last_time,'self.prev_stat_time',self.prev_stat_time)
                 if self.consumer.tracker.state is not None and self.consumer.tracker.last_time > self.prev_stat_time:
                     print('Got a new state/reward/extrainfo msg:',self.consumer.tracker.last_time)
-                    self.print_state(self.consumer.tracker.state)
-                    # for row in self.consumer.tracker.state:
-                    #     print ([f'{num:.2f}' for num in row])
+                    state = self.consumer.tracker.state.copy()
+                    state_transformed = self.linear_regression_transform(state)
+                    self.print_state(state_transformed, state)
                     print('reward',self.consumer.tracker.reward,flush=True)
-                    # print('Got a new state/reward pair:',self.consumer.tracker.last_time,self.consumer.tracker.state,self.consumer.tracker.reward,flush=True)
                     state_measurement_available = True
 
         # Reset the reward
         self.ep_return  = self.consumer.tracker.reward
-
-        state = self.consumer.tracker.state.copy()
         # get the current event time
         self.current_event_time = state[6, :]
         # return states except eventtime
-        return state[:-1]
-        # # Return the observation
-        # return self.consumer.tracker.state.copy()
+        return state_transformed[:-1]
     
     def step(self, action, current_compression):
     
@@ -403,27 +405,17 @@ class SPEEnvironment(Env):
         state_measurement_available = False
         # print('Waiting for new observation')
         while not state_measurement_available:
-            time.sleep(1)
+            time.sleep(0.1)
             with self.consumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by other threads
                 # print('self.consumer.tracker.state is not None',(self.consumer.tracker.state is not None),'self.consumer.tracker.last_time',self.consumer.tracker.last_time,'self.prev_stat_time',self.prev_stat_time)
                 if self.consumer.tracker.state is not None and self.consumer.tracker.last_time > self.prev_stat_time:
                     # print('Got a new state/reward pair:',self.consumer.tracker.last_time,self.consumer.tracker.state,self.consumer.tracker.reward,flush=True)
                     print('Got a new state/reward/extrainfo msg:',self.consumer.tracker.last_time)
-                    self.print_state(self.consumer.tracker.state)
-                    # for row in self.consumer.tracker.state:
-                    #     print ([f'{num:.2f}' for num in row])
+                    state = self.consumer.tracker.state.copy()
+                    state_transformed = self.linear_regression_transform(state)
+                    self.print_state(state_transformed, state)
                     print('reward',self.consumer.tracker.reward,flush=True)
                     state_measurement_available = True
-        
-        # # update negative reward counter
-        # if self.consumer.tracker.reward < 0:
-        #     self.negative_reward_counter += 1
-        
-        # # check if need to end this episode
-        # if self.negative_reward_counter >= 3:
-        #     done = True
-        # else:
-        #     done = False
                     
         # give extra +5 for completing every 10 steps
         if self.steps_since_last_bonus == self.bonus_step_interval - 1:
@@ -434,11 +426,8 @@ class SPEEnvironment(Env):
         if self.steps_since_last_bonus == self.bonus_step_interval:
             self.steps_since_last_bonus = 0
         
-        # update latency counter
-        # print(f"Checking high latency based on latency values")
-        # checkAlsoBasedReward = True
-        state = self.consumer.tracker.state.copy()
         self.current_event_time = state[6, :]  # update eventtime
+
         # for event_time, latency in zip(self.consumer.tracker.state[10], self.consumer.tracker.state[3]):
         # for event_time, latency in zip(self.current_event_time, self.consumer.tracker.state[3]):
         #     if event_time > self.latency_last_events:
@@ -475,10 +464,14 @@ class SPEEnvironment(Env):
                     self.latency_record.append((event_time, latency))
 
         # Check if episode should end
-        if self.remaingSteps <= 0 or self.consumer.tracker.numberOfTimesLatencyExceededTheEarlyTerminationThresholdSinceLastAction >= self.latency_violations_per_episode:
+        if self.remaingSteps <= 0 or \
+            self.consumer.tracker.numberOfTimesLatencyExceededTheEarlyTerminationThresholdSinceLastAction >= self.latency_violations_per_episode or \
+            self.consumer.tracker.numberOfCPUsExceedingEarlyTerminationThreshold >= self.cpu_violations_per_episode:
             done = True
-            if(self.consumer.tracker.numberOfTimesLatencyExceededTheEarlyTerminationThresholdSinceLastAction >= self.latency_violations_per_episode):
+            if self.consumer.tracker.numberOfTimesLatencyExceededTheEarlyTerminationThresholdSinceLastAction >= self.latency_violations_per_episode:
                 print("High latency observed")
+            if self.consumer.tracker.numberOfCPUsExceedingEarlyTerminationThreshold >= self.cpu_violations_per_episode:
+                print("High cpu observed")
             # apply bonus if conditions are met at the end of an episode
             valid_latencies = [latency for _, latency in self.latency_record[-10:]]  # extract only the latency values from the last 10 records
             if len(valid_latencies) == self.bonus_step_interval and all(latency <= self.bonus_latency_threshold for latency in valid_latencies):
@@ -493,7 +486,7 @@ class SPEEnvironment(Env):
 
         # TODO There's something missing, the SPE itself could be done if it runs out of data. This is not being checked as of now...
         # return self.consumer.tracker.state.copy(), self.consumer.tracker.reward, done, []
-        return state[:-1], self.consumer.tracker.reward, done, []
+        return state_transformed[:-1], self.consumer.tracker.reward, done, []
     
     def close(self):
         super(SPEEnvironment, self).close()
@@ -520,8 +513,6 @@ class MeasurementTracker:
 
             # Extract timestamp as an integer
             self.last_time = time.time()
-            # Split the string and create a list of floats, replacing -1 with np.nan
-            # doubles_list = [np.nan if float(x) == -1.0 else float(x) for x in parts[0].split(',')]
             # Convert the string to a list of floats without replacing -1.0 with np.nan
             doubles_list = [float(x) for x in parts[0].split(',')]
             # Convert the list to a NumPy array of float32 and reshape it to 11x7
@@ -542,11 +533,10 @@ class MeasurementTracker:
                 self.state = np.array(selected_state, dtype=np.float32).reshape(7, self.valuesPerObservation)
             except Exception as e:
                 raise RuntimeError("An error occured parsing " + input_str) from e
-            # state_matrix = np.array(doubles_list, dtype=np.float32).reshape(-1, self.valuesPerObservation)
-            # self.state = state_matrix.T
+                
             self.reward = int(parts[1])
-
             self.numberOfTimesLatencyExceededTheEarlyTerminationThresholdSinceLastAction = int(parts[2])
+            self.numberOfCPUsExceedingEarlyTerminationThreshold = int(parts[3])
 
 class KafkaActionsProducer:
     def __init__(self, statsConsumer, bootstrap_servers='michelangelo.cse.chalmers.se:9092', actions_topic='dchanges'):
@@ -618,19 +608,19 @@ if __name__ == "__main__":
 
     env = SPEEnvironment(int(args.steps))
     # input_shape = (11, 7)
-    input_shape = (6, 7)
+    input_shape = (6, 2)
     hidden_size = 128
     output_size = env.action_space.n
     Agent = DQN(input_shape, hidden_size, output_size)
 
     # load saved net's paras
-    # model_file = 'image/Exp15/4_WEAAW/synthetic/Exp15_WEAAW_s_paras-1-150/exp15_weaaw_s_dqn_model_episode_150.pth'
+    # model_file = 'image/Exp15_7/1-200/synthetic/2_ELOB/Exp15-7_elob_s_paras-1-200/exp15-7_elob_s_dqn_model_episode_200.pth'
     # if os.path.exists(model_file):
     #     Agent.net.load_state_dict(torch.load(model_file))
     #     print("loaded net's paras...")
 
-    # load replay buffer
-    # replay_buffer = 'image/Exp15/4_WEAAW/synthetic/Exp15_WEAAW_s_replay_buffer-1-150/exp15_weaaw_s_buffer_after_150_episodes.pkl'
+    # # load replay buffer
+    # replay_buffer = 'image/Exp15_7/1-200/synthetic/2_ELOB/Exp15-7_elob_s_replay_buffer-1-200/exp15-7_elob_s_buffer_after_200_episodes.pkl'
     # with open (replay_buffer, 'rb') as f:
     #     Agent.buffer = pickle.load(f)
     # print('loaded replay buffer from last round...')
@@ -641,46 +631,46 @@ if __name__ == "__main__":
     incremental_average_reward = 0  # average reward of all episodes for incermental averaging
 
     # create folder to store paras (linear)
-    paras_folder_name = 'data/output/WELAW/linear/5/600/5000000000/10/Exp15-5_welaw_l_paras-1-150'
-    if not os.path.exists(paras_folder_name):
-        os.makedirs(paras_folder_name)
-
-    # create folder to store paras (synthetic)
-    # paras_folder_name = 'data/output/AOB/synthetic/1/900/5000000000/10/Exp15-4_AOB_s_paras-1-150'
+    # paras_folder_name = 'data/output/ELOB/linear/5/600/5000000000/10/Exp15-7_elob_l_paras-1-200'
     # if not os.path.exists(paras_folder_name):
     #     os.makedirs(paras_folder_name)
 
-    # create folder to store q value plots (linear)
-    q_value_folder_name = 'data/output/WELAW/linear/5/600/5000000000/10/Exp15-5_welaw_l_q_value_plot-1-150'
-    if not os.path.exists(q_value_folder_name):
-        os.makedirs(q_value_folder_name)
+    # # create folder to store paras (synthetic)
+    paras_folder_name = 'data/output/WELAW/synthetic/1/900/5000000000/10/Exp16_welaw_s_paras-1-200'
+    if not os.path.exists(paras_folder_name):
+        os.makedirs(paras_folder_name)
 
-    # create folder to store q value plots (synthetic)
-    # q_value_folder_name = 'data/output/AOB/synthetic/1/900/5000000000/10/Exp15-4_AOB_s_q_values_plot-1-150'
+    # create folder to store q value plots (linear)
+    # q_value_folder_name = 'data/output/ELOB/linear/5/600/5000000000/10/Exp15-7_elob_l_q_value_plot-1-200'
     # if not os.path.exists(q_value_folder_name):
     #     os.makedirs(q_value_folder_name)
+
+    # create folder to store q value plots (synthetic)
+    q_value_folder_name = 'data/output/WELAW/synthetic/1/900/5000000000/10/Exp16_welaw_s_q_values_plot-1-200'
+    if not os.path.exists(q_value_folder_name):
+        os.makedirs(q_value_folder_name)
     
     # create folder to store replay buffer (linear)
-    replay_buffer_folder_name = 'data/output/WELAW/linear/5/600/5000000000/10/Exp15-5_welaw_l_replay_buffer-1-150'
-    if not os.path.exists(replay_buffer_folder_name):
-        os.makedirs(replay_buffer_folder_name)
-    
-    # create folder to store replay buffer (synthetic)
-    # replay_buffer_folder_name = 'data/output/AOB/synthetic/1/900/5000000000/10/Exp15-4_AOB_s_replay_buffer-1-150'
+    # replay_buffer_folder_name = 'data/output/ELOB/linear/5/600/5000000000/10/Exp15-7_elob_l_replay_buffer-1-200'
     # if not os.path.exists(replay_buffer_folder_name):
     #     os.makedirs(replay_buffer_folder_name)
+    
+    # # create folder to store replay buffer (synthetic)
+    replay_buffer_folder_name = 'data/output/WELAW/synthetic/1/900/5000000000/10/Exp16_welaw_s_replay_buffer-1-200'
+    if not os.path.exists(replay_buffer_folder_name):
+        os.makedirs(replay_buffer_folder_name)
 
     # create csv file to save episode - #step - total reward (linear)
-    step_tot_reward_folder_name = 'data/output/WELAW/linear/5/600/5000000000/10'
-    if not os.path.exists(step_tot_reward_folder_name):
-        os.makedirs(step_tot_reward_folder_name)
-    step_tot_reward_path = os.path.join(step_tot_reward_folder_name, 'step_tot_reward_welaw_l_exp15-5.csv')
-
-    # create csv file to save episode - #step - total reward (synthetic)
-    # step_tot_reward_folder_name = 'data/output/AOB/synthetic/1/900/5000000000/10/'
+    # step_tot_reward_folder_name = 'data/output/ELOB/linear/5/600/5000000000/10'
     # if not os.path.exists(step_tot_reward_folder_name):
     #     os.makedirs(step_tot_reward_folder_name)
-    # step_tot_reward_path = os.path.join(step_tot_reward_folder_name, 'step_tot_reward_aob_s_exp15-4.csv')
+    # step_tot_reward_path = os.path.join(step_tot_reward_folder_name, 'step_tot_reward_elob_l_exp15-7.csv')
+
+    # create csv file to save episode - #step - total reward (synthetic)
+    step_tot_reward_folder_name = 'data/output/WELAW/synthetic/1/900/5000000000/10/'
+    if not os.path.exists(step_tot_reward_folder_name):
+        os.makedirs(step_tot_reward_folder_name)
+    step_tot_reward_path = os.path.join(step_tot_reward_folder_name, 'step_tot_reward_welaw_s_exp16.csv')
 
     with open(step_tot_reward_path, mode = 'w', newline = '') as file:
         writer = csv.writer(file)
@@ -778,16 +768,16 @@ if __name__ == "__main__":
         plt.ylabel('Q Values')
         plt.title(f'Q Values Over Episodes (Episode {i_episode + 1})')
         plt.legend()
-        q_value_file_path = os.path.join(q_value_folder_name, f'exp15-5_welaw_l_values_plot_{i_episode + 1}.png')
+        q_value_file_path = os.path.join(q_value_folder_name, f'exp16_welaw_s_values_plot_{i_episode + 1}.png')
         plt.savefig(q_value_file_path)
         plt.close()
             
         # saving paras and replay buffer per 10 episodes
         if (i_episode + 1) % 10 == 0: 
             # save model paras every 10 episodes
-            paras_file_path = os.path.join(paras_folder_name, f'exp15-5_welaw_l_dqn_model_episode_{i_episode + 1}.pth')
+            paras_file_path = os.path.join(paras_folder_name, f'exp16_welaw_s_dqn_model_episode_{i_episode + 1}.pth')
             torch.save(Agent.net.state_dict(), paras_file_path)
-            replay_buffer_file_path = os.path.join(replay_buffer_folder_name, f'exp15-5_welaw_l_buffer_after_{i_episode + 1}_episodes.pkl')
+            replay_buffer_file_path = os.path.join(replay_buffer_folder_name, f'exp16_welaw_s_buffer_after_{i_episode + 1}_episodes.pkl')
             with open (replay_buffer_file_path, 'wb') as f:
                 pickle.dump(Agent.buffer, f)
                  
