@@ -379,7 +379,8 @@ class SPEEnvironment(Env):
                     state = self.consumer.tracker.state.copy()
                     state_transformed = self.linear_regression_transform(state)
                     self.print_state(state_transformed, state)
-                    print('reward',self.consumer.tracker.reward,flush=True)
+                    # print('reward',self.consumer.tracker.reward,flush=True)
+                    print(f'reward {self.consumer.tracker.reward} || {self.consumer.tracker.original_reward}', flush=True)
                     state_measurement_available = True
 
         # Reset the reward
@@ -414,7 +415,8 @@ class SPEEnvironment(Env):
                     state = self.consumer.tracker.state.copy()
                     state_transformed = self.linear_regression_transform(state)
                     self.print_state(state_transformed, state)
-                    print('reward',self.consumer.tracker.reward,flush=True)
+                    # print('reward',self.consumer.tracker.reward,flush=True)
+                    print(f'reward {self.consumer.tracker.reward} || {self.consumer.tracker.original_reward}', flush=True)
                     state_measurement_available = True
                     
         # give extra +5 for completing every 10 steps
@@ -497,6 +499,7 @@ class MeasurementTracker:
     def __init__(self, valuesPerObservation):
         self.last_time = None
         self.state = None
+        self.original_reward = None
         self.reward = None
         self.data_lock = threading.Lock()
         self.valuesPerObservation = valuesPerObservation
@@ -533,8 +536,15 @@ class MeasurementTracker:
                 self.state = np.array(selected_state, dtype=np.float32).reshape(7, self.valuesPerObservation)
             except Exception as e:
                 raise RuntimeError("An error occured parsing " + input_str) from e
-                
-            self.reward = int(parts[1])
+            
+            # self.reward = int(parts[1])
+            self.original_reward = int(parts[1])
+            if self.original_reward > 0:
+                self.reward = 2
+            elif self.original_reward < 0:
+                self.reward = -2
+            else:
+                self.reward = 0
             self.numberOfTimesLatencyExceededTheEarlyTerminationThresholdSinceLastAction = int(parts[2])
             self.numberOfCPUsExceedingEarlyTerminationThreshold = int(parts[3])
 
