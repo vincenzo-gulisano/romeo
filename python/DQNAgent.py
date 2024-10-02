@@ -322,6 +322,7 @@ class SPEEnvironment(Env):
             print(f"{formatted_label} {transformed_values} || {original_values}")
 
     def linear_regression_transform(self, state_matrix):
+        state_matrix = np.where(state_matrix == -1.00, np.nan, state_matrix)
         slopes = []
         intercepts = []
 
@@ -379,7 +380,6 @@ class SPEEnvironment(Env):
                     state = self.consumer.tracker.state.copy()
                     state_transformed = self.linear_regression_transform(state)
                     self.print_state(state_transformed, state)
-                    # print('reward',self.consumer.tracker.reward,flush=True)
                     print(f'reward {self.consumer.tracker.reward} || {self.consumer.tracker.original_reward}', flush=True)
                     state_measurement_available = True
 
@@ -415,7 +415,6 @@ class SPEEnvironment(Env):
                     state = self.consumer.tracker.state.copy()
                     state_transformed = self.linear_regression_transform(state)
                     self.print_state(state_transformed, state)
-                    # print('reward',self.consumer.tracker.reward,flush=True)
                     print(f'reward {self.consumer.tracker.reward} || {self.consumer.tracker.original_reward}', flush=True)
                     state_measurement_available = True
                     
@@ -429,26 +428,6 @@ class SPEEnvironment(Env):
             self.steps_since_last_bonus = 0
         
         self.current_event_time = state[6, :]  # update eventtime
-
-        # for event_time, latency in zip(self.consumer.tracker.state[10], self.consumer.tracker.state[3]):
-        # for event_time, latency in zip(self.current_event_time, self.consumer.tracker.state[3]):
-        #     if event_time > self.latency_last_events:
-        #         self.latency_last_events = event_time
-        #         if latency > self.latency_threshold:
-        #             # checkAlsoBasedReward = False
-        #             self.latency_counter += 1
-        #             print(f"High latency observed: {event_time, latency} ms at step {(self.stepsPerEpisode - self.remaingSteps) + 1}")
-                    # print(f"High latency observed: {event_time, latency} ms at step {(self.stepsPerEpisode - self.remaingSteps)}")
-            
-        # if checkAlsoBasedReward:
-        #     print(f"Checking high latency based on actual reward")
-        #     if self.consumer.tracker.reward < self.negative_reward_threshold:
-        #         self.latency_counter += 1
-        #         print(f"High latency observed because of reward at step {(self.stepsPerEpisode - self.remaingSteps) + 1}")
-        #         # print(f"High latency observed because of reward at step {(self.stepsPerEpisode - self.remaingSteps)}")
-        # if self.latency_counter >= self.latency_violations_per_episode:
-        #     done = True
-        #     print(f"Episode terminated early due to excessive latency violations.")
 
         # record latency of last second if it is not missing -1
         current_event_time = self.current_event_time
@@ -482,12 +461,9 @@ class SPEEnvironment(Env):
         else:
             done = False
 
-        
         # Increment the episodic return
         self.ep_return += 1
 
-        # TODO There's something missing, the SPE itself could be done if it runs out of data. This is not being checked as of now...
-        # return self.consumer.tracker.state.copy(), self.consumer.tracker.reward, done, []
         return state_transformed[:-1], self.consumer.tracker.reward, done, []
     
     def close(self):
@@ -537,7 +513,6 @@ class MeasurementTracker:
             except Exception as e:
                 raise RuntimeError("An error occured parsing " + input_str) from e
             
-            # self.reward = int(parts[1])
             self.original_reward = int(parts[1])
             if self.original_reward > 0:
                 self.reward = 2
