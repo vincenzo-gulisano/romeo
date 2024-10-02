@@ -32,6 +32,7 @@ def process_subfolder(subfolder):
         q2_cpu = episode_data[episode_data['stat'] == 'CPU-agg.average']['q2'].values[0]
         q3_cpu = episode_data[episode_data['stat'] == 'CPU-agg.average']['q3'].values[0]
         steps = episode_data[episode_data['stat'] == 'steps']['sum'].values[0]
+        duration = episode_data[episode_data['stat'] == 'duration']['sum'].values[0]
         eventtime_start = episode_data[episode_data['stat'] == 'eventtime.max']['q1'].values[0]
         eventtime_end = episode_data[episode_data['stat'] == 'eventtime.max']['q3'].values[0]
         
@@ -53,6 +54,7 @@ def process_subfolder(subfolder):
             'q2_cpu': q2_cpu,
             'q3_cpu': q3_cpu,
             'steps': steps,
+            'duration': duration,
             'eventtime_start': eventtime_start,
             'eventtime_end': eventtime_end
         })
@@ -62,7 +64,7 @@ def process_subfolder(subfolder):
 def aggregate_data(base_folder):
     baselines_data = pd.DataFrame(columns=['baseline', 'episode', 'q2_rate', 'cum_reward', 'q1_ratio', 'q2_ratio', 'q3_ratio', 
                                            'q2_violations','sum_violations','q1_latency','q2_latency','q3_latency','q1_cpu','q2_cpu','q3_cpu',
-                                           'steps','eventtime_start','eventtime_end'])
+                                           'steps','duration','eventtime_start','eventtime_end'])
     
     for subfolder in os.listdir(base_folder):
         subfolder_path = os.path.join(base_folder, subfolder)

@@ -80,7 +80,7 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
         ncratio_ylim = [-0.1,1.1]
         steps_ylim = [0,55]
         reward_ylim = [0,150]
-        violations_ylim = [0,55]
+        duration_ylim = [0,300]
     elif usecase == 'synthetic':
         policies_order = [
             "welob_synthetic",
@@ -93,7 +93,7 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
         ncratio_ylim = [0.5,1.0]
         steps_ylim = [0,55]
         reward_ylim = [0,150]
-        violations_ylim = [0,55]
+        duration_ylim = [0,120]
     elif usecase == 'synthetic5s':
         policies_order = [
             "welob_synthetic",
@@ -106,7 +106,7 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
         ncratio_ylim = [-0.1,1.1]
         steps_ylim = [0,55]
         reward_ylim = [0,150]
-        violations_ylim = [0,55]
+        duration_ylim = [0,55]
 
     policies_labels = {
         "welob_linear": "WEL-OB",
@@ -193,7 +193,7 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
                 y_coords_cpu = portion["q2_cpu"] / 100
                 y_coords_steps = portion["steps"]
                 y_coords_reward = portion["cum_reward"]
-                y_coords_violations = portion["sum_violations"]
+                y_coords_duration = portion["duration"]
 
                 # smooth the line
                 smooth_points_ratio = (
@@ -221,8 +221,8 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
                     .rolling(window=smoothing_window_size, center=True)
                     .mean()
                 )
-                smooth_points_violations = (
-                    pd.Series(y_coords_violations)
+                smooth_points_duration = (
+                    pd.Series(y_coords_duration)
                     .rolling(window=smoothing_window_size, center=True)
                     .mean()
                 )
@@ -286,7 +286,7 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
                 
                 axs[6,portion_num-1].plot(
                     x_coords,
-                    smooth_points_violations,
+                    smooth_points_duration,
                     color=agent_plots[baseline][4],
                     label=policies_labels[baseline],
                     linewidth=line_width,
@@ -355,12 +355,12 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
     for ax in axs[5, 1:]:
         ax.set_yticklabels([])
 
-    axs[6,0].set_ylabel("Violations", fontsize=text_fontsize)
+    axs[6,0].set_ylabel("Duration", fontsize=text_fontsize)
     for ax in axs[6, 0:]:
         ax.set_xlabel(
             "Event Time (s)", fontsize=text_fontsize
         )  # Only the last subplot needs the x-axis label
-        ax.set_ylim(violations_ylim)
+        ax.set_ylim(duration_ylim)
     for ax in axs[6, 1:]:
         ax.set_yticklabels([])
 
