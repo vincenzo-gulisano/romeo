@@ -54,16 +54,21 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
     private List<CompressionValue> latestCompressionsInReportedStates;
 
     private TreeMap<Long, Double> prevLatenciesAboveTerminationThreshold;
+    private TreeMap<Long, Double> prevCPUsAboveTerminationThreshold;
     private long numberOfLatenciesExceedingEarlyTerminationThreshold;
     private final double earlyTerminationThreshold;
+    private long numberOfCPUsExceedingEarlyTerminationThreshold;
+    private final double earlyTerminationThresholdCPU;
 
     public IRLRCPUMatrix_ESC(long monitoringPeriod, Producer<String, String> producer, String separator,
-            long valuesPerObservation, long latencyThreshold, long CPUThreshold, double earlyTerminationThreshold) {
+            long valuesPerObservation, long latencyThreshold, double CPUThreshold, double earlyTerminationThreshold) {
         super(monitoringPeriod, producer, separator, false, false);
         this.hardLatencyThreshold = latencyThreshold;
         this.softLatencyThreshold = latencyThreshold / 2;
         this.earlyTerminationThreshold = earlyTerminationThreshold;
+        this.earlyTerminationThresholdCPU = CPUThreshold;
         this.prevLatenciesAboveTerminationThreshold = new TreeMap<>();
+        this.prevCPUsAboveTerminationThreshold = new TreeMap<>();
         logger.debug("Soft and hard latencies set to {} and {}", softLatencyThreshold, hardLatencyThreshold);
         relevantMetrics = new ArrayList<>(
                 Arrays.asList("injectionrate", "throughput", "outrate", "latency", "ratio", "comp", "dec",
@@ -89,8 +94,11 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         latStatusInStates.clear();
         latestCompressionsInReportedStates.clear();
         prevLatenciesAboveTerminationThreshold.clear();
+        prevCPUsAboveTerminationThreshold.clear();
         numberOfLatenciesExceedingEarlyTerminationThreshold = 0;
+        numberOfCPUsExceedingEarlyTerminationThreshold = 0;
         logger.debug("numberOfLatenciesExceedingEarlyTerminationThreshold reset to 0.");
+        logger.debug("numberOfCPUsExceedingEarlyTerminationThreshold reset to 0.");
     }
 
     /**
@@ -185,7 +193,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
                     thresholdTS, monitoringPeriod);
         }
 
-        // Collect the entries exceeding the threshold in the latest set of measurements
+        // Collect the entries exceeding the latency threshold in the latest set of measurements
         TreeMap<Long, Double> latenciesAboveTerminationThreshold = new TreeMap<>();
         for (Entry<Long, HashMap<String, Double>> entry : stateMeasurements.entrySet()) {
             if (entry.getValue().containsKey("latency")
@@ -209,6 +217,32 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         logger.debug("Number of latencies exceeding early termination threshold: {}",
                 numberOfLatenciesExceedingEarlyTerminationThreshold);
         prevLatenciesAboveTerminationThreshold = latenciesAboveTerminationThreshold;
+
+
+        // Collect the entries exceeding the CPU threshold in the latest set of measurements
+        TreeMap<Long, Double> cpusAboveTerminationThreshold = new TreeMap<>();
+        for (Entry<Long, HashMap<String, Double>> entry : stateMeasurements.entrySet()) {
+            if (entry.getValue().containsKey("CPU-agg")
+                    && entry.getValue().get("CPU-agg") > earlyTerminationThresholdCPU) {
+                        cpusAboveTerminationThreshold.put(entry.getKey(), entry.getValue().get("CPU-agg"));
+            }
+        }
+        logger.debug("CPUs exceeding early termination threshold: {}", cpusAboveTerminationThreshold);
+        // Clean the ones that where already reported
+        HashSet<Long> toBeRemovedCPU = new HashSet<>();
+        for (Entry<Long, Double> entry : cpusAboveTerminationThreshold.entrySet()) {
+            if (prevCPUsAboveTerminationThreshold.containsKey(entry.getKey())) {
+                logger.debug("Removing this latency because it has been already accounted for: {}", entry);
+                toBeRemovedCPU.add(entry.getKey());
+            }
+        }
+        for (Long k : toBeRemovedCPU) {
+            cpusAboveTerminationThreshold.remove(k);
+        }
+        numberOfCPUsExceedingEarlyTerminationThreshold += cpusAboveTerminationThreshold.size();
+        logger.debug("Number of cpus exceeding early termination threshold: {}",
+        numberOfCPUsExceedingEarlyTerminationThreshold);
+        prevCPUsAboveTerminationThreshold = cpusAboveTerminationThreshold;
 
         StringBuilder logMsg = new StringBuilder();
         for (String metric : relevantMetrics) {
@@ -471,7 +505,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
     @Override
     public String getExtraInfo() {
         logger.debug("Returning extra inffo: {}", numberOfLatenciesExceedingEarlyTerminationThreshold);
-        return "" + numberOfLatenciesExceedingEarlyTerminationThreshold;
+        return "" + numberOfLatenciesExceedingEarlyTerminationThreshold + "-" + numberOfCPUsExceedingEarlyTerminationThreshold;
     }
 
 }

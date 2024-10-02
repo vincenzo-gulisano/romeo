@@ -30,7 +30,7 @@ public class JPComm {
 
     public Logger logger = LogManager.getLogger();
 
-    private JPComm(Actionable actionable, long latencyTreshold, long CPUThreshold,
+    private JPComm(Actionable actionable, long latencyTreshold, double CPUThreshold,
             double earlyTerminationLatencyThreshold) {
         this.actionable = actionable;
 
@@ -58,7 +58,7 @@ public class JPComm {
     }
 
     public static JPComm createInstance(Actionable actionable, EnvironmentMonitor monitor, long latencyTreshold,
-            long CPUThreshold, double earlyTerminationLatencyThreshold) {
+            double CPUThreshold, double earlyTerminationLatencyThreshold) {
         JPComm jpc = new JPComm(actionable, latencyTreshold, CPUThreshold, earlyTerminationLatencyThreshold);
         monitor.setStatReporter(jpc.esc);
         return jpc;
@@ -133,7 +133,7 @@ public class JPComm {
         String usecase = expOps.commandLine().getOptionValue("usecase", "LinearRoad");
 
         long latencyThreshold = Long.valueOf(expOps.commandLine().getOptionValue("latencyTreshold", "1500"));
-        long CPUThreshold = Long.valueOf(expOps.commandLine().getOptionValue("CPUTreshold", "80"));
+        double CPUThreshold = Double.valueOf(expOps.commandLine().getOptionValue("CPUTreshold", "90"));
         double earlyTerminationLatencyThreshold = Double
                 .valueOf(expOps.commandLine().getOptionValue("earlyTerminationLatencyThreshold", "2000"));
 
