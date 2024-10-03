@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import argparse
 
 def find_reward_files(folder):
     # Walk through all directories and subdirectories recursively
@@ -25,5 +26,10 @@ def process_reward_file(file_path):
         print(f"Error processing file {file_path}: {e}")
 
 if __name__ == "__main__":
-    folder = 'data/exp15.8'
-    find_reward_files(folder)
+
+    parser = argparse.ArgumentParser(description="Count how many times each unique reward is opbserved for all files named rewards.csv in the given folder recursively")
+    parser.add_argument('directory', type=str, help='Base folder containing the data.')
+    
+    args = parser.parse_args()
+    
+    find_reward_files(args.directory)
