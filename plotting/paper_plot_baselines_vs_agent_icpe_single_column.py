@@ -10,8 +10,8 @@ def plot_graphs(
     rate_file_path,
     agent_data,
     output_pdf,
-    probs,
-    probs_episod,
+    # probs,
+    # probs_episod,
     usecase,
     id,
 ):
@@ -91,6 +91,7 @@ def plot_graphs(
         latency_y_ticks_baseline = [0.1, 1, 2]
         ratio_y_lim = [-0.1, 1.1]
         cpu_y_lim = [0.0, 0.12]
+        smoothing_window_size = 5
 
     elif usecase == "synthetic":
 
@@ -100,17 +101,17 @@ def plot_graphs(
         boundary_text_align = ["left", "left", "right"]
         latency_y_scale = "log"
         latency_y_lim_baselines = [0.005, 50]
-        latency_y_lim_agent = [0.3, 3]
+        latency_y_lim_agent = [0.1, 3]
         latency_y_ticks_agent = [0.2, 1, 2]
         latency_y_ticks_baseline = [0.01, 0.1, 1, 10]
-        ratio_y_lim = [0.45, 0.9]
-        cpu_y_lim = [0.3, 0.95]
+        ratio_y_lim = [-0.1, 1.1]
+        cpu_y_lim = [-0.1, 1.1]
+        smoothing_window_size = 5
 
     initial_opacity = 0.3
     final_opacity = 0.9
-    splits = 4  # Number of portions to divide the subset into
+    splits = 3  # Number of portions to divide the subset into
     max_line_width = 2.5  # Set your desired maximum line width
-    smoothing_window_size = 5
     agent_color = "green"
 
     # Specify color and font size
@@ -157,7 +158,7 @@ def plot_graphs(
 
     # latency, divided by 1000
     data_latency = [
-        df[df["baseline"] == baseline]["q2_latency"].dropna() / 1000
+        df[df["baseline"] == baseline]["q3_latency"].dropna() / 1000
         for baseline in unique_baselines
     ]
     parts = axs[7].violinplot(
@@ -279,7 +280,7 @@ def plot_graphs(
         # Extract x and y coordinates
         x_coords = portion["eventtime_start"] - dfrate["x"].min()
         y_coords_ratio = portion["q2_ratio"] / 100
-        y_coords_latency = portion["q2_latency"] / 1000
+        y_coords_latency = portion["q3_latency"] / 1000
         y_coords_cpu = portion["q2_cpu"] / 100
 
         # smooth the line
@@ -415,10 +416,10 @@ if __name__ == "__main__":
         "agent_data", type=str, help="Input file containing the RL agent stats."
     )
     parser.add_argument("output_pdf", type=str, help="Output PDF file.")
-    parser.add_argument("probs", type=str, help="CSV with the probabilities")
-    parser.add_argument(
-        "probs_episod", type=int, help="Episode of which to plot probabilities"
-    )
+    # parser.add_argument("probs", type=str, help="CSV with the probabilities")
+    # parser.add_argument(
+    #     "probs_episod", type=int, help="Episode of which to plot probabilities"
+    # )
     parser.add_argument("usecase", type=str, help="usecase")
     parser.add_argument("id", type=str, help="id")
 
@@ -429,8 +430,8 @@ if __name__ == "__main__":
         args.rate_file_path,
         args.agent_data,
         args.output_pdf,
-        args.probs,
-        args.probs_episod,
+        # args.probs,
+        # args.probs_episod,
         args.usecase,
         args.id,
     )
