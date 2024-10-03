@@ -81,9 +81,11 @@ public class JPComm {
                         if (parts[0].equals("changeD")) {
                             String action = parts[1];
                             Long change = Long.parseLong(action);
+                            logger.debug("Got action "+change);
                             actionable.changeD(change);
                             // esc.addSendStateToken();
                         } else if (parts[0].equals("reset")) {
+                            logger.debug("Got a reset request");
                             actionable.reset();
                             // esc.addSendStateToken();
                         } else if (parts[0].equals("close")) {

@@ -504,7 +504,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
 
     @Override
     public String getExtraInfo() {
-        logger.debug("Returning extra inffo: {}", numberOfLatenciesExceedingEarlyTerminationThreshold);
+        logger.debug("Returning extra info: {}", numberOfLatenciesExceedingEarlyTerminationThreshold);
         return "" + numberOfLatenciesExceedingEarlyTerminationThreshold + "/" + numberOfCPUsExceedingEarlyTerminationThreshold;
     }
 
