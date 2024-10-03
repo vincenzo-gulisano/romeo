@@ -101,7 +101,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         logger.debug("numberOfCPUsExceedingEarlyTerminationThreshold reset to 0.");
     }
 
-    /**
+    /**IRLRCPUMatrix_ESC
      * Checks if the last latency measurement (if any) in the current set exceeds a
      * predefined threshold.
      * 
@@ -125,7 +125,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
             if (m.getKey() > lastReportedStateMaxTS) {
                 if (m.getValue().containsKey("latency") && Double.compare(m.getValue().get("latency"), -1.0) != 0) {
                     found = true;
-                    logger.debug("Returning a LatStatus becase of the state entry {}-{}", m.getKey(),
+                    logger.debug("Returning a LatStatus because of the state entry {}-{}", m.getKey(),
                             m.getValue().get("latency"));
                     if (m.getValue().get("latency") >= hardLatencyThreshold) {
                         aboveHardThreshold = true;
@@ -152,7 +152,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         for (Entry<Long, HashMap<String, Double>> m : stateMeasurements.entrySet()) {
             if (m.getKey() > lastReportedStateMaxTS) {
                 if (m.getValue().containsKey("ratio") && Double.compare(m.getValue().get("ratio"), -1.0) != 0) {
-                    logger.debug("Returning a CompressionValue becase of the state entry {}-{}", m.getKey(),
+                    logger.debug("Returning a CompressionValue because of the state entry {}-{}", m.getKey(),
                             m.getValue().get("ratio"));
                     value = m.getValue().get("ratio");
                     valid = true;
@@ -505,7 +505,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
     @Override
     public String getExtraInfo() {
         logger.debug("Returning extra inffo: {}", numberOfLatenciesExceedingEarlyTerminationThreshold);
-        return "" + numberOfLatenciesExceedingEarlyTerminationThreshold + "-" + numberOfCPUsExceedingEarlyTerminationThreshold;
+        return "" + numberOfLatenciesExceedingEarlyTerminationThreshold + "/" + numberOfCPUsExceedingEarlyTerminationThreshold;
     }
 
 }
