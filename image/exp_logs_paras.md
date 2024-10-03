@@ -356,7 +356,31 @@ latency for any 3 steps in each episode is higher than 2.5 seconds --> terminate
 ## Exp15.4
 1. 150 episodes again for linear and synthetic with all four policies from scratch to see if the behaviour across policies is consistent or not
 
-## Exp15.5.0
+## Exp15.5.0 (just test how initialization works)
 1. change maximum steps for each epiosde to 150 (50-->150)
 2. initialize the weight and bias for first 128 steps (equal to the size of replay buffer) with zero q values and 1/3 probability for each action
 3. update NN's paras from step 129
+
+## Exp15.5
+1. to see if the reporting periods get better
+2. run 10 episodes for two usecases with four policies
+3. initialize the weight and bias for first 128 steps (equal to the size of replay buffer) with zero q values and 1/3 probability for each action
+4. update NN's paras from step 129
+
+## Exp15.6
+1. update all policies' names to WELOB, ELOB, LOB, WELAW
+2. 03b284ff5c25405e7a19605378b6bdaf6d10af0f
+
+## Exp15.7
+1. run 200 rpisodes (1-200) for both usecases with four policies
+2. continue to run 200 episodes (201-400) for both ucecsaes with four policies
+   
+## Exp16
+1. new termination rules:
+- latency: once is greater than 2s
+- throughput: once is greater than 90
+2. new reward function
+- all positives -> the same positive
+- all negatives --> the same negative
+3. maximum steps for each episode: 100 (50->100)
+4. smaller states with slope and intercept
