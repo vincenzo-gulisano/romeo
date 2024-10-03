@@ -206,7 +206,7 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
             logger.debug("Setting resetAcknowledged and resetCompleted to false");
         }
 
-        dataSpansAtLeastTheMonitoringPeriod = false;
+        // dataSpansAtLeastTheMonitoringPeriod = false;
 
         // Checking if we have enought measurements
         // If more than enough and keepOnlyMonitoringPeriodData, removing them
