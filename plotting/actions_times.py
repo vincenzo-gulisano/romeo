@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import argparse
 
 def find_files_recursively(directory, filename):
     """Recursively find all files with a specific name in the directory."""
@@ -49,6 +50,10 @@ def main(directory):
             print(f"File: {filepath} - Average ts difference: {avg_ts_diff:.2f}")
 
 if __name__ == "__main__":
-    # Replace 'your_directory_path' with the actual directory path where the search should begin
-    directory = 'data/exp15.8'
-    main(directory)
+   
+    parser = argparse.ArgumentParser(description="Compute average inter action time for all files named episodes.csv in the given folder recursively")
+    parser.add_argument('directory', type=str, help='Base folder containing the data.')
+    
+    args = parser.parse_args()
+    
+    main(args.directory)
