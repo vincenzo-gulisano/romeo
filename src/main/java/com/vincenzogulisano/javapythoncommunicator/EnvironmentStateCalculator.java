@@ -215,7 +215,9 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
                 while (!measurements.get(id_).isEmpty()
                         && measurements.get(id_).peek().getTimestamp() <= ts - monitoringPeriod) {
                     if (!dataSpansAtLeastTheMonitoringPeriod) {
-                        logger.debug("dataSpansAtLeastTheMonitoringPeriod to true thanks to stat {}, ts {}, and current ts {}", id_,  measurements.get(id_).peek().getTimestamp(),ts);
+                        logger.debug(
+                                "dataSpansAtLeastTheMonitoringPeriod to true thanks to stat {}, ts {}, and current ts {}",
+                                id_, measurements.get(id_).peek().getTimestamp(), ts);
                     }
                     dataSpansAtLeastTheMonitoringPeriod = true;
                     break;
@@ -256,14 +258,19 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
                 String msg = getStateMeasurementAsString() + separator + getReward() + separator + getExtraInfo();
                 logger.debug("Sending state/reward/extrainfo {}", msg);
                 producer.send(new ProducerRecord<>("stats", msg));
+                logger.debug("Sent");
                 if (episodesLogger != null) {
+                    logger.debug("logging event at time {}", System.currentTimeMillis() / 1000);
                     episodesLogger.writeMeasurementEvent();
+                    logger.debug("logged");
                 }
 
                 if (resetAllMeasurementsAfterReport) {
                     measurements.clear();
                     dataSpansAtLeastTheMonitoringPeriod = false;
                 }
+
+                logger.debug("done with state forwarding");
 
             }
 
