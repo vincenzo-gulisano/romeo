@@ -110,7 +110,7 @@ def plot_graphs(
 
     initial_opacity = 0.3
     final_opacity = 0.9
-    splits = 3  # Number of portions to divide the subset into
+    splits = 4  # Number of portions to divide the subset into
     max_line_width = 2.5  # Set your desired maximum line width
     agent_color = "green"
 
