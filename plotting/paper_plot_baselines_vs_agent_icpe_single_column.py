@@ -15,6 +15,14 @@ def plot_graphs(
     usecase,
     id,
 ):
+    
+
+    # Now the part about the RL agent
+    # Read the baselines_data.csv file
+    baseline_file_path = os.path.join(agent_data)
+    baseline_df = pd.read_csv(baseline_file_path)
+
+
     # Read the baselines_data.csv file
     file_path = os.path.join(base_folder, "baselines_data.csv")
     df = pd.read_csv(file_path)
@@ -53,7 +61,7 @@ def plot_graphs(
         "2",
         "1",
         "0",
-        "r",
+        # "r",
     ]
     # The desired order for baselines
     xtick_labels = [
@@ -68,7 +76,7 @@ def plot_graphs(
         r"$0.2$",
         r"$0.1$",
         r"$0.0$",
-        r"$R$",
+        r"$RL$",
     ]
     # Create a set for faster membership tests
     unique_baselines_set = set(df["baseline"].unique())
@@ -141,6 +149,7 @@ def plot_graphs(
         df[df["baseline"] == baseline]["q2_ratio"].dropna() / 100
         for baseline in unique_baselines
     ]
+    data_mean_ratio.append(baseline_df[baseline_df["baseline"] == id]["q2_ratio"].dropna() / 100)
     parts = axs[6].violinplot(
         data_mean_ratio, showmeans=False, showmedians=False, showextrema=False
     )
@@ -161,6 +170,7 @@ def plot_graphs(
         df[df["baseline"] == baseline]["q3_latency"].dropna() / 1000
         for baseline in unique_baselines
     ]
+    data_latency.append(baseline_df[baseline_df["baseline"] == id]["q3_latency"].dropna() / 1000)
     parts = axs[7].violinplot(
         data_latency, showmeans=False, showmedians=False, showextrema=False
     )
@@ -196,6 +206,7 @@ def plot_graphs(
         for baseline in unique_baselines
     ]
     # axs[4,1].boxplot(data_cpu, labels=unique_baselines)
+    data_cpu.append(baseline_df[baseline_df["baseline"] == id]["q2_cpu"].dropna() / 100)
     parts = axs[8].violinplot(
         data_cpu, showmeans=False, showmedians=False, showextrema=False
     )
@@ -205,9 +216,11 @@ def plot_graphs(
         pc.set_alpha(1)
     axs[8].set_ylabel("CPU (%)", fontsize=text_fontsize)
     axs[8].set_xlabel(
-        r"Baseline ($D$ value, or $R$ for random)", fontsize=text_fontsize
+        # r"Baseline ($D$ value, or $R$ for random)", fontsize=text_fontsize
+        r"Baseline ($D$ value, or $RL$ for Agent)", fontsize=text_fontsize
     )  # Only the last subplot needs the x-axis label
-    axs[8].set_xticks(np.arange(1, len(unique_baselines) + 1))  # Set tick positions
+    axs[8].set_xticks(np.arange(1, len(unique_baselines) + 2))  # Set tick positions
+    # print(len(unique_baselines) + 1)
     axs[8].set_xticklabels(xtick_labels, fontsize=text_fontsize)
     axs[8].set_ylim([-0.1, 1.1])
     # Enable the grid
@@ -235,11 +248,6 @@ def plot_graphs(
             color=text_color,
             fontsize=text_fontsize,
         )
-
-    # Now the part about the RL agent
-    # Read the baselines_data.csv file
-    baseline_file_path = os.path.join(agent_data)
-    baseline_df = pd.read_csv(baseline_file_path)
 
     # Convert the 'baseline' column to text (object) type
     baseline_df["baseline"] = baseline_df["baseline"].astype(str)
