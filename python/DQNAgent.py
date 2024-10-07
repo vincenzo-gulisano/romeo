@@ -304,6 +304,8 @@ class SPEEnvironment(Env):
         # track the number of steps since last reward
         self.steps_since_last_bonus = 0
         self.bonus_step_interval = 10
+        self.bonus_ten_steps = 30
+        self.bonus_all_steps = 60
 
 
         # self.state_labels = ["injectionrate", "throughput", "outrate", "latency", "compressionratio", "CPU-agg", "eventtime"]
@@ -420,9 +422,9 @@ class SPEEnvironment(Env):
                     
         # give extra +5 for completing every 10 steps
         if self.steps_since_last_bonus == self.bonus_step_interval - 1:
-            self.consumer.tracker.reward += 5
+            self.consumer.tracker.reward += self.bonus_ten_steps
             #self.bonus_given = True
-            print(f"Extra reward bonus +5 for completing {self.bonus_step_interval} steps")
+            print(f"Extra reward bonus +{self.bonus_ten_steps} for completing {self.bonus_step_interval} steps")
         self.steps_since_last_bonus += 1
         if self.steps_since_last_bonus == self.bonus_step_interval:
             self.steps_since_last_bonus = 0
@@ -456,8 +458,8 @@ class SPEEnvironment(Env):
             # apply bonus if conditions are met at the end of an episode
             valid_latencies = [latency for _, latency in self.latency_record[-10:]]  # extract only the latency values from the last 10 records
             if len(valid_latencies) == self.bonus_step_interval and all(latency <= self.bonus_latency_threshold for latency in valid_latencies):
-                    self.consumer.tracker.reward += 10
-                    print(f"Extra reward bonus +10 because of low latency in the last {self.bonus_step_interval} steps")
+                    self.consumer.tracker.reward += self.bonus_all_steps
+                    print(f"Extra reward bonus +{self.bonus_all_steps} because of low latency in the last {self.bonus_step_interval} steps")
         else:
             done = False
 
@@ -514,12 +516,13 @@ class MeasurementTracker:
                 raise RuntimeError("An error occured parsing " + input_str) from e
             
             self.original_reward = int(parts[1])
-            if self.original_reward > 0:
-                self.reward = 2
-            elif self.original_reward < 0:
-                self.reward = -2
-            else:
-                self.reward = 0
+            # if self.original_reward > 0:
+            #     self.reward = 2
+            # elif self.original_reward < 0:
+            #     self.reward = -2
+            # else:
+            #     self.reward = 0
+            self.reward = self.original_reward
             self.numberOfTimesLatencyExceededTheEarlyTerminationThresholdSinceLastAction = int(parts[2])
             self.numberOfCPUsExceedingEarlyTerminationThreshold = int(parts[3])
 
@@ -566,7 +569,7 @@ class KafkaStatsConsumer:
 
             # Process the received message
             stat = msg.value().decode('utf-8')
-            # print(f"Received message from 'stats' topic: {stat}")
+            print(f"Received message from 'stats' topic: {stat}")
             self.tracker.process_input(stat)
 
     def start_consumer(self):
@@ -616,46 +619,46 @@ if __name__ == "__main__":
     incremental_average_reward = 0  # average reward of all episodes for incermental averaging
 
     # create folder to store paras (linear)
-    # paras_folder_name = 'data/output/ELOB/linear/5/600/5000000000/10/Exp15-7_elob_l_paras-1-200'
+    # paras_folder_name = 'data/output/WELOB/linear/5/600/5000000000/10/Exp16_welob_l_paras-1-200'
     # if not os.path.exists(paras_folder_name):
     #     os.makedirs(paras_folder_name)
 
     # # create folder to store paras (synthetic)
-    paras_folder_name = 'data/output/WELAW/synthetic/1/900/5000000000/10/Exp16_welaw_s_paras-1-200'
+    paras_folder_name = 'data/output/LOB/synthetic/1/900/5000000000/10/Exp16-1_lob_s_paras-1-100'
     if not os.path.exists(paras_folder_name):
         os.makedirs(paras_folder_name)
 
     # create folder to store q value plots (linear)
-    # q_value_folder_name = 'data/output/ELOB/linear/5/600/5000000000/10/Exp15-7_elob_l_q_value_plot-1-200'
+    # q_value_folder_name = 'data/output/WELOB/linear/5/600/5000000000/10/Exp16_welob_l_q_value_plot-1-200'
     # if not os.path.exists(q_value_folder_name):
     #     os.makedirs(q_value_folder_name)
 
     # create folder to store q value plots (synthetic)
-    q_value_folder_name = 'data/output/WELAW/synthetic/1/900/5000000000/10/Exp16_welaw_s_q_values_plot-1-200'
+    q_value_folder_name = 'data/output/LOB/synthetic/1/900/5000000000/10/Exp16-1_lob_s_q_values_plot-1-100'
     if not os.path.exists(q_value_folder_name):
         os.makedirs(q_value_folder_name)
     
     # create folder to store replay buffer (linear)
-    # replay_buffer_folder_name = 'data/output/ELOB/linear/5/600/5000000000/10/Exp15-7_elob_l_replay_buffer-1-200'
+    # replay_buffer_folder_name = 'data/output/WELOB/linear/5/600/5000000000/10/Exp16_welob_l_replay_buffer-1-200'
     # if not os.path.exists(replay_buffer_folder_name):
     #     os.makedirs(replay_buffer_folder_name)
     
     # # create folder to store replay buffer (synthetic)
-    replay_buffer_folder_name = 'data/output/WELAW/synthetic/1/900/5000000000/10/Exp16_welaw_s_replay_buffer-1-200'
+    replay_buffer_folder_name = 'data/output/LOB/synthetic/1/900/5000000000/10/Exp16-1_lob_s_replay_buffer-1-100'
     if not os.path.exists(replay_buffer_folder_name):
         os.makedirs(replay_buffer_folder_name)
 
     # create csv file to save episode - #step - total reward (linear)
-    # step_tot_reward_folder_name = 'data/output/ELOB/linear/5/600/5000000000/10'
+    # step_tot_reward_folder_name = 'data/output/WELOB/linear/5/600/5000000000/10'
     # if not os.path.exists(step_tot_reward_folder_name):
     #     os.makedirs(step_tot_reward_folder_name)
-    # step_tot_reward_path = os.path.join(step_tot_reward_folder_name, 'step_tot_reward_elob_l_exp15-7.csv')
+    # step_tot_reward_path = os.path.join(step_tot_reward_folder_name, 'step_tot_reward_welob_l_exp16.csv')
 
     # create csv file to save episode - #step - total reward (synthetic)
-    step_tot_reward_folder_name = 'data/output/WELAW/synthetic/1/900/5000000000/10/'
+    step_tot_reward_folder_name = 'data/output/LOB/synthetic/1/900/5000000000/10/'
     if not os.path.exists(step_tot_reward_folder_name):
         os.makedirs(step_tot_reward_folder_name)
-    step_tot_reward_path = os.path.join(step_tot_reward_folder_name, 'step_tot_reward_welaw_s_exp16.csv')
+    step_tot_reward_path = os.path.join(step_tot_reward_folder_name, 'step_tot_reward_lob_s_exp16-1.csv')
 
     with open(step_tot_reward_path, mode = 'w', newline = '') as file:
         writer = csv.writer(file)
@@ -753,16 +756,16 @@ if __name__ == "__main__":
         plt.ylabel('Q Values')
         plt.title(f'Q Values Over Episodes (Episode {i_episode + 1})')
         plt.legend()
-        q_value_file_path = os.path.join(q_value_folder_name, f'exp16_welaw_s_values_plot_{i_episode + 1}.png')
+        q_value_file_path = os.path.join(q_value_folder_name, f'exp16-1_lob_s_values_plot_{i_episode + 1}.png')
         plt.savefig(q_value_file_path)
         plt.close()
             
         # saving paras and replay buffer per 10 episodes
         if (i_episode + 1) % 10 == 0: 
             # save model paras every 10 episodes
-            paras_file_path = os.path.join(paras_folder_name, f'exp16_welaw_s_dqn_model_episode_{i_episode + 1}.pth')
+            paras_file_path = os.path.join(paras_folder_name, f'exp16-1_lob_s_dqn_model_episode_{i_episode + 1}.pth')
             torch.save(Agent.net.state_dict(), paras_file_path)
-            replay_buffer_file_path = os.path.join(replay_buffer_folder_name, f'exp16_welaw_s_buffer_after_{i_episode + 1}_episodes.pkl')
+            replay_buffer_file_path = os.path.join(replay_buffer_folder_name, f'exp16-1_lob_s_buffer_after_{i_episode + 1}_episodes.pkl')
             with open (replay_buffer_file_path, 'wb') as f:
                 pickle.dump(Agent.buffer, f)
                  

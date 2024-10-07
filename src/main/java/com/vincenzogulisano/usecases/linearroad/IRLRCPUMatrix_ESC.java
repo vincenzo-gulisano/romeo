@@ -18,12 +18,18 @@ import com.vincenzogulisano.javapythoncommunicator.EnvironmentStateCalculator;
 
 public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
 
+    // enum LatStatus {
+    //     BELOWSOFT,
+    //     INBETWEENSOFTANDHARD,
+    //     ABOVEHARD,
+    //     UNKNOWN;
+    // }
     enum LatStatus {
-        BELOWSOFT,
-        INBETWEENSOFTANDHARD,
-        ABOVEHARD,
+        BELOW,
+        ABOVE,
         UNKNOWN;
     }
+
 
     class CompressionValue {
         public final double value;
@@ -46,7 +52,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
     private long lastReportedStateMaxTS;
     List<String> relevantMetrics;
     private final long hardLatencyThreshold;
-    private final long softLatencyThreshold;
+    // private final long softLatencyThreshold;
 
     // These two variables keep track of whether the latency was above the threshold
     // and about the compression of the previously reported states
@@ -64,12 +70,13 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
             long valuesPerObservation, long latencyThreshold, double CPUThreshold, double earlyTerminationThreshold) {
         super(monitoringPeriod, producer, separator, false, false);
         this.hardLatencyThreshold = latencyThreshold;
-        this.softLatencyThreshold = latencyThreshold / 2;
+        // this.softLatencyThreshold = latencyThreshold / 2;
         this.earlyTerminationThreshold = earlyTerminationThreshold;
         this.earlyTerminationThresholdCPU = CPUThreshold;
         this.prevLatenciesAboveTerminationThreshold = new TreeMap<>();
         this.prevCPUsAboveTerminationThreshold = new TreeMap<>();
-        logger.debug("Soft and hard latencies set to {} and {}", softLatencyThreshold, hardLatencyThreshold);
+        // logger.debug("Soft and hard latencies set to {} and {}", softLatencyThreshold, hardLatencyThreshold);
+        logger.debug("Hard latency set to {}", hardLatencyThreshold);
         relevantMetrics = new ArrayList<>(
                 Arrays.asList("injectionrate", "throughput", "outrate", "latency", "ratio", "comp", "dec",
                         "CPU-in", "CPU-agg", "CPU-out", "eventtime"));
@@ -119,7 +126,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
      */
     private LatStatus isLatencyGreaterThanOrEqualToThreshold() {
         boolean aboveHardThreshold = false;
-        boolean aboveSoftThreshold = false;
+        // boolean aboveSoftThreshold = false;
         boolean found = false;
         for (Entry<Long, HashMap<String, Double>> m : stateMeasurements.entrySet()) {
             if (m.getKey() > lastReportedStateMaxTS) {
@@ -129,9 +136,10 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
                             m.getValue().get("latency"));
                     if (m.getValue().get("latency") >= hardLatencyThreshold) {
                         aboveHardThreshold = true;
-                    } else if (m.getValue().get("latency") >= softLatencyThreshold) {
-                        aboveSoftThreshold = true;
-                    }
+                    } 
+                    // else if (m.getValue().get("latency") >= softLatencyThreshold) {
+                    //     aboveSoftThreshold = true;
+                    // }
                 }
             }
         }
@@ -140,10 +148,11 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
                     "There seems to be no latency value in the latest state measurements (considering values greater than {})",
                     lastReportedStateMaxTS);
         }
-        return found
-                ? (aboveHardThreshold ? (LatStatus.ABOVEHARD)
-                        : (aboveSoftThreshold ? LatStatus.INBETWEENSOFTANDHARD : LatStatus.BELOWSOFT))
-                : (LatStatus.UNKNOWN);
+        // return found
+        //         ? (aboveHardThreshold ? (LatStatus.ABOVEHARD)
+        //                 : (aboveSoftThreshold ? LatStatus.INBETWEENSOFTANDHARD : LatStatus.BELOWSOFT))
+        //         : (LatStatus.UNKNOWN);
+        return found ? (aboveHardThreshold ? LatStatus.ABOVE : LatStatus.BELOW) : LatStatus.UNKNOWN;
     }
 
     private CompressionValue retrieveLatestCompressionValueInState() {
@@ -232,7 +241,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         HashSet<Long> toBeRemovedCPU = new HashSet<>();
         for (Entry<Long, Double> entry : cpusAboveTerminationThreshold.entrySet()) {
             if (prevCPUsAboveTerminationThreshold.containsKey(entry.getKey())) {
-                logger.debug("Removing this latency because it has been already accounted for: {}", entry);
+                logger.debug("Removing this cpu because it has been already accounted for: {}", entry);
                 toBeRemovedCPU.add(entry.getKey());
             }
         }
@@ -298,67 +307,70 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
             return 0;
         }
 
-        if (lstRatio.value < pstRatio.value) { // If n/c decreased, and
-            if (pstLatStatus == LatStatus.BELOWSOFT) { // was below soft, and
-                if (lstLatStatus == LatStatus.BELOWSOFT) { // and still is
-                    return 4;
-                }
-                if (lstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // and went inbetween soft and hard
-                    return 2;
-                }
-                if (lstLatStatus == LatStatus.ABOVEHARD) { // and exceeded threshold
-                    return 1;
-                }
-            }
-            if (pstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // was inbetween soft and hard, and
-                if (lstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // stayed there
-                    return 1;
-                }
-            }
-        }
-        if (lstRatio.value >= pstRatio.value) { // If n/c increased or stayed the same, and
-            if (pstLatStatus == LatStatus.BELOWSOFT) { // was below soft, and
-                if (lstLatStatus == LatStatus.BELOWSOFT) { // and still is
-                    return 2;
-                }
-                if (lstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // and went inbetween soft and hard
-                    return -1;
-                }
-                if (lstLatStatus == LatStatus.ABOVEHARD) { // and exceeded threshold
-                    return -5;
-                }
-            }
-            if (pstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // was inbetween soft and hard, and
-                if (lstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // stayed there
-                    return -2;
-                }
-            }
+        if (lstRatio.value < pstRatio.value && lstLatStatus == LatStatus.BELOW){
+            return (long) Math.pow(100 - lstRatio.value, 0.3);
         }
 
-        if (pstLatStatus == LatStatus.INBETWEENSOFTANDHARD && lstLatStatus == LatStatus.BELOWSOFT) {
-            // If went from inbetween soft and hard to below soft
-            return 2;
-        }
-        if (pstLatStatus == LatStatus.INBETWEENSOFTANDHARD && lstLatStatus == LatStatus.ABOVEHARD) {
-            // If went from inbetween soft and hard to above
-            return -5;
-        }
-        if (pstLatStatus == LatStatus.ABOVEHARD && lstLatStatus == LatStatus.INBETWEENSOFTANDHARD) {
-            // If went from above to inbetween soft and hard
-            return 2;
-        }
-        if (pstLatStatus == LatStatus.ABOVEHARD && lstLatStatus == LatStatus.BELOWSOFT) {
-            // If went from above to below soft
-            return 4;
-        }
-        if (pstLatStatus == LatStatus.ABOVEHARD && lstLatStatus == LatStatus.ABOVEHARD) {
-            // If went from above to below soft
-            return -5;
-        }
+        // if (lstRatio.value < pstRatio.value) { // If n/c decreased, and
+        //     if (pstLatStatus == LatStatus.BELOWSOFT) { // was below soft, and
+        //         if (lstLatStatus == LatStatus.BELOWSOFT) { // and still is
+        //             return 4;
+        //         }
+        //         if (lstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // and went inbetween soft and hard
+        //             return 2;
+        //         }
+        //         if (lstLatStatus == LatStatus.ABOVEHARD) { // and exceeded threshold
+        //             return 1;
+        //         }
+        //     }
+        //     if (pstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // was inbetween soft and hard, and
+        //         if (lstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // stayed there
+        //             return 1;
+        //         }
+        //     }
+        // }
+        // if (lstRatio.value >= pstRatio.value) { // If n/c increased or stayed the same, and
+        //     if (pstLatStatus == LatStatus.BELOWSOFT) { // was below soft, and
+        //         if (lstLatStatus == LatStatus.BELOWSOFT) { // and still is
+        //             return 2;
+        //         }
+        //         if (lstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // and went inbetween soft and hard
+        //             return -1;
+        //         }
+        //         if (lstLatStatus == LatStatus.ABOVEHARD) { // and exceeded threshold
+        //             return -5;
+        //         }
+        //     }
+        //     if (pstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // was inbetween soft and hard, and
+        //         if (lstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // stayed there
+        //             return -2;
+        //         }
+        //     }
+        // }
+
+        // if (pstLatStatus == LatStatus.INBETWEENSOFTANDHARD && lstLatStatus == LatStatus.BELOWSOFT) {
+        //     // If went from inbetween soft and hard to below soft
+        //     return 2;
+        // }
+        // if (pstLatStatus == LatStatus.INBETWEENSOFTANDHARD && lstLatStatus == LatStatus.ABOVEHARD) {
+        //     // If went from inbetween soft and hard to above
+        //     return -5;
+        // }
+        // if (pstLatStatus == LatStatus.ABOVEHARD && lstLatStatus == LatStatus.INBETWEENSOFTANDHARD) {
+        //     // If went from above to inbetween soft and hard
+        //     return 2;
+        // }
+        // if (pstLatStatus == LatStatus.ABOVEHARD && lstLatStatus == LatStatus.BELOWSOFT) {
+        //     // If went from above to below soft
+        //     return 4;
+        // }
+        // if (pstLatStatus == LatStatus.ABOVEHARD && lstLatStatus == LatStatus.ABOVEHARD) {
+        //     // If went from above to below soft
+        //     return -5;
+        // }
 
         assert (false);
         return 0;
-
     }
 
     @Override
