@@ -375,7 +375,7 @@ latency for any 3 steps in each episode is higher than 2.5 seconds --> terminate
 1. run 200 rpisodes (1-200) for both usecases with four policies
 2. continue to run 200 episodes (201-400) for both ucecsaes with four policies
    
-## Exp16
+# Exp16
 1. new termination rules:
 - latency: once is greater than 2s
 - throughput: once is greater than 90
@@ -383,4 +383,10 @@ latency for any 3 steps in each episode is higher than 2.5 seconds --> terminate
 - all positives -> the same positive
 - all negatives --> the same negative
 3. maximum steps for each episode: 100 (50->100)
-4. smaller states with slope and intercept
+4. smaller states with slope and intercept by linear regression
+
+## Exp16-1
+1. if n/c ratio decreased && latency < hard latency threshold --> reward = (100-ratio)^0.3 else 0
+2. remove soft latency threshold
+3. agent gets extra +30 after finishing 10 steps and +60 for finishing all the steps of this episode
+4. each episode has 100 steps (not 200 steps)
