@@ -19,7 +19,7 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
 
     initial_opacity = 0.3
     final_opacity = 0.9
-    splits = 3  # Number of portions to divide the subset into
+    splits = 5  # Number of portions to divide the subset into
     min_line_width = 2  # Set your desired maximum line width
     max_line_width = 2  # Set your desired maximum line width
     
@@ -76,7 +76,7 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
         ]  # The desired order for baselines
         cpu_ylim = [0,0.2]
         latency_ylim = [0,2]
-        ncratio_ylim = [0.7,1.1]
+        ncratio_ylim = [-0.1,1.1]
         steps_ylim = [0,55]
         reward_ylim = [0,150]
         duration_ylim = [0,300]
@@ -90,11 +90,11 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
         ]  # The desired order for baselines
         cpu_ylim = [0,1]
         latency_ylim = [0,2]
-        ncratio_ylim = [0.4,1.0]
+        ncratio_ylim = [-0.1,1.1]
         steps_ylim = [0,55]
         reward_ylim = [0,150]
         duration_ylim = [0,120]
-        smoothing_window_size = 10
+        smoothing_window_size = 5
     elif usecase == 'synthetic5s':
         policies_order = [
             "welob_synthetic",

@@ -23,6 +23,7 @@ def process_subfolder(subfolder):
         q1_ratio = episode_data[episode_data['stat'] == 'ratio.percent']['q1'].values[0]
         q2_ratio = episode_data[episode_data['stat'] == 'ratio.percent']['q2'].values[0]
         q3_ratio = episode_data[episode_data['stat'] == 'ratio.percent']['q3'].values[0]
+        mean_ratio = episode_data[episode_data['stat'] == 'ratio.percent']['mean'].values[0]
         q2_violations = episode_data[episode_data['stat'] == 'latency.violations']['q2'].values[0]
         sum_violations = episode_data[episode_data['stat'] == 'latency.violations']['sum'].values[0]
         q1_latency = episode_data[episode_data['stat'] == 'latency.average']['q1'].values[0]
@@ -45,6 +46,7 @@ def process_subfolder(subfolder):
             'q1_ratio': q1_ratio,
             'q2_ratio': q2_ratio,
             'q3_ratio': q3_ratio,
+            'mean_ratio': mean_ratio,
             'q2_violations': q2_violations,
             'sum_violations': sum_violations,
             'q1_latency': q1_latency,
@@ -62,7 +64,7 @@ def process_subfolder(subfolder):
     return pd.DataFrame(data)
 
 def aggregate_data(base_folder):
-    baselines_data = pd.DataFrame(columns=['baseline', 'episode', 'q2_rate', 'cum_reward', 'q1_ratio', 'q2_ratio', 'q3_ratio', 
+    baselines_data = pd.DataFrame(columns=['baseline', 'episode', 'q2_rate', 'cum_reward', 'q1_ratio', 'q2_ratio', 'q3_ratio', 'mean_ratio', 
                                            'q2_violations','sum_violations','q1_latency','q2_latency','q3_latency','q1_cpu','q2_cpu','q3_cpu',
                                            'steps','duration','eventtime_start','eventtime_end'])
     
