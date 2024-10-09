@@ -17,6 +17,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.vincenzogulisano.util.EpisodesLogger;
+import com.vincenzogulisano.util.RewardsLogger;
 
 import common.util.Util;
 
@@ -78,8 +79,11 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
     private boolean runInternalThread;
     private final int internalThreadPeriod = 100;
 
+    private final RewardsLogger rewardsLogger;
+
     public EnvironmentStateCalculator(long monitoringPeriod, Producer<String, String> producer, String separator,
-            boolean resetAllMeasurementsAfterReport, boolean keepOnlyMonitoringPeriodData) {
+            boolean resetAllMeasurementsAfterReport, boolean keepOnlyMonitoringPeriodData,
+            String rewardsLoggerOutputFile) {
         this.monitoringPeriod = monitoringPeriod;
         this.producer = producer;
         this.measurements = new HashMap<>();
@@ -97,6 +101,8 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
 
         runInternalThread = true;
 
+        this.rewardsLogger = new RewardsLogger(rewardsLoggerOutputFile);
+
         try {
 
             Thread internalThread = new Thread(() -> sendStateAndRewardIfAvailable());
@@ -111,14 +117,17 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
 
     }
 
-    public EnvironmentStateCalculator(long monitoringPeriod, Producer<String, String> producer, String separator) {
-        this(monitoringPeriod, producer, separator, true, true);
+    public EnvironmentStateCalculator(long monitoringPeriod, Producer<String, String> producer, String separator,
+            String rewardsLoggerOutputFile) {
+        this(monitoringPeriod, producer, separator, true, true,
+                rewardsLoggerOutputFile);
     }
 
     public void close() {
         this.lock.lock();
         this.producer.close();
         runInternalThread = false;
+        this.rewardsLogger.close();
         this.lock.unlock();
     }
 
@@ -133,8 +142,8 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
     }
 
     public void setResetCompleted() {
-        this.resetCompleted = true;
         resetVariables();
+        this.resetCompleted = true;
         logger.debug("reset completed set by SPE. resetCompleted={}", resetCompleted);
     }
 
@@ -255,7 +264,9 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
 
                 sendStateTokens.set(0);
 
-                String msg = getStateMeasurementAsString() + separator + getReward() + separator + getExtraInfo();
+                long reward = getReward();
+                String msg = getStateMeasurementAsString() + separator + reward + separator + getExtraInfo();
+                rewardsLogger.writeReward(reward);
                 logger.debug("Sending state/reward/extrainfo {}", msg);
                 producer.send(new ProducerRecord<>("stats", msg));
                 logger.debug("Sent");

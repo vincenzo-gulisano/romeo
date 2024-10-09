@@ -1,5 +1,6 @@
 package com.vincenzogulisano.javapythoncommunicator;
 
+import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Collections;
@@ -31,7 +32,7 @@ public class JPComm {
     public Logger logger = LogManager.getLogger();
 
     private JPComm(Actionable actionable, long latencyTreshold, double CPUThreshold,
-            double earlyTerminationLatencyThreshold) {
+            double earlyTerminationLatencyThreshold, String statsFolder) {
         this.actionable = actionable;
 
         properties = new Properties();
@@ -52,14 +53,15 @@ public class JPComm {
         // esc = new LatencyAndRatioDeltaESC(20, producer, "/");
         // esc = new IRLRCPU_ESC(10,producer, "/");
         esc = new IRLRCPUMatrix_ESC(7, producer, "/", 7, latencyTreshold, CPUThreshold,
-                earlyTerminationLatencyThreshold);
+                earlyTerminationLatencyThreshold, statsFolder + File.separator + "rewards.actions.csv");
         // esc.addSendStateToken();
 
     }
 
     public static JPComm createInstance(Actionable actionable, EnvironmentMonitor monitor, long latencyTreshold,
-            double CPUThreshold, double earlyTerminationLatencyThreshold) {
-        JPComm jpc = new JPComm(actionable, latencyTreshold, CPUThreshold, earlyTerminationLatencyThreshold);
+            double CPUThreshold, double earlyTerminationLatencyThreshold, String statsFolder) {
+        JPComm jpc = new JPComm(actionable, latencyTreshold, CPUThreshold, earlyTerminationLatencyThreshold,
+                statsFolder);
         monitor.setStatReporter(jpc.esc);
         return jpc;
     }
@@ -81,7 +83,7 @@ public class JPComm {
                         if (parts[0].equals("changeD")) {
                             String action = parts[1];
                             Long change = Long.parseLong(action);
-                            logger.debug("Got action "+change);
+                            logger.debug("Got action " + change);
                             actionable.changeD(change);
                             // esc.addSendStateToken();
                         } else if (parts[0].equals("reset")) {
@@ -133,6 +135,7 @@ public class JPComm {
         ExperimentOptions expOps = new ExperimentOptions(args);
 
         String usecase = expOps.commandLine().getOptionValue("usecase", "LinearRoad");
+        String statsFolder = expOps.commandLine().getOptionValue("statsFolder");
 
         long latencyThreshold = Long.valueOf(expOps.commandLine().getOptionValue("latencyTreshold", "1500"));
         double CPUThreshold = Double.valueOf(expOps.commandLine().getOptionValue("CPUTreshold", "90"));
@@ -145,7 +148,7 @@ public class JPComm {
                 QueryCountConsecutiveStops q = new QueryCountConsecutiveStops();
                 q.createQuery(args);
                 JPComm jpc = JPComm.createInstance(q, q, latencyThreshold, CPUThreshold,
-                        earlyTerminationLatencyThreshold);
+                        earlyTerminationLatencyThreshold, statsFolder);
                 jpc.startInternalThread();
                 q.activateQuery();
 
@@ -156,7 +159,7 @@ public class JPComm {
                 QuerySynthetic q2 = new QuerySynthetic();
                 q2.createQuery(args);
                 JPComm jpc2 = JPComm.createInstance(q2, q2, latencyThreshold, CPUThreshold,
-                        earlyTerminationLatencyThreshold);
+                        earlyTerminationLatencyThreshold, statsFolder);
                 jpc2.startInternalThread();
                 q2.activateQuery();
 

@@ -76,8 +76,8 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
         ]  # The desired order for baselines
         cpu_ylim = [0,0.2]
         latency_ylim = [0,2]
-        ncratio_ylim = [0.7,1.1]
-        steps_ylim = [0,55]
+        ncratio_ylim = [-0.1,1.1]
+        steps_ylim = [0,101]
         reward_ylim = [0,150]
         duration_ylim = [0,300]
         smoothing_window_size = 5
@@ -90,11 +90,11 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
         ]  # The desired order for baselines
         cpu_ylim = [0,1]
         latency_ylim = [0,2]
-        ncratio_ylim = [0.4,1.0]
-        steps_ylim = [0,55]
-        reward_ylim = [0,150]
+        ncratio_ylim = [-0.1,1.1]
+        steps_ylim = [0,101]
+        reward_ylim = [-1,20]
         duration_ylim = [0,120]
-        smoothing_window_size = 10
+        smoothing_window_size = 5
     elif usecase == 'synthetic5s':
         policies_order = [
             "welob_synthetic",
