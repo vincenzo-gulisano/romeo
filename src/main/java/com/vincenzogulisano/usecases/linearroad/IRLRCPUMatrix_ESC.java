@@ -179,6 +179,13 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
     @Override
     public String getStateMeasurementAsString() {
 
+        if ((stateMeasurements.lastKey()-stateMeasurements.firstKey())>monitoringPeriod*2) {
+            logger.debug("Trimming state measurements since they grew over 2 times the monitoring period");
+            while ((stateMeasurements.lastKey()-stateMeasurements.firstKey())>monitoringPeriod*2) {
+                stateMeasurements.pollFirstEntry();
+            }
+        }
+
         logger.debug("Preparing the state measurement as string.");
         if (logger.isDebugEnabled()) {
             // Inside if to avoid substring operation cost if not needed
@@ -311,6 +318,8 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
             return (long) Math.pow(100 - lstRatio.value, 0.3);
         }
 
+        logger.debug("latency and ratio stats are valid but ratio has not decrease while staying below max latency.");
+
         // if (lstRatio.value < pstRatio.value) { // If n/c decreased, and
         //     if (pstLatStatus == LatStatus.BELOWSOFT) { // was below soft, and
         //         if (lstLatStatus == LatStatus.BELOWSOFT) { // and still is
@@ -421,8 +430,9 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         // }
         while (!stateMeasurements.isEmpty()
                 && stateMeasurements.firstKey() < lastReportedStateMaxTS - monitoringPeriod) {
-            Entry<Long, HashMap<String, Double>> firstEntry = stateMeasurements.pollFirstEntry();
-            logger.debug("Removed entry with ts {} from lastReportedState", firstEntry.getKey());
+            stateMeasurements.pollFirstEntry();
+            // Entry<Long, HashMap<String, Double>> firstEntry = stateMeasurements.pollFirstEntry();
+            // logger.debug("Removed entry with ts {} from lastReportedState", firstEntry.getKey());
         }
 
         return reward;

@@ -133,8 +133,8 @@ public abstract class EnvironmentStateCalculator implements StatReporter {
     }
 
     public void setResetCompleted() {
-        this.resetCompleted = true;
         resetVariables();
+        this.resetCompleted = true;
         logger.debug("reset completed set by SPE. resetCompleted={}", resetCompleted);
     }
 
