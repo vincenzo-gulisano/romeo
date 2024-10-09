@@ -7,7 +7,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.stream.Collectors;
 import java.util.TreeMap;
 
 import org.apache.kafka.clients.producer.Producer;
@@ -15,21 +14,21 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.vincenzogulisano.javapythoncommunicator.EnvironmentStateCalculator;
+import com.vincenzogulisano.util.RewardsLogger;
 
 public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
 
     // enum LatStatus {
-    //     BELOWSOFT,
-    //     INBETWEENSOFTANDHARD,
-    //     ABOVEHARD,
-    //     UNKNOWN;
+    // BELOWSOFT,
+    // INBETWEENSOFTANDHARD,
+    // ABOVEHARD,
+    // UNKNOWN;
     // }
     enum LatStatus {
         BELOW,
         ABOVE,
         UNKNOWN;
     }
-
 
     class CompressionValue {
         public final double value;
@@ -67,15 +66,17 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
     private final double earlyTerminationThresholdCPU;
 
     public IRLRCPUMatrix_ESC(long monitoringPeriod, Producer<String, String> producer, String separator,
-            long valuesPerObservation, long latencyThreshold, double CPUThreshold, double earlyTerminationThreshold) {
-        super(monitoringPeriod, producer, separator, false, false);
+            long valuesPerObservation, long latencyThreshold, double CPUThreshold, double earlyTerminationThreshold,
+            String rewardsLoggerOutputFile) {
+        super(monitoringPeriod, producer, separator, false, false, rewardsLoggerOutputFile);
         this.hardLatencyThreshold = latencyThreshold;
         // this.softLatencyThreshold = latencyThreshold / 2;
         this.earlyTerminationThreshold = earlyTerminationThreshold;
         this.earlyTerminationThresholdCPU = CPUThreshold;
         this.prevLatenciesAboveTerminationThreshold = new TreeMap<>();
         this.prevCPUsAboveTerminationThreshold = new TreeMap<>();
-        // logger.debug("Soft and hard latencies set to {} and {}", softLatencyThreshold, hardLatencyThreshold);
+        // logger.debug("Soft and hard latencies set to {} and {}",
+        // softLatencyThreshold, hardLatencyThreshold);
         logger.debug("Hard latency set to {}", hardLatencyThreshold);
         relevantMetrics = new ArrayList<>(
                 Arrays.asList("injectionrate", "throughput", "outrate", "latency", "ratio", "comp", "dec",
@@ -108,7 +109,8 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         logger.debug("numberOfCPUsExceedingEarlyTerminationThreshold reset to 0.");
     }
 
-    /**IRLRCPUMatrix_ESC
+    /**
+     * IRLRCPUMatrix_ESC
      * Checks if the last latency measurement (if any) in the current set exceeds a
      * predefined threshold.
      * 
@@ -136,9 +138,9 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
                             m.getValue().get("latency"));
                     if (m.getValue().get("latency") >= hardLatencyThreshold) {
                         aboveHardThreshold = true;
-                    } 
+                    }
                     // else if (m.getValue().get("latency") >= softLatencyThreshold) {
-                    //     aboveSoftThreshold = true;
+                    // aboveSoftThreshold = true;
                     // }
                 }
             }
@@ -149,9 +151,10 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
                     lastReportedStateMaxTS);
         }
         // return found
-        //         ? (aboveHardThreshold ? (LatStatus.ABOVEHARD)
-        //                 : (aboveSoftThreshold ? LatStatus.INBETWEENSOFTANDHARD : LatStatus.BELOWSOFT))
-        //         : (LatStatus.UNKNOWN);
+        // ? (aboveHardThreshold ? (LatStatus.ABOVEHARD)
+        // : (aboveSoftThreshold ? LatStatus.INBETWEENSOFTANDHARD :
+        // LatStatus.BELOWSOFT))
+        // : (LatStatus.UNKNOWN);
         return found ? (aboveHardThreshold ? LatStatus.ABOVE : LatStatus.BELOW) : LatStatus.UNKNOWN;
     }
 
@@ -179,9 +182,9 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
     @Override
     public String getStateMeasurementAsString() {
 
-        if ((stateMeasurements.lastKey()-stateMeasurements.firstKey())>monitoringPeriod*2) {
+        if ((stateMeasurements.lastKey() - stateMeasurements.firstKey()) > monitoringPeriod * 2) {
             logger.debug("Trimming state measurements since they grew over 2 times the monitoring period");
-            while ((stateMeasurements.lastKey()-stateMeasurements.firstKey())>monitoringPeriod*2) {
+            while ((stateMeasurements.lastKey() - stateMeasurements.firstKey()) > monitoringPeriod * 2) {
                 stateMeasurements.pollFirstEntry();
             }
         }
@@ -209,7 +212,8 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
                     thresholdTS, monitoringPeriod);
         }
 
-        // Collect the entries exceeding the latency threshold in the latest set of measurements
+        // Collect the entries exceeding the latency threshold in the latest set of
+        // measurements
         TreeMap<Long, Double> latenciesAboveTerminationThreshold = new TreeMap<>();
         for (Entry<Long, HashMap<String, Double>> entry : stateMeasurements.entrySet()) {
             if (entry.getValue().containsKey("latency")
@@ -234,13 +238,13 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
                 numberOfLatenciesExceedingEarlyTerminationThreshold);
         prevLatenciesAboveTerminationThreshold = latenciesAboveTerminationThreshold;
 
-
-        // Collect the entries exceeding the CPU threshold in the latest set of measurements
+        // Collect the entries exceeding the CPU threshold in the latest set of
+        // measurements
         TreeMap<Long, Double> cpusAboveTerminationThreshold = new TreeMap<>();
         for (Entry<Long, HashMap<String, Double>> entry : stateMeasurements.entrySet()) {
             if (entry.getValue().containsKey("CPU-agg")
                     && entry.getValue().get("CPU-agg") > earlyTerminationThresholdCPU) {
-                        cpusAboveTerminationThreshold.put(entry.getKey(), entry.getValue().get("CPU-agg"));
+                cpusAboveTerminationThreshold.put(entry.getKey(), entry.getValue().get("CPU-agg"));
             }
         }
         logger.debug("CPUs exceeding early termination threshold: {}", cpusAboveTerminationThreshold);
@@ -257,7 +261,7 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         }
         numberOfCPUsExceedingEarlyTerminationThreshold += cpusAboveTerminationThreshold.size();
         logger.debug("Number of cpus exceeding early termination threshold: {}",
-        numberOfCPUsExceedingEarlyTerminationThreshold);
+                numberOfCPUsExceedingEarlyTerminationThreshold);
         prevCPUsAboveTerminationThreshold = cpusAboveTerminationThreshold;
 
         StringBuilder logMsg = new StringBuilder();
@@ -314,68 +318,78 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
             return 0;
         }
 
-        if (lstRatio.value < pstRatio.value && lstLatStatus == LatStatus.BELOW){
+        if (lstRatio.value < pstRatio.value && lstLatStatus == LatStatus.BELOW) {
             return (long) Math.pow(100 - lstRatio.value, 0.3);
         }
 
         logger.debug("latency and ratio stats are valid but ratio has not decrease while staying below max latency.");
 
         // if (lstRatio.value < pstRatio.value) { // If n/c decreased, and
-        //     if (pstLatStatus == LatStatus.BELOWSOFT) { // was below soft, and
-        //         if (lstLatStatus == LatStatus.BELOWSOFT) { // and still is
-        //             return 4;
-        //         }
-        //         if (lstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // and went inbetween soft and hard
-        //             return 2;
-        //         }
-        //         if (lstLatStatus == LatStatus.ABOVEHARD) { // and exceeded threshold
-        //             return 1;
-        //         }
-        //     }
-        //     if (pstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // was inbetween soft and hard, and
-        //         if (lstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // stayed there
-        //             return 1;
-        //         }
-        //     }
+        // if (pstLatStatus == LatStatus.BELOWSOFT) { // was below soft, and
+        // if (lstLatStatus == LatStatus.BELOWSOFT) { // and still is
+        // return 4;
         // }
-        // if (lstRatio.value >= pstRatio.value) { // If n/c increased or stayed the same, and
-        //     if (pstLatStatus == LatStatus.BELOWSOFT) { // was below soft, and
-        //         if (lstLatStatus == LatStatus.BELOWSOFT) { // and still is
-        //             return 2;
-        //         }
-        //         if (lstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // and went inbetween soft and hard
-        //             return -1;
-        //         }
-        //         if (lstLatStatus == LatStatus.ABOVEHARD) { // and exceeded threshold
-        //             return -5;
-        //         }
-        //     }
-        //     if (pstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // was inbetween soft and hard, and
-        //         if (lstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // stayed there
-        //             return -2;
-        //         }
-        //     }
+        // if (lstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // and went inbetween
+        // soft and hard
+        // return 2;
+        // }
+        // if (lstLatStatus == LatStatus.ABOVEHARD) { // and exceeded threshold
+        // return 1;
+        // }
+        // }
+        // if (pstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // was inbetween soft
+        // and hard, and
+        // if (lstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // stayed there
+        // return 1;
+        // }
+        // }
+        // }
+        // if (lstRatio.value >= pstRatio.value) { // If n/c increased or stayed the
+        // same, and
+        // if (pstLatStatus == LatStatus.BELOWSOFT) { // was below soft, and
+        // if (lstLatStatus == LatStatus.BELOWSOFT) { // and still is
+        // return 2;
+        // }
+        // if (lstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // and went inbetween
+        // soft and hard
+        // return -1;
+        // }
+        // if (lstLatStatus == LatStatus.ABOVEHARD) { // and exceeded threshold
+        // return -5;
+        // }
+        // }
+        // if (pstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // was inbetween soft
+        // and hard, and
+        // if (lstLatStatus == LatStatus.INBETWEENSOFTANDHARD) { // stayed there
+        // return -2;
+        // }
+        // }
         // }
 
-        // if (pstLatStatus == LatStatus.INBETWEENSOFTANDHARD && lstLatStatus == LatStatus.BELOWSOFT) {
-        //     // If went from inbetween soft and hard to below soft
-        //     return 2;
+        // if (pstLatStatus == LatStatus.INBETWEENSOFTANDHARD && lstLatStatus ==
+        // LatStatus.BELOWSOFT) {
+        // // If went from inbetween soft and hard to below soft
+        // return 2;
         // }
-        // if (pstLatStatus == LatStatus.INBETWEENSOFTANDHARD && lstLatStatus == LatStatus.ABOVEHARD) {
-        //     // If went from inbetween soft and hard to above
-        //     return -5;
+        // if (pstLatStatus == LatStatus.INBETWEENSOFTANDHARD && lstLatStatus ==
+        // LatStatus.ABOVEHARD) {
+        // // If went from inbetween soft and hard to above
+        // return -5;
         // }
-        // if (pstLatStatus == LatStatus.ABOVEHARD && lstLatStatus == LatStatus.INBETWEENSOFTANDHARD) {
-        //     // If went from above to inbetween soft and hard
-        //     return 2;
+        // if (pstLatStatus == LatStatus.ABOVEHARD && lstLatStatus ==
+        // LatStatus.INBETWEENSOFTANDHARD) {
+        // // If went from above to inbetween soft and hard
+        // return 2;
         // }
-        // if (pstLatStatus == LatStatus.ABOVEHARD && lstLatStatus == LatStatus.BELOWSOFT) {
-        //     // If went from above to below soft
-        //     return 4;
+        // if (pstLatStatus == LatStatus.ABOVEHARD && lstLatStatus ==
+        // LatStatus.BELOWSOFT) {
+        // // If went from above to below soft
+        // return 4;
         // }
-        // if (pstLatStatus == LatStatus.ABOVEHARD && lstLatStatus == LatStatus.ABOVEHARD) {
-        //     // If went from above to below soft
-        //     return -5;
+        // if (pstLatStatus == LatStatus.ABOVEHARD && lstLatStatus ==
+        // LatStatus.ABOVEHARD) {
+        // // If went from above to below soft
+        // return -5;
         // }
 
         assert (false);
@@ -415,24 +429,27 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
         // // If more than enough and keepOnlyMonitoringPeriodData, removing them
         // // logger.debug("cleaning measurements");
         // if (!measurements.isEmpty()) {
-        //     for (String id_ : measurements.keySet()) {
-        //         while (!measurements.get(id_).isEmpty()
-        //                 && measurements.get(id_).peek().getTimestamp() <= lastReportedStateMaxTS - monitoringPeriod) {
-        //             measurements.get(id_).poll();
-        //         }
-        //         if (measurements.get(id_).isEmpty()) {
-        //             keysToRemove.add(id_);
-        //         }
-        //     }
+        // for (String id_ : measurements.keySet()) {
+        // while (!measurements.get(id_).isEmpty()
+        // && measurements.get(id_).peek().getTimestamp() <= lastReportedStateMaxTS -
+        // monitoringPeriod) {
+        // measurements.get(id_).poll();
+        // }
+        // if (measurements.get(id_).isEmpty()) {
+        // keysToRemove.add(id_);
+        // }
+        // }
         // }
         // for (String keyToRemove : keysToRemove) {
-        //     measurements.remove(keyToRemove);
+        // measurements.remove(keyToRemove);
         // }
         while (!stateMeasurements.isEmpty()
                 && stateMeasurements.firstKey() < lastReportedStateMaxTS - monitoringPeriod) {
             stateMeasurements.pollFirstEntry();
-            // Entry<Long, HashMap<String, Double>> firstEntry = stateMeasurements.pollFirstEntry();
-            // logger.debug("Removed entry with ts {} from lastReportedState", firstEntry.getKey());
+            // Entry<Long, HashMap<String, Double>> firstEntry =
+            // stateMeasurements.pollFirstEntry();
+            // logger.debug("Removed entry with ts {} from lastReportedState",
+            // firstEntry.getKey());
         }
 
         return reward;
@@ -527,7 +544,8 @@ public class IRLRCPUMatrix_ESC extends EnvironmentStateCalculator {
     @Override
     public String getExtraInfo() {
         logger.debug("Returning extra info: {}", numberOfLatenciesExceedingEarlyTerminationThreshold);
-        return "" + numberOfLatenciesExceedingEarlyTerminationThreshold + "/" + numberOfCPUsExceedingEarlyTerminationThreshold;
+        return "" + numberOfLatenciesExceedingEarlyTerminationThreshold + "/"
+                + numberOfCPUsExceedingEarlyTerminationThreshold;
     }
 
 }
