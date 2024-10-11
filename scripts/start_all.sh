@@ -32,6 +32,43 @@ sleep_until_time_or_pid() {
     done
 }
 
+
+usecase=$1
+policy=$2
+
+# Set variables depending on the usecase
+if [ "$usecase" = "LinearRoad" ]; then
+    base_folder="/home/vincenzo/romeo/data/output/${policy}/linear"
+    input_file="/home/vincenzo/romeo/data/input/input.txt"
+    wa=5
+    ws=600
+    d=10
+    starting_time_min=900
+    starting_time_max=9900
+elif [ "$usecase" = "Synthetic" ]; then
+    base_folder="/home/vincenzo/romeo/data/output/${policy}/synthetic"
+    input_file="/home/vincenzo/romeo/data/input/synthetic.csv"
+    wa=1
+    ws=900
+    d=10
+    starting_time_min=1200
+    starting_time_max=5800
+else
+    echo "Invalid usecase. Please choose either 'LinearRoad' or 'Synthetic'."
+    exit 1
+fi
+
+# Print the variables to verify
+echo "usecaser: $usecase"
+echo "policy: $policy"
+echo "Base Folder: $base_folder"
+echo "Input File: $input_file"
+echo "WA: $wa"
+echo "WS: $ws"
+echo "D: $d"
+echo "Starting Time Min: $starting_time_min"
+echo "Starting Time Max: $starting_time_max"
+
 # This is for Linear Road
 # base_folder="/home/jingyu/romeo/data/output/WELOB/linear"
 # input_file="/home/vincenzo/woost/data/input/input.txt"
@@ -42,22 +79,24 @@ sleep_until_time_or_pid() {
 # starting_time_max=9900
 # usecase="LinearRoad"
 
-# # This is for the synthetic query
-base_folder="/home/jingyu/romeo/data/output/WELOB/synthetic"
-input_file="/home/vincenzo/romeo/data/input/synthetic.csv"
-wa=1
-ws=900
-d=10
-starting_time_min=1200
-starting_time_max=5800
-usecase="Synthetic"
+# # # This is for the synthetic query
+# base_folder="/home/vincenzo/romeo/data/output/WELOB/synthetic"
+# input_file="/home/vincenzo/romeo/data/input/synthetic.csv"
+# wa=1
+# ws=900
+# d=10
+# starting_time_min=1200
+# starting_time_max=5800
+# usecase="Synthetic"
 
 # Define lists of values
-policy="WELOB" # Wallclock, Event time, Aggregate OBlivios -- WELOB
+# policy="WELOB" # Wallclock, Event time, Aggregate OBlivios -- WELOB
 # policy="ELOB" # Event time, Aggregate OBlivios -- ELOB
 # policy="LOB" # Aggregate OBlivios -- LOB
 # policy="WELAW" # Wallclock, Event time, Aggregate AWare -- WELAW
 duration=5000000000
+episodes=150
+steps=100
 
 bootstrapServer=129.16.20.158:9092
 
