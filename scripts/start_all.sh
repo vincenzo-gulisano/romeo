@@ -58,8 +58,8 @@ policy="WELOB" # Wallclock, Event time, Aggregate OBlivios -- WELOB
 # policy="LOB" # Aggregate OBlivios -- LOB
 # policy="WELAW" # Wallclock, Event time, Aggregate AWare -- WELAW
 duration=5000000000
-episodes=10
-steps=50
+
+bootstrapServer=129.16.20.158:9092
 
 # Define id variable with concatenation of values
 id="${wa}/${ws}/${duration}/${repetition}/${rate}"
@@ -97,14 +97,14 @@ echo "Starting Kafka"
 
 echo "Starting Python agent"
 #python_pid=$(./scripts/start_python_agent.sh ${exp_folder})
-python_pid=$(./scripts/start_python_agent.sh ${episodes} ${steps} ${exp_folder})
+python_pid=$(./scripts/start_python_agent.sh ${episodes} ${steps} ${exp_folder} ${bootstrapServer} )
 echo "The PID of the python agent is ${python_pid}"
 
 echo "Starting SPE"
 
 echo "Starting experiment for ${id} (compression)"
-args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase} -pb ${policy} -rer True"
-
+args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase} -pb ${policy} -rer True -bs ${bootstrapServer}"
+echo "args=${args}"
 mvn clean compile package exec:java -Dexec.mainClass="com.vincenzogulisano.javapythoncommunicator.JPComm" -Dexec.args="${args}" > ${exp_folder}/spe.log 2>&1 &
 
 sleep 5
