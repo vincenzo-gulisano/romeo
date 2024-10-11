@@ -143,8 +143,8 @@ def plot_files_in_folder(folder,episodesstatsfile,makeplots,print_global_events,
             
                 # Append the steps and duration stat only for the first csv, no need to append it every time
                 if i == 0:
-                    stats.append({'episode': episode_value, 'stat': 'steps', 'q1': action_count, 'q2': action_count,  'sum': action_count,  'q2': action_count,  'mean': action_count})
-                    stats.append({'episode': episode_value, 'stat': 'duration', 'q1': stop_time-start_time, 'q2': stop_time-start_time,  'sum': stop_time-start_time,  'q2': stop_time-start_time, 'mean': stop_time-start_time})
+                    stats.append({'episode': episode_value, 'stat': 'steps', 'q1': action_count, 'q2': action_count,  'sum': action_count,  'q3': action_count,  'mean': action_count})
+                    stats.append({'episode': episode_value, 'stat': 'duration', 'q1': stop_time-start_time, 'q2': stop_time-start_time,  'sum': stop_time-start_time,  'q3': stop_time-start_time, 'mean': stop_time-start_time})
 
                 # print('episode',episode_value,'start',start_time,'end',stop_time)
                 temp_df = df[(df.iloc[:, 0] >= start_time) & (df.iloc[:, 0] <= stop_time)]
