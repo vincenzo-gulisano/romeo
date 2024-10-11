@@ -100,6 +100,10 @@ def plot_files_in_folder(folder,episodesstatsfile,makeplots,print_global_events,
     episode_folder = os.path.join(folder, 'eps')
     os.makedirs(episode_folder, exist_ok=True)
 
+    # Define the consistent column order
+    column_order = ['episode', 'stat', 'q1', 'q2', 'q3', 'sum', 'mean']
+
+
     # Iterate through unique episode values in episodes_df
     for episode_value in episodes_df['episode'].unique():
 
@@ -178,7 +182,7 @@ def plot_files_in_folder(folder,episodesstatsfile,makeplots,print_global_events,
                 stats_df = pd.DataFrame(stats)
 
                 # Append the DataFrame to the output CSV file
-                stats_df.to_csv(episodesstatsfile, mode='a', index=False, header=not os.path.exists(episodesstatsfile))
+                stats_df.to_csv(episodesstatsfile, mode='a', index=False, header=not os.path.exists(episodesstatsfile), columns=column_order)
 
 
         if makeplots and somethingPlotted:
