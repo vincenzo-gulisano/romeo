@@ -16,7 +16,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.vincenzogulisano.usecases.linearroad.IRLRCPUMatrix_ESC;
+// import com.vincenzogulisano.usecases.linearroad.IRLRCPUMatrix_ESC;
 import com.vincenzogulisano.usecases.linearroad.QueryCountConsecutiveStops;
 import com.vincenzogulisano.usecases.synthetic.QuerySynthetic;
 import com.vincenzogulisano.util.ExperimentOptions;
@@ -32,12 +32,12 @@ public class JPComm {
     public Logger logger = LogManager.getLogger();
 
     private JPComm(Actionable actionable, long latencyTreshold, double CPUThreshold,
-            double earlyTerminationLatencyThreshold, String statsFolder) {
+            double earlyTerminationLatencyThreshold, String statsFolder, String bootstrapServer) {
         this.actionable = actionable;
 
         properties = new Properties();
         // TODO this should not be hardcoded!
-        properties.put("bootstrap.servers", "michelangelo.cse.chalmers.se:9092");
+        properties.put("bootstrap.servers", bootstrapServer); //"michelangelo.cse.chalmers.se:9092");
         // TODO this should not be hardcoded!
         properties.put("group.id", "0");
         properties.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
@@ -52,16 +52,16 @@ public class JPComm {
         consumer.subscribe(Collections.singletonList("dchanges"));
         // esc = new LatencyAndRatioDeltaESC(20, producer, "/");
         // esc = new IRLRCPU_ESC(10,producer, "/");
-        esc = new IRLRCPUMatrix_ESC(7, producer, "/", 7, latencyTreshold, CPUThreshold,
+        esc = new EnvironmentStateCalculator(7, producer, "/", 7, latencyTreshold, CPUThreshold,
                 earlyTerminationLatencyThreshold, statsFolder + File.separator + "rewards.actions.csv");
         // esc.addSendStateToken();
 
     }
 
     public static JPComm createInstance(Actionable actionable, EnvironmentMonitor monitor, long latencyTreshold,
-            double CPUThreshold, double earlyTerminationLatencyThreshold, String statsFolder) {
+            double CPUThreshold, double earlyTerminationLatencyThreshold, String statsFolder, String bootstrapServer) {
         JPComm jpc = new JPComm(actionable, latencyTreshold, CPUThreshold, earlyTerminationLatencyThreshold,
-                statsFolder);
+                statsFolder, bootstrapServer);
         monitor.setStatReporter(jpc.esc);
         return jpc;
     }
@@ -136,6 +136,9 @@ public class JPComm {
 
         String usecase = expOps.commandLine().getOptionValue("usecase", "LinearRoad");
         String statsFolder = expOps.commandLine().getOptionValue("statsFolder");
+        String bootstrapServer = expOps.commandLine().getOptionValue("bootstrapServer");
+
+        System.out.println("bootstrapServer: "+bootstrapServer);
 
         long latencyThreshold = Long.valueOf(expOps.commandLine().getOptionValue("latencyTreshold", "1500"));
         double CPUThreshold = Double.valueOf(expOps.commandLine().getOptionValue("CPUTreshold", "90"));
@@ -148,7 +151,7 @@ public class JPComm {
                 QueryCountConsecutiveStops q = new QueryCountConsecutiveStops();
                 q.createQuery(args);
                 JPComm jpc = JPComm.createInstance(q, q, latencyThreshold, CPUThreshold,
-                        earlyTerminationLatencyThreshold, statsFolder);
+                        earlyTerminationLatencyThreshold, statsFolder, bootstrapServer);
                 jpc.startInternalThread();
                 q.activateQuery();
 
@@ -159,7 +162,7 @@ public class JPComm {
                 QuerySynthetic q2 = new QuerySynthetic();
                 q2.createQuery(args);
                 JPComm jpc2 = JPComm.createInstance(q2, q2, latencyThreshold, CPUThreshold,
-                        earlyTerminationLatencyThreshold, statsFolder);
+                        earlyTerminationLatencyThreshold, statsFolder, bootstrapServer);
                 jpc2.startInternalThread();
                 q2.activateQuery();
 
