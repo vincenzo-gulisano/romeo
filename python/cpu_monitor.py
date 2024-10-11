@@ -13,8 +13,8 @@ import csv
 
 
 class KafkaActionsProducer:
-    def __init__(self, bootstrap_servers='michelangelo.cse.chalmers.se:9092', actions_topic='stats'):
-        self.bootstrap_servers = bootstrap_servers
+    def __init__(self, bootstrapServer, actions_topic='stats'):
+        self.bootstrap_servers = bootstrapServer
         self.actions_topic = actions_topic
         self.producer = Producer({'bootstrap.servers': self.bootstrap_servers})
 
@@ -74,6 +74,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Monitor threads CPU')
     parser.add_argument('JVM_PID', type=int, help='The PID of the JVM to be inspected')
     parser.add_argument('output_folder', type=str, help='Folder to write CSV files')
+    parser.add_argument('bootstrap_server', type=str, help='bootstrap_server')
     
     # Print the raw command-line arguments
     print("Raw Arguments:", sys.argv)
@@ -92,7 +93,7 @@ if __name__ == '__main__':
             print(f'{thread_name[:79]:<80}|{pid:<10}')
             thread_ids[thread_name]= pid
 
-    kafka_actions_producer = KafkaActionsProducer()
+    kafka_actions_producer = KafkaActionsProducer(args.bootstrap_server)
 
     # Create a separate thread to monitor CPU usage
     monitor_thread = threading.Thread(target=monitor_cpu, args=(proc,kafka_actions_producer,thread_ids,args.output_folder,), daemon=True)
