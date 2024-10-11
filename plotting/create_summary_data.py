@@ -29,9 +29,11 @@ def process_subfolder(subfolder):
         q1_latency = episode_data[episode_data['stat'] == 'latency.average']['q1'].values[0]
         q2_latency = episode_data[episode_data['stat'] == 'latency.average']['q2'].values[0]
         q3_latency = episode_data[episode_data['stat'] == 'latency.average']['q3'].values[0]
+        mean_latency = episode_data[episode_data['stat'] == 'latency.average']['mean'].values[0]
         q1_cpu = episode_data[episode_data['stat'] == 'CPU-agg.average']['q1'].values[0]
         q2_cpu = episode_data[episode_data['stat'] == 'CPU-agg.average']['q2'].values[0]
         q3_cpu = episode_data[episode_data['stat'] == 'CPU-agg.average']['q3'].values[0]
+        mean_cpu = episode_data[episode_data['stat'] == 'CPU-agg.average']['mean'].values[0]
         steps = episode_data[episode_data['stat'] == 'steps']['sum'].values[0]
         duration = episode_data[episode_data['stat'] == 'duration']['sum'].values[0]
         eventtime_start = episode_data[episode_data['stat'] == 'eventtime.max']['q1'].values[0]
@@ -52,9 +54,11 @@ def process_subfolder(subfolder):
             'q1_latency': q1_latency,
             'q2_latency': q2_latency,
             'q3_latency': q3_latency,
+            'mean_latency': mean_latency,
             'q1_cpu': q1_cpu,
             'q2_cpu': q2_cpu,
             'q3_cpu': q3_cpu,
+            'mean_cpu': mean_cpu,
             'steps': steps,
             'duration': duration,
             'eventtime_start': eventtime_start,
@@ -65,7 +69,7 @@ def process_subfolder(subfolder):
 
 def aggregate_data(base_folder):
     baselines_data = pd.DataFrame(columns=['baseline', 'episode', 'q2_rate', 'cum_reward', 'q1_ratio', 'q2_ratio', 'q3_ratio', 'mean_ratio', 
-                                           'q2_violations','sum_violations','q1_latency','q2_latency','q3_latency','q1_cpu','q2_cpu','q3_cpu',
+                                           'q2_violations','sum_violations','q1_latency','q2_latency','q3_latency','mean_latency','q1_cpu','q2_cpu','q3_cpu','mean_cpu',
                                            'steps','duration','eventtime_start','eventtime_end'])
     
     for subfolder in os.listdir(base_folder):

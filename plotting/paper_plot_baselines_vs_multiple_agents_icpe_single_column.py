@@ -156,7 +156,7 @@ def plot_graphs(
 
     for barplot_id in barplots_ids:
         data_mean_ratio.append(
-            baseline_df[baseline_df["baseline"] == barplot_id]["q2_ratio"].dropna()
+            baseline_df[baseline_df["baseline"] == barplot_id]["mean_ratio"].dropna()
             / 100
         )
     parts = axs[6].violinplot(
@@ -187,7 +187,7 @@ def plot_graphs(
     
     for barplot_id in barplots_ids:
         data_latency.append(
-            baseline_df[baseline_df["baseline"] == barplot_id]["q3_latency"].dropna()
+            baseline_df[baseline_df["baseline"] == barplot_id]["mean_latency"].dropna()
             / 1000
         )
     parts = axs[7].violinplot(
@@ -234,7 +234,7 @@ def plot_graphs(
     # axs[4,1].boxplot(data_cpu, labels=unique_baselines)
     for barplot_id in barplots_ids:
         data_cpu.append(
-            baseline_df[baseline_df["baseline"] == barplot_id]["q2_cpu"].dropna() / 100
+            baseline_df[baseline_df["baseline"] == barplot_id]["mean_cpu"].dropna() / 100
         )
     parts = axs[8].violinplot(
         data_cpu, showmeans=False, showmedians=False, showextrema=False
@@ -322,9 +322,9 @@ def plot_graphs(
 
         # Extract x and y coordinates
         x_coords = portion["eventtime_start"] - dfrate["x"].min()
-        y_coords_ratio = portion["q2_ratio"] / 100
-        y_coords_latency = portion["q3_latency"] / 1000
-        y_coords_cpu = portion["q2_cpu"] / 100
+        y_coords_ratio = portion["mean_ratio"] / 100
+        y_coords_latency = portion["mean_latency"] / 1000
+        y_coords_cpu = portion["mean_cpu"] / 100
 
         # smooth the line
         smooth_points_ratio = (
