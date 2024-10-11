@@ -6,7 +6,7 @@ def find_reward_files(folder):
     # Walk through all directories and subdirectories recursively
     for root, _, files in os.walk(folder):
         for file in files:
-            if file == 'rewards.csv':
+            if file == 'rewards.actions.csv':
                 file_path = os.path.join(root, file)
                 process_reward_file(file_path)
 
