@@ -306,7 +306,7 @@ class SPEEnvironment(Env):
         self.steps_since_last_bonus = 0
         self.bonus_step_interval = 10
         self.bonus_ten_steps = 30
-        self.bonus_all_steps = 60
+        self.bonus_all_steps = 0
 
 
         # self.state_labels = ["injectionrate", "throughput", "outrate", "latency", "compressionratio", "CPU-agg", "eventtime"]
@@ -351,7 +351,7 @@ class SPEEnvironment(Env):
         transformed_state = np.column_stack((slopes, intercepts))
         return transformed_state
 
-    def reset(self):
+    def reset(self,episode_number):
 
         #reset negative reward counter
         self.negative_reward_counter = 0
@@ -679,7 +679,7 @@ if __name__ == "__main__":
     for i_episode in range(0, int(args.episodes)):
         print('starting episode',i_episode + 1, flush=True)
         start_time = time.time() # start time of per episode
-        s0 = env.reset()
+        s0 = env.reset(i_episode)
         s0 = s0.reshape(-1)
         Agent.reset_compression()
 
