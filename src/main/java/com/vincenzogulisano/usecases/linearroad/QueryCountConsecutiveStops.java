@@ -119,6 +119,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
 
         // Forcing a "reset" here to make sure we wait for the injector from the very
         // first episode
+        // NOT SURE ABOUT THIS, BUT PROBABLY NOT NEEDED
         reset();
 
         // Util.sleep(experimentLength);
@@ -238,6 +239,10 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
             Util.sleep(50);
         }
         logger.debug("SPE - the source has sent all the state filling tuples too");
+
+        logger.debug("Everything is ready to start. Sleeping 3 seconds to let the CPU rest and not pollute stats");
+        Util.sleep(3000);
+        logger.debug("Let's go!");
 
         sourceFunction.giveGreenlightToStartSendingRealRateTuples();
 

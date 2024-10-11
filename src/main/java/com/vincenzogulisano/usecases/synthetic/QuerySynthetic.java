@@ -297,9 +297,10 @@ public class QuerySynthetic implements Actionable, EnvironmentMonitor {
         }
         logger.debug("SPE - the source has sent all the state filling tuples too");
 
-        logger.debug("SPE - sleeping 3 secs to let the CPU go down again");
+        logger.debug("Everything is ready to start. Sleeping 3 seconds to let the CPU rest and not pollute stats");
         Util.sleep(3000);
-        
+        logger.debug("Let's go!");
+
         sourceFunction.giveGreenlightToStartSendingRealRateTuples();
 
         firstEpisodeStarted = true;
