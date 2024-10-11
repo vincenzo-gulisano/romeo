@@ -77,8 +77,8 @@ def plot_graphs(rate_file_path, agent_data, output_pdf, usecase):
         cpu_ylim = [0,0.2]
         latency_ylim = [0,2]
         ncratio_ylim = [-0.1,1.1]
-        steps_ylim = [0,101]
-        reward_ylim = [0,150]
+        steps_ylim = [-1,110]
+        reward_ylim = [-1,20]
         duration_ylim = [0,300]
         smoothing_window_size = 5
     elif usecase == 'synthetic':

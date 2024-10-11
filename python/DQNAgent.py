@@ -437,34 +437,37 @@ class SPEEnvironment(Env):
         self.current_event_time = state[6, :]  # update eventtime
 
         # record latency of last second if it is not missing -1
-        current_event_time = self.current_event_time
-        current_latency = self.consumer.tracker.state[3]
-        for event_time, latency in zip(current_event_time, current_latency):
-            if latency != -1:
-                # check if the same event time has been recorded
-                existing_entry = next((item for item in self.latency_record if item[0] == event_time), None)
-                # if the record of this eventtime already exists, then update latency
-                if existing_entry:
-                    index = self.latency_record.index(existing_entry)
-                    self.latency_record[index] = (event_time, latency)
-                # if not, add new record
-                else:
-                    self.latency_record.append((event_time, latency))
+        # current_event_time = self.current_event_time
+        # current_latency = self.consumer.tracker.state[3]
+        # for event_time, latency in zip(current_event_time, current_latency):
+        #     if latency != -1:
+        #         # check if the same event time has been recorded
+        #         existing_entry = next((item for item in self.latency_record if item[0] == event_time), None)
+        #         # if the record of this eventtime already exists, then update latency
+        #         if existing_entry:
+        #             index = self.latency_record.index(existing_entry)
+        #             self.latency_record[index] = (event_time, latency)
+        #         # if not, add new record
+        #         else:
+        #             self.latency_record.append((event_time, latency))
 
         # Check if episode should end
         if self.remaingSteps <= 0 or \
-            self.consumer.tracker.numberOfTimesLatencyExceededTheEarlyTerminationThresholdSinceLastAction >= self.latency_violations_per_episode or \
+            self.consumer.tracker.numberOfLatencyExceedingEarlyTerminationThreshold >= self.latency_violations_per_episode or \
             self.consumer.tracker.numberOfCPUsExceedingEarlyTerminationThreshold >= self.cpu_violations_per_episode:
             done = True
             if self.consumer.tracker.numberOfTimesLatencyExceededTheEarlyTerminationThresholdSinceLastAction >= self.latency_violations_per_episode:
                 print("High latency observed", flush=True)
             if self.consumer.tracker.numberOfCPUsExceedingEarlyTerminationThreshold >= self.cpu_violations_per_episode:
                 print("High cpu observed", flush=True)
+            if self.remaingSteps <= 0:
+                self.consumer.tracker.reward += self.bonus_below_latency
+                print(f"Extra reward bonus +{self.bonus_below_latency} because of reaching the end of this episode")
             # apply bonus if conditions are met at the end of an episode
-            valid_latencies = [latency for _, latency in self.latency_record[-10:]]  # extract only the latency values from the last 10 records
-            if len(valid_latencies) == self.bonus_step_interval and all(latency <= self.bonus_latency_threshold for latency in valid_latencies):
-                    self.consumer.tracker.reward += self.bonus_all_steps
-                    print(f"Extra reward bonus +{self.bonus_all_steps} because of low latency in the last {self.bonus_step_interval} steps", flush=True)
+            # valid_latencies = [latency for _, latency in self.latency_record[-10:]]  # extract only the latency values from the last 10 records
+            # if len(valid_latencies) == self.bonus_step_interval and all(latency <= self.bonus_latency_threshold for latency in valid_latencies):
+            #         self.consumer.tracker.reward += self.bonus_below_latency
+            #         print(f"Extra reward bonus +{self.bonus_below_latency} because of low latency in the last {self.bonus_step_interval} observations")
         else:
             done = False
 
@@ -486,7 +489,6 @@ class MeasurementTracker:
         self.reward = None
         self.data_lock = threading.Lock()
         self.valuesPerObservation = valuesPerObservation
-        self.numberOfTimesLatencyExceededTheEarlyTerminationThresholdSinceLastAction = 0
 
     def process_input(self, input_str):
 
@@ -528,7 +530,7 @@ class MeasurementTracker:
             # else:
             #     self.reward = 0
             self.reward = self.original_reward
-            self.numberOfTimesLatencyExceededTheEarlyTerminationThresholdSinceLastAction = int(parts[2])
+            self.numberOfLatencyExceedingEarlyTerminationThreshold = int(parts[2])
             self.numberOfCPUsExceedingEarlyTerminationThreshold = int(parts[3])
 
 class KafkaActionsProducer:
@@ -583,6 +585,56 @@ class KafkaStatsConsumer:
         consumer_thread.start()
 
 
+
+def create_folder_and_path(base_folder, sub_folder, file_name=None):
+    folder_path = os.path.join(base_folder, sub_folder)
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)    
+    # If a file name is provided, join it to the folder path
+    if file_name:
+        return os.path.join(folder_path, file_name)
+    else:
+        return folder_path
+
+def write_to_csv(file_path, mode, data, data_type):
+    with open(file_path, mode=mode, newline='') as file:
+        writer = csv.writer(file, quoting = csv.QUOTE_MINIMAL)
+        if data_type == 'step_tot_reward':
+            writer.writerow([data[0], data[1], data[2]]) # episode, step, total reward
+        if data_type == 'rewards':
+            writer.writerow([data[0], data[1]]) # action_time, reward
+
+def plot_q_values(steps, q_values_history, episode_num, q_value_file_path):
+    plt.figure()
+    colors = ['red', 'green', 'blue', 'cyan', 'magenta', 'yellow', 'black', 'orange', 'purple', 'brown', 'pink']
+    for i, action_q_values in enumerate(q_values_history):
+        if len(steps) == len(action_q_values):
+            action_q_values = [val[0] if isinstance(val, np.ndarray) and len(val) == 1 else val for val in action_q_values]
+            plt.plot(steps, action_q_values, label=f'Action {i}', color=colors[i % len(colors)])
+        else:
+            print(f"Error: Mismatch in lengths for Action {i}")
+    plt.xlabel('Steps')
+    plt.ylabel('Q Values')
+    plt.title(f'Q Values Over Episodes (Episode {episode_num})')
+    plt.legend()
+    plt.savefig(q_value_file_path)
+    plt.close()
+
+def save_model_and_buffer(agent, episode_num, model_file_path, buffer_file_path):
+    torch.save(agent.net.state_dict(), model_file_path)
+    with open(buffer_file_path, 'wb') as f:
+        pickle.dump(agent.buffer, f)
+
+def load_model_and_buffer(agent, model_file, buffer_file):
+    if os.path.exists(model_file):
+        agent.net.load_state_dict(torch.load(model_file))
+        print(f'Loaded model parameters from {model_file}')
+    if os.path.exists(buffer_file):
+        with open(buffer_file, 'rb') as f:
+            agent.buffer = pickle.load(f)
+        print(f'Loaded replay buffer from {buffer_file}')
+
+
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description='Start an Agent that always chooses the same compression level')
@@ -592,6 +644,7 @@ if __name__ == "__main__":
     parser.add_argument('baseFolder', help='baseFolder', default=True)
     parser.add_argument('-agentstate', help='State of the pre-trained agent', default=None)
     parser.add_argument('-learningactive', help='Wheter the agent should learn', default=True)
+    parser.add_argument('--exp_folder', help='The experiment folder to store results', required=True)
     args = parser.parse_args()
     
     print('Creating agent', flush=True)
@@ -610,18 +663,18 @@ if __name__ == "__main__":
     output_size = env.action_space.n
     Agent = DQN(input_shape, hidden_size, output_size)
 
-    # load saved net's paras
-    # model_file = 'image/Exp15_7/1-200/synthetic/2_ELOB/Exp15-7_elob_s_paras-1-200/exp15-7_elob_s_dqn_model_episode_200.pth'
-    # if os.path.exists(model_file):
-    #     Agent.net.load_state_dict(torch.load(model_file))
-    #     print("loaded net's paras...")
+    #load model's paras and replay buffer
+    # model_file = 'image/Exp16_1/1_WELOB/linear/1-100/Exp16-1_welob_l_paras-1-100/exp16-1_welob_l_dqn_model_episode_100.pth'
+    # buffer_file = 'image/Exp16_1/1_WELOB/linear/1-100/Exp16-1_welob_l_replay_buffer-1-100/exp16-1_welob_l_buffer_after_100_episodes.pkl'
+    # load_model_and_buffer(Agent, model_file, buffer_file)
 
-    # # load replay buffer
-    # replay_buffer = 'image/Exp15_7/1-200/synthetic/2_ELOB/Exp15-7_elob_s_replay_buffer-1-200/exp15-7_elob_s_buffer_after_200_episodes.pkl'
-    # with open (replay_buffer, 'rb') as f:
-    #     Agent.buffer = pickle.load(f)
-    # print('loaded replay buffer from last round...')
-   
+    exp_folder = args.exp_folder
+    paras_folder = create_folder_and_path(exp_folder, 'Exp16-2_elob_s_paras-1-100')
+    q_value_folder = create_folder_and_path(exp_folder, 'Exp16-2_elob_s_q_values_plot-1-100')
+    replay_buffer_folder = create_folder_and_path(exp_folder, 'Exp16-2_elob_s_replay_buffer-1-100')
+    step_tot_reward_path = create_folder_and_path(exp_folder, '', 'step_tot_reward.csv')
+    action_time_reward_path = create_folder_and_path(exp_folder, '', 'rewards.csv')
+
     if args.agentstate is not None:
         Agent.net.load_state_dict(torch.load(args.agentstate))
    
@@ -687,9 +740,7 @@ if __name__ == "__main__":
         # total_time = 0  # actual processing time per episode
         step_count = 0 # count the number of steps in every episode
 
-        # plt.figure()
         steps = [] # store the steps for plotting
-       # steps = [int (step) for step in steps] # guarantee the step is integer
         q_values_history = [[] for _ in range(env.action_space.n)]
 
         while True:
@@ -708,23 +759,20 @@ if __name__ == "__main__":
             #     env.bonus_given = False
 
             steps.append(step_count)
-
             for i, q_value in enumerate(q_values):
                 q_values_history[i].append(q_value)
 
             # only keep the return value of s1, r, done, ignore the fourth return value
             step_result = env.step(a0, current_compression)
             s1, r, done = step_result[:3]
+            
+            write_to_csv(action_time_reward_path, mode = 'a', data = [int(action_time), r], data_type = 'rewards')
 
             # total_time += r  # cal. total time of current episode
             total_reward += r # cal total reward of current episode
             step_count += 1 # increment the step 
 
-            if done:
-                t = 1
-            else:
-                t = 0
-
+            t = 1 if done else 0
             Agent.put(s0, a0, r, t, s1)  # put into replay buffer
             s0 = s1
 
@@ -743,9 +791,7 @@ if __name__ == "__main__":
                 standard_average_reward = total_reward / step_count if step_count else 0
                 print(f"Episode {i_episode + 1}, Total Time: {total_time: .2f}, Total Reward: {total_reward}, Incremental Average Reward: {incremental_average_reward}, Standard Average Reward: {standard_average_reward}", flush=True)
                 # write results to 'step_tot_reward.csv'
-                with open(step_tot_reward_path, mode = 'a', newline = '') as file:
-                    writer = csv.writer(file, quoting=csv.QUOTE_MINIMAL)
-                    writer.writerow([i_episode + 1, step_count + 1, total_reward])
+                write_to_csv(step_tot_reward_path, mode = 'a', data = [i_episode + 1, step_count + 1, total_reward], data_type = 'step_tot_reward')
                 break
 
         if i_episode % target_update == 0:
