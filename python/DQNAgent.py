@@ -82,7 +82,7 @@ class Net(nn.Module):
     #     init.uniform_(self.Linear3.weight, -0.03, 0.03)
     #     self.Linear3.bias.data.fill_(0.05)
     def reinitialized_weights(self):
-        print("Reinitializing final layer weights...")
+        print("Reinitializing final layer weights...", flush=True)
         init.uniform_(self.Linear3.weight, -0.03, 0.03)
         self.Linear3.bias.data.fill_(0.03)
 
@@ -242,10 +242,11 @@ font = cv2.FONT_HERSHEY_COMPLEX_SMALL
 
 
 class SPEEnvironment(Env):
-    def __init__(self, stepsPerEpisode):
+    def __init__(self, stepsPerEpisode, bootstrap_server):
         super(SPEEnvironment, self).__init__()
 
         self.valuesPerObservation = 7
+        self.bootstrap_server = bootstrap_server
         # metrics = 11
         # Define a 2-D observation space
         # states: injectionrate, throughput, outrate, latency, compression ratio, comp, dec, CPU-in, CPU-agg, CPU-out, event time
@@ -282,8 +283,8 @@ class SPEEnvironment(Env):
                                             dtype = np.float32)
 
         self.action_space = spaces.Discrete(3,)
-        self.consumer = KafkaStatsConsumer(self.valuesPerObservation)
-        self.producer = KafkaActionsProducer(self.consumer)
+        self.consumer = KafkaStatsConsumer(self.valuesPerObservation,self.bootstrap_server)
+        self.producer = KafkaActionsProducer(self.consumer,self.bootstrap_server)
 
         self.stepsPerEpisode = stepsPerEpisode
         self.remaingSteps = self.stepsPerEpisode
@@ -321,7 +322,7 @@ class SPEEnvironment(Env):
             # formatted_values = ' '.join(f'{value:{column_width}.2f}' for value in values)
             transformed_values = f'{slope:>{column_width}.2f} {intercept:>{column_width}.2f}'
             original_values = ' '.join(f'{value:>{column_width}.2f}' for value in original_values)
-            print(f"{formatted_label} {transformed_values} || {original_values}")
+            print(f"{formatted_label} {transformed_values} || {original_values}", flush=True)
 
     def linear_regression_transform(self, state_matrix):
         state_matrix = np.where(state_matrix == -1.00, np.nan, state_matrix)
@@ -364,21 +365,25 @@ class SPEEnvironment(Env):
         self.steps_since_last_bonus = 0
 
         # Send the reset
-        self.producer.produce("reset")
-
+        if episode_number>0:
+            print('Calling reset', flush=True)
+            self.producer.produce("reset")
+        else:
+            print('skipping reset on very first episode (already called by the SPE itself)', flush=True)
+    
         self.remaingSteps = self.stepsPerEpisode
-        print('self.remaingSteps set to',self.remaingSteps,'in reset')
+        print('self.remaingSteps set to',self.remaingSteps,'in reset', flush=True)
 
         # Wait for the state and reward measurement
         self.prev_stat_time = time.time()
         state_measurement_available = False
-        print('Waiting for new observation')
+        print('Waiting for new observation', flush=True)
         while not state_measurement_available:
             time.sleep(0.1)
             with self.consumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by other threads
                 # print('self.consumer.tracker.state is not None',(self.consumer.tracker.state is not None),'self.consumer.tracker.last_time',self.consumer.tracker.last_time,'self.prev_stat_time',self.prev_stat_time)
                 if self.consumer.tracker.state is not None and self.consumer.tracker.last_time > self.prev_stat_time:
-                    print('Got a new state/reward/extrainfo msg:',self.consumer.tracker.last_time)
+                    print('Got a new state/reward/extrainfo msg:',self.consumer.tracker.last_time, flush=True)
                     state = self.consumer.tracker.state.copy()
                     state_transformed = self.linear_regression_transform(state)
                     self.print_state(state_transformed, state)
@@ -413,7 +418,7 @@ class SPEEnvironment(Env):
                 # print('self.consumer.tracker.state is not None',(self.consumer.tracker.state is not None),'self.consumer.tracker.last_time',self.consumer.tracker.last_time,'self.prev_stat_time',self.prev_stat_time)
                 if self.consumer.tracker.state is not None and self.consumer.tracker.last_time > self.prev_stat_time:
                     # print('Got a new state/reward pair:',self.consumer.tracker.last_time,self.consumer.tracker.state,self.consumer.tracker.reward,flush=True)
-                    print('Got a new state/reward/extrainfo msg:',self.consumer.tracker.last_time)
+                    print('Got a new state/reward/extrainfo msg:',self.consumer.tracker.last_time, flush=True)
                     state = self.consumer.tracker.state.copy()
                     state_transformed = self.linear_regression_transform(state)
                     self.print_state(state_transformed, state)
@@ -424,7 +429,7 @@ class SPEEnvironment(Env):
         if self.steps_since_last_bonus == self.bonus_step_interval - 1:
             self.consumer.tracker.reward += self.bonus_ten_steps
             #self.bonus_given = True
-            print(f"Extra reward bonus +{self.bonus_ten_steps} for completing {self.bonus_step_interval} steps")
+            print(f"Extra reward bonus +{self.bonus_ten_steps} for completing {self.bonus_step_interval} steps", flush=True)
         self.steps_since_last_bonus += 1
         if self.steps_since_last_bonus == self.bonus_step_interval:
             self.steps_since_last_bonus = 0
@@ -452,14 +457,14 @@ class SPEEnvironment(Env):
             self.consumer.tracker.numberOfCPUsExceedingEarlyTerminationThreshold >= self.cpu_violations_per_episode:
             done = True
             if self.consumer.tracker.numberOfTimesLatencyExceededTheEarlyTerminationThresholdSinceLastAction >= self.latency_violations_per_episode:
-                print("High latency observed")
+                print("High latency observed", flush=True)
             if self.consumer.tracker.numberOfCPUsExceedingEarlyTerminationThreshold >= self.cpu_violations_per_episode:
-                print("High cpu observed")
+                print("High cpu observed", flush=True)
             # apply bonus if conditions are met at the end of an episode
             valid_latencies = [latency for _, latency in self.latency_record[-10:]]  # extract only the latency values from the last 10 records
             if len(valid_latencies) == self.bonus_step_interval and all(latency <= self.bonus_latency_threshold for latency in valid_latencies):
                     self.consumer.tracker.reward += self.bonus_all_steps
-                    print(f"Extra reward bonus +{self.bonus_all_steps} because of low latency in the last {self.bonus_step_interval} steps")
+                    print(f"Extra reward bonus +{self.bonus_all_steps} because of low latency in the last {self.bonus_step_interval} steps", flush=True)
         else:
             done = False
 
@@ -527,7 +532,7 @@ class MeasurementTracker:
             self.numberOfCPUsExceedingEarlyTerminationThreshold = int(parts[3])
 
 class KafkaActionsProducer:
-    def __init__(self, statsConsumer, bootstrap_servers='michelangelo.cse.chalmers.se:9092', actions_topic='dchanges'):
+    def __init__(self, statsConsumer, bootstrap_servers, actions_topic='dchanges'):
         self.bootstrap_servers = bootstrap_servers
         self.actions_topic = actions_topic
         self.producer = Producer({'bootstrap.servers': self.bootstrap_servers})
@@ -539,7 +544,7 @@ class KafkaActionsProducer:
         self.producer.flush()
 
 class KafkaStatsConsumer:
-    def __init__(self, valuesPerObservation, bootstrap_servers='michelangelo.cse.chalmers.se:9092', stats_topic='stats', group_id='0'):
+    def __init__(self, valuesPerObservation, bootstrap_servers, stats_topic='stats', group_id='0'):
         self.valuesPerObservation = valuesPerObservation
         self.tracker = MeasurementTracker(self.valuesPerObservation)
         self.bootstrap_servers = bootstrap_servers
@@ -564,12 +569,12 @@ class KafkaStatsConsumer:
                 if msg.error().code() == KafkaError._PARTITION_EOF:
                     continue
                 else:
-                    print(msg.error())
+                    print(msg.error(), flush=True)
                     break
 
             # Process the received message
             stat = msg.value().decode('utf-8')
-            print(f"Received message from 'stats' topic: {stat}")
+            print(f"Received message from 'stats' topic: {stat}", flush=True)
             self.tracker.process_input(stat)
 
     def start_consumer(self):
@@ -583,18 +588,22 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Start an Agent that always chooses the same compression level')
     parser.add_argument('episodes', help='Number of episodes')
     parser.add_argument('steps', help='Number of steps')
+    parser.add_argument('bootstrapServer', help='bootstrapServer', default=True)
+    parser.add_argument('baseFolder', help='baseFolder', default=True)
     parser.add_argument('-agentstate', help='State of the pre-trained agent', default=None)
     parser.add_argument('-learningactive', help='Wheter the agent should learn', default=True)
     args = parser.parse_args()
     
-    print('Creating agent')
-    print('episodes:',args.episodes)
-    print('steps:',args.steps)
-    print('agentstate:',args.agentstate)
-    print('learningactive:',args.learningactive)
+    print('Creating agent', flush=True)
+    print('episodes:',args.episodes, flush=True)
+    print('steps:',args.steps, flush=True)
+    print('bootstrapServer:',args.bootstrapServer, flush=True)
+    print('baseFolder:',args.baseFolder, flush=True)
+    print('agentstate:',args.agentstate, flush=True)
+    print('learningactive:',args.learningactive, flush=True)
     
 
-    env = SPEEnvironment(int(args.steps))
+    env = SPEEnvironment(int(args.steps),args.bootstrapServer)
     # input_shape = (11, 7)
     input_shape = (6, 2)
     hidden_size = 128
@@ -624,7 +633,7 @@ if __name__ == "__main__":
     #     os.makedirs(paras_folder_name)
 
     # # create folder to store paras (synthetic)
-    paras_folder_name = 'data/output/LOB/synthetic/1/900/5000000000/10/Exp16-1_lob_s_paras-1-100'
+    paras_folder_name = os.path.join(args.baseFolder, 's_paras')
     if not os.path.exists(paras_folder_name):
         os.makedirs(paras_folder_name)
 
@@ -634,7 +643,8 @@ if __name__ == "__main__":
     #     os.makedirs(q_value_folder_name)
 
     # create folder to store q value plots (synthetic)
-    q_value_folder_name = 'data/output/LOB/synthetic/1/900/5000000000/10/Exp16-1_lob_s_q_values_plot-1-100'
+    q_value_folder_name = os.path.join(args.baseFolder, 'q_values_plot')
+    # q_value_folder_name = 'data/output/LOB/synthetic/1/900/5000000000/10/Exp16-1_lob_s_q_values_plot-1-100'
     if not os.path.exists(q_value_folder_name):
         os.makedirs(q_value_folder_name)
     
@@ -644,7 +654,8 @@ if __name__ == "__main__":
     #     os.makedirs(replay_buffer_folder_name)
     
     # # create folder to store replay buffer (synthetic)
-    replay_buffer_folder_name = 'data/output/LOB/synthetic/1/900/5000000000/10/Exp16-1_lob_s_replay_buffer-1-100'
+    replay_buffer_folder_name = os.path.join(args.baseFolder, 'replay_buffer')
+    # replay_buffer_folder_name = 'data/output/LOB/synthetic/1/900/5000000000/10/Exp16-1_lob_s_replay_buffer-1-100'
     if not os.path.exists(replay_buffer_folder_name):
         os.makedirs(replay_buffer_folder_name)
 
@@ -655,17 +666,18 @@ if __name__ == "__main__":
     # step_tot_reward_path = os.path.join(step_tot_reward_folder_name, 'step_tot_reward_welob_l_exp16.csv')
 
     # create csv file to save episode - #step - total reward (synthetic)
-    step_tot_reward_folder_name = 'data/output/LOB/synthetic/1/900/5000000000/10/'
-    if not os.path.exists(step_tot_reward_folder_name):
-        os.makedirs(step_tot_reward_folder_name)
-    step_tot_reward_path = os.path.join(step_tot_reward_folder_name, 'step_tot_reward_lob_s_exp16-1.csv')
+    # step_tot_reward_folder_name = args.baseFolder, 'replay_buffer')
+    # step_tot_reward_folder_name = 'data/output/LOB/synthetic/1/900/5000000000/10/'
+    # if not os.path.exists(step_tot_reward_folder_name):
+    #     os.makedirs(step_tot_reward_folder_name)
+    step_tot_reward_path = os.path.join(args.baseFolder, 'rewards.steps.csv')
 
     with open(step_tot_reward_path, mode = 'w', newline = '') as file:
         writer = csv.writer(file)
         writer.writerow(['episode', 'step', 'total_reward'])
 
     for i_episode in range(0, int(args.episodes)):
-        print('starting episode',i_episode + 1)
+        print('starting episode',i_episode + 1, flush=True)
         start_time = time.time() # start time of per episode
         s0 = env.reset()
         s0 = s0.reshape(-1)
@@ -689,7 +701,7 @@ if __name__ == "__main__":
             # for epsilon greedy strategy
             # print(f"Episode {i_episode + 1}, Step {step_count + 1}, Action {a0}, Current Compression: {current_compression}, Action type: {action_type}, Epsilon: {epsilon:.6f}, Q values: {q_values}, Action time: {action_time}") 
             # for Boltzmann(softmax) exploration strategy
-            print(f"Episode {i_episode + 1}, Step {step_count + 1}, Tau: {tau:.6f}, Q values: {q_values}, Action Probablities: {action_probablities}, Action {a0}, Current Compression: {current_compression}, Action time: {action_time}, Action type: {action_type}") 
+            print(f"Episode {i_episode + 1}, Step {step_count + 1}, Tau: {tau:.6f}, Q values: {q_values}, Action Probablities: {action_probablities}, Action {a0}, Current Compression: {current_compression}, Action time: {action_time}, Action type: {action_type}", flush=True)
 
             # if env.bonus_given:
             #     print(f"Extra reward bonus +5 for completing {env.bonus_step_interval} steps")
@@ -719,17 +731,17 @@ if __name__ == "__main__":
             if args.learningactive:
                 Agent.update_parameters()
             
-            print(f"After {step_count + 1} steps, total reward so far in this episode: {total_reward}")
+            print(f"After {step_count + 1} steps, total reward so far in this episode: {total_reward}", flush=True)
             
             if done == True:
                 end_time = time.time() # end time of per episode
                 total_time = end_time - start_time
-                print(f"Episode {i_episode + 1}, Step {step_count + 1}, This episode has finished.")
+                print(f"Episode {i_episode + 1}, Step {step_count + 1}, This episode has finished.", flush=True)
                 # incremental average for all past episodes
                 incremental_average_reward = incremental_average_reward +  (total_reward - incremental_average_reward) / (i_episode + 1)
                 # standard average for this current episode
                 standard_average_reward = total_reward / step_count if step_count else 0
-                print(f"Episode {i_episode + 1}, Total Time: {total_time: .2f}, Total Reward: {total_reward}, Incremental Average Reward: {incremental_average_reward}, Standard Average Reward: {standard_average_reward}")
+                print(f"Episode {i_episode + 1}, Total Time: {total_time: .2f}, Total Reward: {total_reward}, Incremental Average Reward: {incremental_average_reward}, Standard Average Reward: {standard_average_reward}", flush=True)
                 # write results to 'step_tot_reward.csv'
                 with open(step_tot_reward_path, mode = 'a', newline = '') as file:
                     writer = csv.writer(file, quoting=csv.QUOTE_MINIMAL)
@@ -748,7 +760,7 @@ if __name__ == "__main__":
                     # plt.plot(steps, action_q_values, label = f'Action {i}', color = colors[i % len(colors)], marker = markers[i % len(markers)])
                     plt.plot(steps, action_q_values, label = f'Action {i}', color = colors[i % len(colors)])
                 else:
-                    print(f"Error: Mismatch in lengths for Action {i}")
+                    print(f"Error: Mismatch in lengths for Action {i}", flush=True)
 
 
         # saving q value plots
@@ -769,5 +781,5 @@ if __name__ == "__main__":
             with open (replay_buffer_file_path, 'wb') as f:
                 pickle.dump(Agent.buffer, f)
                  
-    print('closing')
+    print('closing', flush=True)
     env.close()
