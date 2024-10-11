@@ -426,19 +426,19 @@ class SPEEnvironment(Env):
         self.current_event_time = state[6, :]  # update eventtime
 
         # record latency of last second if it is not missing -1
-        current_event_time = self.current_event_time
-        current_latency = self.consumer.tracker.state[3]
-        for event_time, latency in zip(current_event_time, current_latency):
-            if latency != -1:
-                # check if the same event time has been recorded
-                existing_entry = next((item for item in self.latency_record if item[0] == event_time), None)
-                # if the record of this eventtime already exists, then update latency
-                if existing_entry:
-                    index = self.latency_record.index(existing_entry)
-                    self.latency_record[index] = (event_time, latency)
-                # if not, add new record
-                else:
-                    self.latency_record.append((event_time, latency))
+        # current_event_time = self.current_event_time
+        # current_latency = self.consumer.tracker.state[3]
+        # for event_time, latency in zip(current_event_time, current_latency):
+        #     if latency != -1:
+        #         # check if the same event time has been recorded
+        #         existing_entry = next((item for item in self.latency_record if item[0] == event_time), None)
+        #         # if the record of this eventtime already exists, then update latency
+        #         if existing_entry:
+        #             index = self.latency_record.index(existing_entry)
+        #             self.latency_record[index] = (event_time, latency)
+        #         # if not, add new record
+        #         else:
+        #             self.latency_record.append((event_time, latency))
 
         # Check if episode should end
         if self.remaingSteps <= 0 or \
@@ -449,11 +449,14 @@ class SPEEnvironment(Env):
                 print("High latency observed")
             if self.consumer.tracker.numberOfCPUsExceedingEarlyTerminationThreshold >= self.cpu_violations_per_episode:
                 print("High cpu observed")
+            if self.remaingSteps <= 0:
+                self.consumer.tracker.reward += self.bonus_below_latency
+                print(f"Extra reward bonus +{self.bonus_below_latency} because of reaching the end of this episode")
             # apply bonus if conditions are met at the end of an episode
-            valid_latencies = [latency for _, latency in self.latency_record[-10:]]  # extract only the latency values from the last 10 records
-            if len(valid_latencies) == self.bonus_step_interval and all(latency <= self.bonus_latency_threshold for latency in valid_latencies):
-                    self.consumer.tracker.reward += self.bonus_below_latency
-                    print(f"Extra reward bonus +{self.bonus_below_latency} because of low latency in the last {self.bonus_step_interval} observations")
+            # valid_latencies = [latency for _, latency in self.latency_record[-10:]]  # extract only the latency values from the last 10 records
+            # if len(valid_latencies) == self.bonus_step_interval and all(latency <= self.bonus_latency_threshold for latency in valid_latencies):
+            #         self.consumer.tracker.reward += self.bonus_below_latency
+            #         print(f"Extra reward bonus +{self.bonus_below_latency} because of low latency in the last {self.bonus_step_interval} observations")
         else:
             done = False
 
@@ -651,9 +654,9 @@ if __name__ == "__main__":
     # load_model_and_buffer(Agent, model_file, buffer_file)
 
     exp_folder = args.exp_folder
-    paras_folder = create_folder_and_path(exp_folder, 'Exp16-1_welob_l_paras-1-100')
-    q_value_folder = create_folder_and_path(exp_folder, 'Exp16-1_welob_l_q_values_plot-1-100')
-    replay_buffer_folder = create_folder_and_path(exp_folder, 'Exp16-1_welob_l_replay_buffer-1-100')
+    paras_folder = create_folder_and_path(exp_folder, 'Exp16-2_elob_s_paras-1-100')
+    q_value_folder = create_folder_and_path(exp_folder, 'Exp16-2_elob_s_q_values_plot-1-100')
+    replay_buffer_folder = create_folder_and_path(exp_folder, 'Exp16-2_elob_s_replay_buffer-1-100')
     step_tot_reward_path = create_folder_and_path(exp_folder, '', 'step_tot_reward.csv')
     action_time_reward_path = create_folder_and_path(exp_folder, '', 'rewards.csv')
 
@@ -726,11 +729,11 @@ if __name__ == "__main__":
         if i_episode % target_update == 0:
             Agent.target_net.load_state_dict(Agent.net.state_dict())
         
-        q_value_file_path = os.path.join(q_value_folder, f'exp16-1_welob_l_values_plot_{i_episode + 1}.png')
+        q_value_file_path = os.path.join(q_value_folder, f'exp16-2_elob_s_values_plot_{i_episode + 1}.png')
         plot_q_values(steps, q_values_history, i_episode + 1, q_value_file_path)
 
-        model_file_path = os.path.join(paras_folder, f'exp16-1_welob_l_dqn_model_episode_{i_episode + 1}.pth')
-        buffer_file_path = os.path.join(replay_buffer_folder, f'exp16-1_welob_l_buffer_after_{i_episode + 1}_episodes.pkl')
+        model_file_path = os.path.join(paras_folder, f'exp16-2_elob_s_dqn_model_episode_{i_episode + 1}.pth')
+        buffer_file_path = os.path.join(replay_buffer_folder, f'exp16-2_elob_s_buffer_after_{i_episode + 1}_episodes.pkl')
         if (i_episode + 1) % 10 == 0:
             save_model_and_buffer(Agent, i_episode + 1, model_file_path, buffer_file_path)
                  
