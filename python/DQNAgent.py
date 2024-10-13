@@ -456,13 +456,13 @@ class SPEEnvironment(Env):
             self.consumer.tracker.numberOfLatencyExceedingEarlyTerminationThreshold >= self.latency_violations_per_episode or \
             self.consumer.tracker.numberOfCPUsExceedingEarlyTerminationThreshold >= self.cpu_violations_per_episode:
             done = True
-            if self.consumer.tracker.numberOfTimesLatencyExceededTheEarlyTerminationThresholdSinceLastAction >= self.latency_violations_per_episode:
+            if self.consumer.tracker.numberOfLatencyExceedingEarlyTerminationThreshold >= self.latency_violations_per_episode:
                 print("High latency observed", flush=True)
             if self.consumer.tracker.numberOfCPUsExceedingEarlyTerminationThreshold >= self.cpu_violations_per_episode:
                 print("High cpu observed", flush=True)
-            if self.remaingSteps <= 0:
-                self.consumer.tracker.reward += self.bonus_below_latency
-                print(f"Extra reward bonus +{self.bonus_below_latency} because of reaching the end of this episode")
+            # if self.remaingSteps <= 0:
+            #     self.consumer.tracker.reward += self.bonus_below_latency
+            #     print(f"Extra reward bonus +{self.bonus_below_latency} because of reaching the end of this episode")
             # apply bonus if conditions are met at the end of an episode
             # valid_latencies = [latency for _, latency in self.latency_record[-10:]]  # extract only the latency values from the last 10 records
             # if len(valid_latencies) == self.bonus_step_interval and all(latency <= self.bonus_latency_threshold for latency in valid_latencies):
@@ -644,7 +644,7 @@ if __name__ == "__main__":
     parser.add_argument('baseFolder', help='baseFolder', default=True)
     parser.add_argument('-agentstate', help='State of the pre-trained agent', default=None)
     parser.add_argument('-learningactive', help='Wheter the agent should learn', default=True)
-    parser.add_argument('--exp_folder', help='The experiment folder to store results', required=True)
+    # parser.add_argument('--exp_folder', help='The experiment folder to store results', required=True)
     args = parser.parse_args()
     
     print('Creating agent', flush=True)
@@ -668,7 +668,7 @@ if __name__ == "__main__":
     # buffer_file = 'image/Exp16_1/1_WELOB/linear/1-100/Exp16-1_welob_l_replay_buffer-1-100/exp16-1_welob_l_buffer_after_100_episodes.pkl'
     # load_model_and_buffer(Agent, model_file, buffer_file)
 
-    exp_folder = args.exp_folder
+    exp_folder = args.baseFolder #  args.exp_folder
     paras_folder = create_folder_and_path(exp_folder, 'Exp16-2_elob_s_paras-1-100')
     q_value_folder = create_folder_and_path(exp_folder, 'Exp16-2_elob_s_q_values_plot-1-100')
     replay_buffer_folder = create_folder_and_path(exp_folder, 'Exp16-2_elob_s_replay_buffer-1-100')
