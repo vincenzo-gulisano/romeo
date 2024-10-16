@@ -37,18 +37,18 @@ def plot_graphs(
     text_width_in = text_width_pt / points_per_inch
     text_height_in = text_height_pt / points_per_inch
     fig, axs = plt.subplots(
-        9,
+        10,
         1,
         figsize=(text_width_in, text_height_in),
         gridspec_kw={
             "hspace": 0,
             "wspace": 0,
-            "height_ratios": [1, 0, 1, 1, 1, 0.5, 1, 1, 1],
+            "height_ratios": [1, 0, 1, 1, 1, 1, 0.5, 1, 1, 1],
         },
     )
 
     axs[1].set_visible(False)
-    axs[5].set_visible(False)
+    axs[6].set_visible(False)
 
     given_order = [
         "10",
@@ -86,6 +86,8 @@ def plot_graphs(
     unique_baselines = [
         baseline for baseline in given_order if baseline in unique_baselines_set
     ]
+    
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']  # Blue, Orange, Green, Red
 
     if usecase == "linearroad":
 
@@ -95,11 +97,11 @@ def plot_graphs(
         boundary_text_align = ["left", "left"]
         latency_y_scale = "log"
         latency_y_lim_baselines = [0.03, 6]
-        latency_y_lim_agent = [0.2, 3]
+        latency_y_lim_agent = [0.01, 3]
         latency_y_ticks_agent = [0.5, 2]
         latency_y_ticks_baseline = [0.1, 1, 2]
         ratio_y_lim = [-0.1, 1.1]
-        cpu_y_lim = [0.0, 0.12]
+        cpu_y_lim = [0.0, 0.2]
         smoothing_window_size = 5
 
     elif usecase == "synthetic":
@@ -159,7 +161,7 @@ def plot_graphs(
             baseline_df[baseline_df["baseline"] == barplot_id]["mean_ratio"].dropna()
             / 100
         )
-    parts = axs[6].violinplot(
+    parts = axs[7].violinplot(
         data_mean_ratio, showmeans=False, showmedians=False, showextrema=False
     )
     for i, pc in enumerate(parts["bodies"]):
@@ -171,11 +173,11 @@ def plot_graphs(
             pc.set_facecolor("#008000")  # Different color for baseline_df data
         pc.set_edgecolor("black")
         pc.set_alpha(1)
-    axs[6].set_ylabel("n/c ratio", fontsize=text_fontsize)
+    axs[7].set_ylabel("n/c ratio", fontsize=text_fontsize)
     # Set specific tick positions
-    axs[6].set_ylim([-0.1, 1.1])
+    axs[7].set_ylim([-0.1, 1.1])
     # Enable the grid
-    axs[6].grid(
+    axs[7].grid(
         True, which="major", axis="y", linestyle="-", color="gray", linewidth=0.5
     )
 
@@ -190,7 +192,7 @@ def plot_graphs(
             baseline_df[baseline_df["baseline"] == barplot_id]["mean_latency"].dropna()
             / 1000
         )
-    parts = axs[7].violinplot(
+    parts = axs[8].violinplot(
         data_latency, showmeans=False, showmedians=False, showextrema=False
     )
     for i, pc in enumerate(parts["bodies"]):
@@ -202,20 +204,20 @@ def plot_graphs(
             pc.set_facecolor("#008000")  # Different color for baseline_df data
         pc.set_edgecolor("black")
         pc.set_alpha(1)
-    axs[7].set_ylim(latency_y_lim_baselines)
-    axs[7].set_ylabel("Latency (s)", fontsize=text_fontsize)
-    axs[7].set_yscale(latency_y_scale)
-    axs[7].set_yticks(latency_y_ticks_baseline)
+    axs[8].set_ylim(latency_y_lim_baselines)
+    axs[8].set_ylabel("Latency (s)", fontsize=text_fontsize)
+    axs[8].set_yscale(latency_y_scale)
+    axs[8].set_yticks(latency_y_ticks_baseline)
     # Format the y-tick labels to show numbers with up to one decimal place
-    axs[7].yaxis.set_major_formatter(
+    axs[8].yaxis.set_major_formatter(
         ticker.FuncFormatter(lambda x, pos: f"{x:.1f}" if x % 1 else f"{int(x)}")
     )
     for lat_idx, latency_threshold in enumerate(latencies_thresholds):
-        axs[7].axhline(
+        axs[8].axhline(
             y=latency_threshold, color="r", linestyle="--"
         )  # Horizontal line at max_latency
         # Add text for threshold latency
-        axs[7].text(
+        axs[8].text(
             0.5,
             latency_threshold * 1.05,
             latencies_thresholds_ids[lat_idx],
@@ -223,7 +225,7 @@ def plot_graphs(
             verticalalignment="bottom",
             horizontalalignment="left",
             fontsize=text_fontsize,
-            transform=axs[7].transData,
+            transform=axs[8].transData,
         )
 
     # cpu, divided by 100
@@ -236,7 +238,7 @@ def plot_graphs(
         data_cpu.append(
             baseline_df[baseline_df["baseline"] == barplot_id]["mean_cpu"].dropna() / 100
         )
-    parts = axs[8].violinplot(
+    parts = axs[9].violinplot(
         data_cpu, showmeans=False, showmedians=False, showextrema=False
     )
     for i, pc in enumerate(parts["bodies"]):
@@ -248,23 +250,23 @@ def plot_graphs(
             pc.set_facecolor("#008000")  # Different color for baseline_df data
         pc.set_edgecolor("black")
         pc.set_alpha(1)
-    axs[8].set_ylabel("CPU (%)", fontsize=text_fontsize)
-    axs[8].set_xlabel(
+    axs[9].set_ylabel("CPU (%)", fontsize=text_fontsize)
+    axs[9].set_xlabel(
         # r"Baseline ($D$ value, or $R$ for random)", fontsize=text_fontsize
         r"Baseline ($D$ value), or Agent policy",
         fontsize=text_fontsize,
     )  # Only the last subplot needs the x-axis label
-    axs[8].set_xticks(np.arange(1, len(xtick_labels) + 1))  # Set tick positions
+    axs[9].set_xticks(np.arange(1, len(xtick_labels) + 1))  # Set tick positions
     # print(len(unique_baselines) + 1)
-    axs[8].set_xticklabels(xtick_labels, fontsize=text_fontsize, rotation=45)
-    axs[8].set_ylim([-0.1, 1.1])
+    axs[9].set_xticklabels(xtick_labels, fontsize=text_fontsize, rotation=45)
+    axs[9].set_ylim([-0.1, 1.1])
     # Enable the grid
-    axs[8].grid(
+    axs[9].grid(
         True, which="major", axis="y", linestyle="-", color="gray", linewidth=0.5
     )
 
     # Add vertical lines in all axes for each X value in boundaries (adjusting index for axs)
-    for ax in axs[6:]:
+    for ax in axs[7:]:
         for boundary in boundaries:
             ax.axvline(x=boundary, color="g", linestyle="--")
 
@@ -273,11 +275,11 @@ def plot_graphs(
         # Calculate the position to place the text (middle between boundaries)
         x_pos = boundaries[i]
         # Place the text at the calculated position, with a slight offset upwards
-        axs[6].text(
+        axs[7].text(
             x_pos,
             1.01,
             text,
-            transform=axs[6].get_xaxis_transform(),
+            transform=axs[7].get_xaxis_transform(),
             ha=boundary_text_align[i],
             va="bottom",
             color=text_color,
@@ -299,92 +301,111 @@ def plot_graphs(
     min_et = None
     max_et = None
 
-    subset = baseline_df[baseline_df["baseline"] == id]
+    for agent_num, agent_id in enumerate(barplots_ids, 0):
+        subset = baseline_df[baseline_df["baseline"] == agent_id]
 
-    opacities = np.geomspace(
-        start=initial_opacity,
-        stop=final_opacity,
-        num=splits,
-    )
-
-    # Split the subset into `n` portions
-    portions = np.array_split(subset, splits)
-
-    for portion_num, portion in enumerate(portions, 1):
-        if portion.empty:
-            continue  # Skip if the portion is empty
-
-        # Sort subset by 'eventtime_start'
-        portion = portion.sort_values(by="eventtime_start")
-
-        # Line width proportional to portion number, scaled between 1 and max_line_width
-        line_width = 1 + (portion_num - 1) * (max_line_width - 1) / (splits - 1)
-
-        # Extract x and y coordinates
-        x_coords = portion["eventtime_start"] - dfrate["x"].min()
-        y_coords_ratio = portion["mean_ratio"] / 100
-        y_coords_latency = portion["mean_latency"] / 1000
-        y_coords_cpu = portion["mean_cpu"] / 100
-
-        # smooth the line
-        smooth_points_ratio = (
-            pd.Series(y_coords_ratio)
-            .rolling(window=smoothing_window_size, center=True)
-            .mean()
-        )
-        smooth_points_latency = (
-            pd.Series(y_coords_latency)
-            .rolling(window=smoothing_window_size, center=True)
-            .mean()
-        )
-        smooth_points_cpu = (
-            pd.Series(y_coords_cpu)
-            .rolling(window=smoothing_window_size, center=True)
-            .mean()
+        opacities = np.geomspace(
+            start=initial_opacity,
+            stop=final_opacity,
+            num=splits,
         )
 
-        # Plot the line for the current portion with line thickness proportional to portion number
-        # axs[2].plot(x_coords, y_coords_ratio, color=agent_plots[baseline][4],
-        #             linewidth=line_width, alpha=opacities[portion_num-1])
-        # Plot the smooth line
-        axs[2].plot(
-            x_coords,
-            smooth_points_ratio,
-            color=agent_color,
-            linewidth=line_width,
-            alpha=opacities[portion_num - 1],
-        )
+        # Split the subset into `n` portions
+        portions = np.array_split(subset, splits)
 
-        # Plot the line for the current portion with line thickness proportional to portion number
-        # axs[3].plot(x_coords, y_coords_latency, color=agent_plots[baseline][4],
-        #             linewidth=line_width, alpha=opacities[portion_num-1])
-        # Plot the smooth line
-        axs[3].plot(
-            x_coords,
-            smooth_points_latency,
-            color=agent_color,
-            linewidth=line_width,
-            alpha=opacities[portion_num - 1],
-        )
+        for portion_num, portion in enumerate(portions, 1):
+            if portion.empty or portion_num != splits:
+                continue  # Skip if the portion is empty
 
-        # Plot the line for the current portion with line thickness proportional to portion number
-        # axs[4].plot(x_coords, y_coords_cpu, color=agent_plots[baseline][4],
-        #             linewidth=line_width, alpha=opacities[portion_num-1])
-        # Plot the smooth line
-        axs[4].plot(
-            x_coords,
-            smooth_points_cpu,
-            color=agent_color,
-            linewidth=line_width,
-            alpha=opacities[portion_num - 1],
-        )
+            # Sort subset by 'eventtime_start'
+            portion = portion.sort_values(by="eventtime_start")
 
-        # Update min_et and max_et based on the current portion
-        if min_et is None or x_coords.min() < min_et:
-            min_et = x_coords.min()
-        if max_et is None or x_coords.max() > max_et:
-            max_et = x_coords.max()
+            # Line width proportional to portion number, scaled between 1 and max_line_width
+            line_width = 1 + (portion_num - 1) * (max_line_width - 1) / (splits - 1)
 
+            # Extract x and y coordinates
+            x_coords = portion["eventtime_start"] - dfrate["x"].min()
+            y_coords_ratio = portion["mean_ratio"] / 100
+            y_coords_latency = portion["mean_latency"] / 1000
+            y_coords_cpu = portion["mean_cpu"] / 100
+            y_coords_duration = portion["duration"]
+
+            # smooth the line
+            smooth_points_ratio = (
+                pd.Series(y_coords_ratio)
+                .rolling(window=smoothing_window_size, center=True)
+                .mean()
+            )
+            smooth_points_latency = (
+                pd.Series(y_coords_latency)
+                .rolling(window=smoothing_window_size, center=True)
+                .mean()
+            )
+            smooth_points_cpu = (
+                pd.Series(y_coords_cpu)
+                .rolling(window=smoothing_window_size, center=True)
+                .mean()
+            )
+            smooth_points_duration = (
+                pd.Series(y_coords_duration)
+                .rolling(window=smoothing_window_size, center=True)
+                .mean()
+            )
+
+            # Plot the line for the current portion with line thickness proportional to portion number
+            # axs[2].plot(x_coords, y_coords_ratio, color=agent_plots[baseline][4],
+            #             linewidth=line_width, alpha=opacities[portion_num-1])
+            # Plot the smooth line
+            axs[2].plot(
+                x_coords,
+                smooth_points_ratio,
+                color=colors[agent_num],
+                linewidth=line_width,
+                alpha=opacities[portion_num - 1],
+                label=barplots_ids_labels[agent_num]
+            )
+            
+
+            # Plot the line for the current portion with line thickness proportional to portion number
+            # axs[3].plot(x_coords, y_coords_latency, color=agent_plots[baseline][4],
+            #             linewidth=line_width, alpha=opacities[portion_num-1])
+            # Plot the smooth line
+            axs[3].plot(
+                x_coords,
+                smooth_points_latency,
+                color=colors[agent_num],
+                linewidth=line_width,
+                alpha=opacities[portion_num - 1],
+            )
+
+            # Plot the line for the current portion with line thickness proportional to portion number
+            # axs[4].plot(x_coords, y_coords_cpu, color=agent_plots[baseline][4],
+            #             linewidth=line_width, alpha=opacities[portion_num-1])
+            # Plot the smooth line
+            axs[4].plot(
+                x_coords,
+                smooth_points_cpu,
+                color=colors[agent_num],
+                linewidth=line_width,
+                alpha=opacities[portion_num - 1],
+            )
+
+            axs[5].plot(
+                x_coords,
+                smooth_points_duration,
+                color=colors[agent_num],
+                linewidth=line_width,
+                alpha=opacities[portion_num - 1],
+            )
+
+
+            # Update min_et and max_et based on the current portion
+            if min_et is None or x_coords.min() < min_et:
+                min_et = x_coords.min()
+            if max_et is None or x_coords.max() > max_et:
+                max_et = x_coords.max()
+
+    axs[2].legend(ncol=2)
     axs[2].set_ylabel("n/c ratio", fontsize=text_fontsize)
     axs[2].set_ylim(ratio_y_lim)
     axs[2].set_xticks([])
@@ -420,13 +441,21 @@ def plot_graphs(
         ticker.FuncFormatter(lambda x, pos: f"{x:.1f}" if x % 1 else f"{int(x)}")
     )
 
+    axs[4].set_ylabel("CPU (%)", fontsize=text_fontsize)
+    axs[4].set_ylim(cpu_y_lim)
+    axs[4].set_xticks([])
+    axs[4].grid(
+        True, which="major", axis="y", linestyle="-", color="gray", linewidth=0.5
+    )
     axs[4].set_xlim([0, dfrate["x"].max() - dfrate["x"].min()])
-    axs[4].set_xlabel(
+
+    axs[5].set_xlim([0, dfrate["x"].max() - dfrate["x"].min()])
+    axs[5].set_xlabel(
         "Event Time (s)", fontsize=text_fontsize
     )  # Only the last subplot needs the x-axis label
-    axs[4].set_ylim(cpu_y_lim)
-    axs[4].set_ylabel("CPU (%)", fontsize=text_fontsize)
-    axs[4].grid(
+    # axs[4].set_ylim(cpu_y_lim)
+    axs[5].set_ylabel("Duration (s)", fontsize=text_fontsize)
+    axs[5].grid(
         True, which="major", axis="y", linestyle="-", color="gray", linewidth=0.5
     )
 
@@ -436,6 +465,7 @@ def plot_graphs(
     axs[2].set_xlim([min_et * 0.95, max_et])
     axs[3].set_xlim([min_et * 0.95, max_et])
     axs[4].set_xlim([min_et * 0.95, max_et])
+    axs[5].set_xlim([min_et * 0.95, max_et])
 
     # Adjust layout
     fig.tight_layout()
