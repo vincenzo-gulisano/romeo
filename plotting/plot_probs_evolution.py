@@ -25,6 +25,21 @@ def plot_probs(csv_file_path):
     plt.plot(df.index, df['Prob1'], label="0", color='blue',alpha=0.6)
     plt.plot(df.index, df['Prob2'], label="1", color='green',alpha=0.6)
     plt.plot(df.index, df['Prob3'], label="2", color='red',alpha=0.6)
+
+
+    # Find episode indices for multiples of 20 starting from episode 21
+    last_episode = None
+    episode_indices = []
+    for idx, row in df.iterrows():
+        if row['Episode'] % 20 == 1 and row['Episode'] != last_episode:
+            episode_indices.append(idx)
+            last_episode = row['Episode']
+    # print(episode_indices)
+
+    # Plot vertical lines at these episode indices
+    for idx in episode_indices:
+        plt.axvline(x=idx, color='gray', linestyle='--', linewidth=0.5)
+
     plt.xlabel('Index (Episode and Step)')
     plt.ylabel('Probability')
     plt.ylim(-0.1,1.1)
@@ -41,6 +56,11 @@ def plot_probs(csv_file_path):
     # Plot 2: Single line for the sum of Prob2 + Prob3
     plt.figure(figsize=(10, 6))
     plt.plot(df.index, df['Prob2'] + df['Prob3'], label="1 OR 2", color='purple')
+
+    # Plot vertical lines at these episode indices
+    for idx in episode_indices:
+        plt.axvline(x=idx, color='gray', linestyle='--', linewidth=0.5)
+
     plt.xlabel('Index (Episode and Step)')
     plt.ylabel('Sum of Prob2 and Prob3')
     plt.ylim(-0.1,1.1)
