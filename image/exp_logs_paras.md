@@ -390,3 +390,15 @@ latency for any 3 steps in each episode is higher than 2.5 seconds --> terminate
 2. remove soft latency threshold
 3. agent gets extra +30 after finishing 10 steps and +60 for finishing all the steps of this episode
 4. each episode has 100 steps (not 200 steps)
+
+## Exp16-2
+1. Synthetic, 4 policies, 120 episodes, 1000 steps for each episode
+
+## Exp16-3
+1. exactly repeat Exp16.2 with the same setup to see if the behavior is the same
+
+## Exp16-4
+1. no cpu violations
+2. update target network every 1000 steps not 20 episodes
+3. store entropy of the action for each step
+4. 120 episodes and 1000 stpes per episode
