@@ -2,6 +2,14 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import argparse
+import numpy as np
+
+def compute_entropy(prob1, prob2, prob3):
+    # Compute entropy using the formula H = -sum(P * log(P))
+    probs = np.array([prob1, prob2, prob3])
+    # Avoid log(0) by only computing for non-zero probabilities
+    entropy = -np.sum([p * np.log(p) for p in probs if p > 0])
+    return entropy
 
 def plot_probs(csv_file_path):
     # Read the CSV file
@@ -19,6 +27,9 @@ def plot_probs(csv_file_path):
 
     # Sort data by Episode and Step for proper ordering
     df = df.sort_values(by=['Episode', 'Step'])
+
+    # Compute entropy for each row in actions_df
+    df['Entropy'] = df.apply(lambda row: compute_entropy(row['Prob1'], row['Prob2'], row['Prob3']), axis=1)
 
     # Plot 1: Three lines for Prob1, Prob2, and Prob3
     plt.figure(figsize=(10, 6))
@@ -73,6 +84,25 @@ def plot_probs(csv_file_path):
     plt.savefig(plot2_file_path)
     plt.close()
     print(f"Sum of Prob2 + Prob3 plot saved as {plot2_file_path}")
+
+    # Plot 3: Entropy over time
+    plt.figure(figsize=(10, 6))
+    plt.plot(df.index, df['Entropy'], label="Entropy", color='orange')
+    
+    # Plot vertical lines at these episode indices
+    for idx in episode_indices:
+        plt.axvline(x=idx, color='gray', linestyle='--', linewidth=0.5)
+
+    plt.xlabel('Index (Episode and Step)')
+    plt.ylabel('Entropy')
+    plt.title(f"Entropy of Action Probabilities for {os.path.basename(csv_file_path)}")
+    plt.tight_layout()
+
+    # Save the third plot to file
+    plot3_file_path = os.path.splitext(csv_file_path)[0] + "_entropy.png"
+    plt.savefig(plot3_file_path)
+    plt.close()
+    print(f"Entropy plot saved as {plot3_file_path}")
 
 def search_and_plot(folder):
     for root, _, files in os.walk(folder):
