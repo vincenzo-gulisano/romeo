@@ -38,7 +38,7 @@ policy=$2
 # Set variables depending on the usecase
 if [ "$usecase" = "LinearRoad" ]; then
     base_folder="/home/vincenzo/romeo/data/output/${policy}/linear"
-    input_file="/home/vincenzo/romeo/data/input/input.txt"
+    input_file="/home/vincenzo/woost/data/input/input.txt"
     wa=5
     ws=600
     d=10
