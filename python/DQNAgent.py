@@ -659,6 +659,7 @@ if __name__ == "__main__":
     print('steps:',args.steps, flush=True)
     print('bootstrapServer:',args.bootstrapServer, flush=True)
     print('baseFolder:',args.baseFolder, flush=True)
+    print('policy:', args.policy, flush=True)
     print('agentstate:',args.agentstate, flush=True)
     print('learningactive:',args.learningactive, flush=True)
     
