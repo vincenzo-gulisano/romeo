@@ -141,7 +141,8 @@ public class JPComm {
         System.out.println("bootstrapServer: "+bootstrapServer);
 
         long latencyThreshold = Long.valueOf(expOps.commandLine().getOptionValue("latencyTreshold", "1500"));
-        double CPUThreshold = Double.valueOf(expOps.commandLine().getOptionValue("CPUTreshold", "90"));
+        // double CPUThreshold = Double.valueOf(expOps.commandLine().getOptionValue("CPUTreshold", "90"));
+        double CPUThreshold = Double.valueOf(expOps.commandLine().getOptionValue("CPUTreshold", "100"));
         double earlyTerminationLatencyThreshold = Double
                 .valueOf(expOps.commandLine().getOptionValue("earlyTerminationLatencyThreshold", "2000"));
 
