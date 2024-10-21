@@ -172,7 +172,7 @@ class DQN(object):
         action_type = "softmax selection"
 
         # Compute entropy for the action probabilities
-        entropy = compute_entropy(action_probabilities[0].item(),
+        entropy = self.compute_entropy(action_probabilities[0].item(),
                                   action_probabilities[1].item(),
                                   action_probabilities[2].item())
         
@@ -206,7 +206,7 @@ class DQN(object):
         elif action == 2:
             self.current_compression = min(100, self.current_compression + 10)
         
-        return action, action_type, action_time, self.tau, action_probabilities.detach().numpy(), self.current_compression
+        return action, action_type, action_time, self.tau, action_probabilities.detach().numpy(), self.current_compression, entropy, self.moving_average_entropy, self.is_moving_average_ready
 
     def update_parameters(self):
         if self.buffer.__len__() < batch_size:
@@ -336,6 +336,8 @@ class SPEEnvironment(Env):
         self.bonus_step_interval = 10
         self.bonus_ten_steps = 30
         self.bonus_all_steps = 0
+        self.entropy_threshold = 0.6
+        self.entropy_penalty = -5
 
 
         # self.state_labels = ["injectionrate", "throughput", "outrate", "latency", "compressionratio", "CPU-agg", "eventtime"]
@@ -426,7 +428,7 @@ class SPEEnvironment(Env):
         # return states except eventtime
         return state_transformed[:-1]
     
-    def step(self, action, current_compression):
+    def step(self, action, current_compression, entropy_ma, entropy_ready):
     
         self.remaingSteps -= 1
         done = False
@@ -454,11 +456,21 @@ class SPEEnvironment(Env):
                     print(f'reward {self.consumer.tracker.reward} || {self.consumer.tracker.original_reward}', flush=True)
                     state_measurement_available = True
                     
-        # give extra +5 for completing every 10 steps
+
+        # We start at 0
+        self.consumer.tracker.reward = 0
+
+        # give extra if completing predefined number of steps
         if self.steps_since_last_bonus == self.bonus_step_interval - 1:
             self.consumer.tracker.reward += self.bonus_ten_steps
-            #self.bonus_given = True
-            print(f"Extra reward bonus +{self.bonus_ten_steps} for completing {self.bonus_step_interval} steps", flush=True)
+            # But remove some if entropy is too loo
+            if entropy_ma < self.entropy_threshold:  # Penalize if entropy is low
+                self.consumer.tracker.reward -= self.entropy_penalty
+            print(f"Extra reward bonus +{self.consumer.tracker.reward} for completing {self.bonus_step_interval} steps", flush=True)
+        elif entropy_ma < self.entropy_threshold:  # Penalize if entropy is low (single step)
+            self.consumer.tracker.reward -= 1
+            print(f"-1 penalty for low entropy at {self.bonus_step_interval} steps", flush=True)
+
         self.steps_since_last_bonus += 1
         if self.steps_since_last_bonus == self.bonus_step_interval:
             self.steps_since_last_bonus = 0
@@ -776,12 +788,14 @@ if __name__ == "__main__":
             # for epsilon greedy strategy
             # a0, action_type, action_time, epsilon, current_compression = Agent.select_action(s0)
             # for Boltzmann(softmax) exploration strategy
-            a0, action_type, action_time, tau, action_probablities, current_compression = Agent.select_action(s0)
+            a0, action_type, action_time, tau, action_probablities, current_compression, entropy, moving_average_entropy, is_moving_average_ready  = Agent.select_action(s0)
             q_values = Agent.net(torch.Tensor(s0)).detach().numpy().squeeze()
             # for epsilon greedy strategy
             # print(f"Episode {i_episode + 1}, Step {step_count + 1}, Action {a0}, Current Compression: {current_compression}, Action type: {action_type}, Epsilon: {epsilon:.6f}, Q values: {q_values}, Action time: {action_time}") 
             # for Boltzmann(softmax) exploration strategy
-            print(f"Episode {i_episode + 1}, Step {step_count + 1}, Tau: {tau:.6f}, Q values: {q_values}, Action Probablities: {action_probablities}, Action {a0}, Current Compression: {current_compression}, Action time: {action_time}, Action type: {action_type}", flush=True)
+            print(f"Episode {i_episode + 1}, Step {step_count + 1}, Tau: {tau:.6f}, Q values: {q_values}, Action Probablities: {action_probablities}, 
+                  Action {a0}, Entropy: {entropy}, Entropy MA: {moving_average_entropy}, Entropy MA ready: {is_moving_average_ready}, 
+                  Current Compression: {current_compression}, Action time: {action_time}, Action type: {action_type}", flush=True)
 
             # if env.bonus_given:
             #     print(f"Extra reward bonus +5 for completing {env.bonus_step_interval} steps")
