@@ -8,6 +8,7 @@ import cv2
 import matplotlib.pyplot as plt
 import PIL.Image as Image
 import gym
+from collections import deque
 import random
 
 from gym import Env, spaces
@@ -127,11 +128,24 @@ class DQN(object):
         # self.first_step = True # flag to track the first step
         self.reinitialized = False
 
+        self.entropy_list = deque(maxlen=1000)  # To store last 1000 entropy values
+        self.moving_average_entropy = None
+        self.is_moving_average_ready = False  # Tracks if moving average is ready
+        
+
     def reset_compression(self):
         self.current_compression = 100
 
     def put(self, s0, a0, r, t, s1):
         self.buffer.push(s0, a0, r, t, s1)
+
+    # Assuming compute_entropy is already defined:
+    def compute_entropy(prob1, prob2, prob3):
+        # Compute entropy using the formula H = -sum(P * log(P))
+        probs = np.array([prob1, prob2, prob3])
+        # Avoid log(0) by only computing for non-zero probabilities
+        entropy = -np.sum([p * np.log(p) for p in probs if p > 0])
+        return entropy
 
     def select_action(self, state):
         # eps_threshold = random.random()
@@ -156,6 +170,21 @@ class DQN(object):
         action = torch.multinomial(action_probabilities, 1).item()
         action_time = time.time()
         action_type = "softmax selection"
+
+        # Compute entropy for the action probabilities
+        entropy = compute_entropy(action_probabilities[0].item(),
+                                  action_probabilities[1].item(),
+                                  action_probabilities[2].item())
+        
+        # Add the entropy to the list (deque keeps only the last 1000 elements)
+        self.entropy_list.append(entropy)
+
+        # Check if we have at least 1000 entropy values to compute the moving average
+        if len(self.entropy_list) == 1000:
+            self.moving_average_entropy = np.mean(self.entropy_list)
+            self.is_moving_average_ready = True  # Moving average is ready
+        else:
+            self.is_moving_average_ready = False  # Not enough data yet
 
         # epsilon greedy decay
         # self.epsilon = EPSILON_END + (EPSILON_START - EPSILON_END) * math.exp(-1 * self.sample_count / EPSILON_DECAY)
