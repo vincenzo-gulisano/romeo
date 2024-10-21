@@ -644,6 +644,10 @@ def write_to_csv(file_path, mode, data, data_type):
             writer.writerow([data[0], data[1], data[2]]) # episode, step, total reward
         if data_type == 'rewards':
             writer.writerow([data[0], data[1]]) # action_time, reward
+        if data_type == 'probs':
+            writer.writerow([data[0], data[1], data[2], data[3], 
+                             data[4], data[5], data[6], data[7], 
+                             data[8]]) # episode, step, prob 0, prob 1, prob 2, entropy, entropy_ma, entropy_ready, reward
 
 def plot_q_values(steps, q_values_history, episode_num, q_value_file_path):
     plt.figure()
@@ -715,6 +719,7 @@ if __name__ == "__main__":
     replay_buffer_folder = create_folder_and_path(exp_folder, 'Exp16-2_elob_s_replay_buffer-1-100')
     step_tot_reward_path = create_folder_and_path(exp_folder, '', 'step_tot_reward.csv')
     action_time_reward_path = create_folder_and_path(exp_folder, '', 'rewards.csv')
+    probs_path = create_folder_and_path(exp_folder, '', 'probs.csv')
 
     if args.agentstate is not None:
         Agent.net.load_state_dict(torch.load(args.agentstate))
@@ -810,6 +815,11 @@ if __name__ == "__main__":
             s1, r, done = step_result[:3]
             
             write_to_csv(action_time_reward_path, mode = 'a', data = [int(action_time), r], data_type = 'rewards')
+            # episode, step, prob 0, prob 1, prob 2, entropy, entropy_ma, entropy_ready, reward
+            write_to_csv(probs_path, mode = 'a', data = [i_episode + 1, step_count + 1, 
+                                                         action_probablities[0], action_probablities[1], 
+                                                         action_probablities[2], entropy, 
+                                                         moving_average_entropy, is_moving_average_ready, r], data_type = 'probs')
 
             # total_time += r  # cal. total time of current episode
             total_reward += r # cal total reward of current episode
