@@ -104,7 +104,7 @@ bootstrapServer=129.16.20.158:9092
 id="${wa}/${ws}/${duration}/${repetition}/${rate}"
 
 # Create folder with id in base folder
-exp_folder=${base_folder}/${id}/${d}
+exp_folder=${base_folder} #/${id}/${d}
 mkdir -p "${exp_folder}"
 
 echo "Cleaning stats folder"
