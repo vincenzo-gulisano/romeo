@@ -29,6 +29,10 @@ public class ExperimentOptions {
         options.addOption("usecase", "usecase", true, "Which usecase to run");
         options.addOption("pb", "policyBarrier", true, "Which policy to use for the barrier");
         options.addOption("bs", "bootstrapServer", true, "boostrapServer");
+        options.addOption("lt", "latencyTreshold", true, "Which policy to use for the barrier");
+        options.addOption("ct", "CPUTreshold", true, "CPUTreshold");
+        options.addOption("lt", "latencyTreshold", true, "latencyTreshold");
+        options.addOption("etlt", "earlyTerminationLatencyThreshold", true, "earlyTerminationLatencyThreshold");
 
         CommandLineParser parser = new DefaultParser();
         this.commandLine = parser.parse(options, args);
