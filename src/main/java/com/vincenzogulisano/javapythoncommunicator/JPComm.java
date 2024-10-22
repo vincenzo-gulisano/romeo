@@ -37,7 +37,7 @@ public class JPComm {
 
         properties = new Properties();
         // TODO this should not be hardcoded!
-        properties.put("bootstrap.servers", bootstrapServer); //"michelangelo.cse.chalmers.se:9092");
+        properties.put("bootstrap.servers", bootstrapServer); // "michelangelo.cse.chalmers.se:9092");
         // TODO this should not be hardcoded!
         properties.put("group.id", "0");
         properties.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
@@ -138,12 +138,16 @@ public class JPComm {
         String statsFolder = expOps.commandLine().getOptionValue("statsFolder");
         String bootstrapServer = expOps.commandLine().getOptionValue("bootstrapServer");
 
-        System.out.println("bootstrapServer: "+bootstrapServer);
+        System.out.println("bootstrapServer: " + bootstrapServer);
 
         long latencyThreshold = Long.valueOf(expOps.commandLine().getOptionValue("latencyTreshold", "1500"));
         double CPUThreshold = Double.valueOf(expOps.commandLine().getOptionValue("CPUTreshold", "90"));
         double earlyTerminationLatencyThreshold = Double
                 .valueOf(expOps.commandLine().getOptionValue("earlyTerminationLatencyThreshold", "2000"));
+
+        System.out.println("latencyThreshold: " + latencyThreshold);
+        System.out.println("CPUThreshold: " + CPUThreshold);
+        System.out.println("earlyTerminationLatencyThreshold: " + earlyTerminationLatencyThreshold);
 
         switch (usecase) {
             case "LinearRoad":
