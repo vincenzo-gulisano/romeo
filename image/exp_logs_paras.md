@@ -386,13 +386,13 @@ latency for any 3 steps in each episode is higher than 2.5 seconds --> terminate
 4. smaller states with slope and intercept by linear regression
 
 ## Exp16-1
-1. if n/c ratio decreased && latency < hard latency threshold --> reward = (100-ratio)^0.3 else 0
+1. if n/c ratio decreased && latency < hard latency threshold --> reward = reound ((100-ratio)^0.3) else 0
 2. remove soft latency threshold
 3. agent gets extra +30 after finishing 10 steps and +60 for finishing all the steps of this episode
 4. each episode has 100 steps (not 200 steps)
 
 ## Exp16-2
-1. Synthetic, 4 policies, 120 episodes, 1000 steps for each episode
+1. two usecases, 4 policies, 120 episodes, 1000 steps for each episode
 
 ## Exp16-3
 1. exactly repeat Exp16.2 with the same setup to see if the behavior is the same
