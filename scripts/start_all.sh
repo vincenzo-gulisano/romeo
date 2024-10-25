@@ -55,6 +55,15 @@ elif [ "$usecase" = "Synthetic" ]; then
     starting_time_min=1200
     starting_time_max=5800
     cpuThreshold=100
+elif [ "$usecase" = "Synthetic5s" ]; then
+    base_folder="/home/vincenzo/romeo/data/output/${policy}/synthetic5s"
+    input_file="/home/vincenzo/romeo/data/input/synthetic.csv"
+    wa=5
+    ws=900
+    d=10
+    starting_time_min=1200
+    starting_time_max=2100
+    cpuThreshold=100
 else
     echo "Invalid usecase. Please choose either 'LinearRoad' or 'Synthetic'."
     exit 1
