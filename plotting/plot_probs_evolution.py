@@ -83,7 +83,17 @@ def plot_probs_probs(csv_file_path):
     plt.figure(figsize=(10, 6))
     plt.plot(df.index, df['entropy'], label="Entropy", color='orange',alpha=0.6)
     plt.plot(df.index, df['entropy_ma'], label="Entropy", color='red')
-    
+        
+    entropy_threshold = 0.6
+    # Identify intervals where entropy moving average is below 0.6
+    below_threshold = df['entropy_ma'] < entropy_threshold
+    for i in range(len(below_threshold) - 1):
+        if below_threshold[i] and not below_threshold[i - 1]:  # Start of interval
+            start = df.index[i]
+        elif below_threshold[i] and not below_threshold[i + 1]:  # End of interval
+            end = df.index[i]
+            plt.axvspan(start, end, color='lightgrey', alpha=0.3)  # Shaded background for interval
+
     # Plot vertical lines at these episode indices
     for idx in episode_indices:
         plt.axvline(x=idx, color='gray', linestyle='--', linewidth=0.5)
