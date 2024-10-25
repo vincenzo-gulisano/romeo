@@ -11,6 +11,7 @@ def plot_graphs(
     rate_file_path,
     agent_data,
     output_pdf,
+    output_png,
     # probs,
     # probs_episod,
     usecase,
@@ -472,6 +473,7 @@ def plot_graphs(
 
     # Save the figure
     plt.savefig(output_pdf)
+    plt.savefig(output_png)
     plt.close()
 
 
@@ -491,6 +493,7 @@ if __name__ == "__main__":
         "agent_data", type=str, help="Input file containing the RL agent stats."
     )
     parser.add_argument("output_pdf", type=str, help="Output PDF file.")
+    parser.add_argument("output_png", type=str, help="Output png file.")
     # parser.add_argument("probs", type=str, help="CSV with the probabilities")
     # parser.add_argument(
     #     "probs_episod", type=int, help="Episode of which to plot probabilities"
@@ -511,6 +514,7 @@ if __name__ == "__main__":
         args.rate_file_path,
         args.agent_data,
         args.output_pdf,
+        args.output_png,
         # args.probs,
         # args.probs_episod,
         args.usecase,
