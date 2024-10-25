@@ -140,7 +140,7 @@ class DQN(object):
         self.buffer.push(s0, a0, r, t, s1)
 
     # Assuming compute_entropy is already defined:
-    def compute_entropy(prob1, prob2, prob3):
+    def compute_entropy(self, prob1, prob2, prob3):
         # Compute entropy using the formula H = -sum(P * log(P))
         probs = np.array([prob1, prob2, prob3])
         # Avoid log(0) by only computing for non-zero probabilities
@@ -171,10 +171,9 @@ class DQN(object):
         action_time = time.time()
         action_type = "softmax selection"
 
+        probs = action_probabilities.detach().numpy()
         # Compute entropy for the action probabilities
-        entropy = self.compute_entropy(action_probabilities[0].item(),
-                                  action_probabilities[1].item(),
-                                  action_probabilities[2].item())
+        entropy = self.compute_entropy(probs[0], probs[1], probs[2])
         
         # Add the entropy to the list (deque keeps only the last 1000 elements)
         self.entropy_list.append(entropy)
@@ -206,7 +205,7 @@ class DQN(object):
         elif action == 2:
             self.current_compression = min(100, self.current_compression + 10)
         
-        return action, action_type, action_time, self.tau, action_probabilities.detach().numpy(), self.current_compression, entropy, self.moving_average_entropy, self.is_moving_average_ready
+        return action, action_type, action_time, self.tau, probs, self.current_compression, entropy, self.moving_average_entropy, self.is_moving_average_ready
 
     def update_parameters(self):
         if self.buffer.__len__() < batch_size:
@@ -464,10 +463,10 @@ class SPEEnvironment(Env):
         if self.steps_since_last_bonus == self.bonus_step_interval - 1:
             self.consumer.tracker.reward += self.bonus_ten_steps
             # But remove some if entropy is too loo
-            if entropy_ma < self.entropy_threshold:  # Penalize if entropy is low
-                self.consumer.tracker.reward -= self.entropy_penalty
+            if entropy_ready and entropy_ma < self.entropy_threshold:  # Penalize if entropy is low
+                self.consumer.tracker.reward += self.entropy_penalty
             print(f"Extra reward bonus +{self.consumer.tracker.reward} for completing {self.bonus_step_interval} steps", flush=True)
-        elif entropy_ma < self.entropy_threshold:  # Penalize if entropy is low (single step)
+        elif entropy_ready and entropy_ma < self.entropy_threshold:  # Penalize if entropy is low (single step)
             self.consumer.tracker.reward -= 1
             print(f"-1 penalty for low entropy at {self.bonus_step_interval} steps", flush=True)
 
@@ -798,9 +797,7 @@ if __name__ == "__main__":
             # for epsilon greedy strategy
             # print(f"Episode {i_episode + 1}, Step {step_count + 1}, Action {a0}, Current Compression: {current_compression}, Action type: {action_type}, Epsilon: {epsilon:.6f}, Q values: {q_values}, Action time: {action_time}") 
             # for Boltzmann(softmax) exploration strategy
-            print(f"Episode {i_episode + 1}, Step {step_count + 1}, Tau: {tau:.6f}, Q values: {q_values}, Action Probablities: {action_probablities}, 
-                  Action {a0}, Entropy: {entropy}, Entropy MA: {moving_average_entropy}, Entropy MA ready: {is_moving_average_ready}, 
-                  Current Compression: {current_compression}, Action time: {action_time}, Action type: {action_type}", flush=True)
+            print(f"Episode {i_episode + 1}, Step {step_count + 1}, Tau: {tau:.6f}, Q values: {q_values}, Action Probablities: {action_probablities}, Action {a0}, Entropy: {entropy}, Entropy MA: {moving_average_entropy}, Entropy MA ready: {is_moving_average_ready}, Current Compression: {current_compression}, Action time: {action_time}, Action type: {action_type}", flush=True)
 
             # if env.bonus_given:
             #     print(f"Extra reward bonus +5 for completing {env.bonus_step_interval} steps")
@@ -811,7 +808,7 @@ if __name__ == "__main__":
                 q_values_history[i].append(q_value)
 
             # only keep the return value of s1, r, done, ignore the fourth return value
-            step_result = env.step(a0, current_compression)
+            step_result = env.step(a0, current_compression, moving_average_entropy, is_moving_average_ready)
             s1, r, done = step_result[:3]
             
             write_to_csv(action_time_reward_path, mode = 'a', data = [int(action_time), r], data_type = 'rewards')
