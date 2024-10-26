@@ -43,7 +43,8 @@ if [ "$usecase" = "LinearRoad" ]; then
     ws=600
     d=10
     starting_time_min=900
-    starting_time_max=9900
+    starting_time_max=6000
+    cpuThreshold=90
 elif [ "$usecase" = "Synthetic" ]; then
     base_folder="/home/vincenzo/romeo/data/output/${policy}/synthetic"
     input_file="/home/vincenzo/romeo/data/input/synthetic.csv"
@@ -52,6 +53,7 @@ elif [ "$usecase" = "Synthetic" ]; then
     d=10
     starting_time_min=1200
     starting_time_max=5800
+    cpuThreshold=100
 else
     echo "Invalid usecase. Please choose either 'LinearRoad' or 'Synthetic'."
     exit 1
@@ -116,7 +118,7 @@ echo "The PID of the python agent is ${python_pid}"
 echo "Starting SPE"
 
 echo "Starting experiment for ${id} (compression)"
-args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase} -pb ${policy} -rer True -bs ${bootstrapServer}"
+args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase} -pb ${policy} -rer True -bs ${bootstrapServer} -ct ${cpuThreshold}"
 echo "args=${args}"
 mvn clean compile package exec:java -Dexec.mainClass="com.vincenzogulisano.javapythoncommunicator.JPComm" -Dexec.args="${args}" > ${exp_folder}/spe.log 2>&1 &
 
