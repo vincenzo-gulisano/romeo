@@ -390,3 +390,52 @@ latency for any 3 steps in each episode is higher than 2.5 seconds --> terminate
 2. remove soft latency threshold
 3. agent gets extra +30 after finishing 10 steps and +60 for finishing all the steps of this episode
 4. each episode has 100 steps (not 200 steps)
+
+## Exp16-12 (120/1000)
+1. cpu violation is 90
+2. every step’s reward is 0
+3. +30 for every 10 steps (step-based rewards)
+
+## Exp16-15 (second run for Exp16-12, 120/1000)
+1. cpu violation is 90
+2. every step’s reward is 0
+3. +30 for every 10 steps (step-based rewards)
+4. only for linear
+
+## Exp16-13 (120/1000)
+1. no cpu violation
+2. +30 for every 10 steps (step-based rewards)
+3. only for synthetic
+
+## Exp16-14 (120/1000)
+1. no cpu violation
+2. +30 for every 10 steps (step-based rewards)
+3. only for synthetic
+
+## Exp16-2 (120/1000)
+1. cpu violation is 90
+2. remove soft latency threshold
+3. step-based (+30 and +60) and action-based rewards
+4. (action-based reward) if n/c ratio decreased && latency < hard latency threshold --> reward = round ((100-ratio)^0.3) else 0
+5. update target network every 20 episodes
+6. 2 usecases, 4 policies, 120 episodes, 1000 steps for each episode
+
+## Exp16-3
+1. esactly repeat Exp16-2 with the same setup to see if the behavior is the same
+
+## Exp16-4 (120/1000)
+1. no cpu violations
+2. update target network every 1000 steps not 20 episodes
+3. store entropy of the action for each step
+
+## Exp16-5 (120/1000)
+1. no cpu violation
+2. update target network every 1000 steps
+3. calculate entropy_ma: the average entropy for the last 1000 steps
+4. action-based reward: 
+   - if n/c ratio decreased && latency < hard latency threshold --> reward = round ((pstRatio.value - lstRatio.value)^0.5) else 0
+   - elif entropy_ready and entropy_ma < self.entropy_threshold (=0.6):  # Penalize if entropy is low (single step)
+            self.consumer.tracker.reward -= 1
+5. step-based reward:
+   - if the entropy of last step of every ten < self.entropy_threshold (=0.6):
+            elf.consumer.tracker.reward -= 5
