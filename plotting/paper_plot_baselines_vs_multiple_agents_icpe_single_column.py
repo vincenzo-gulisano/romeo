@@ -256,7 +256,7 @@ def plot_graphs(
             pc.set_facecolor("#008000")  # Different color for baseline_df data
         pc.set_edgecolor("black")
         pc.set_alpha(1)
-    axs[9].set_ylabel("CPU (%)", fontsize=text_fontsize)
+    axs[9].set_ylabel("CPU cons.", fontsize=text_fontsize)
     axs[9].set_xlabel(
         # r"Baseline ($D$ value, or $R$ for random)", fontsize=text_fontsize
         r"Baseline ($D$ value), or Agent policy",
@@ -454,7 +454,7 @@ def plot_graphs(
         ticker.FuncFormatter(lambda x, pos: f"{x:.1f}" if x % 1 else f"{int(x)}")
     )
 
-    axs[4].set_ylabel("CPU (%)", fontsize=text_fontsize)
+    axs[4].set_ylabel("CPU cons.", fontsize=text_fontsize)
     axs[4].set_ylim(cpu_y_lim)
     axs[4].set_xticks([])
     axs[4].grid(
