@@ -104,10 +104,10 @@ def plot_graphs(
         latency_y_scale = "log"
         latency_y_lim_baselines = [0.03, 6]
         latency_y_lim_agent = [0.1, 4]
-        latency_y_ticks_agent = [0.5, 2]
-        latency_y_ticks_baseline = [0.5, 1, 2]
+        latency_y_ticks_agent = [0.2, 0.5, 2]
+        latency_y_ticks_baseline = [0.1, 1.5, 5]
         ratio_y_lim = [-0.1, 1.1]
-        cpu_y_lim = [0.0, 1]
+        cpu_y_lim = [0.0, 1.1]
         smoothing_window_size = 10
 
     elif usecase == "synthetic":
@@ -117,12 +117,12 @@ def plot_graphs(
         boundary_text = ["safe"]  # , "", "unsafe"]
         boundary_text_align = ["left", "left", "right"]
         latency_y_scale = "log"
-        latency_y_lim_baselines = [0.005, 50]
-        latency_y_lim_agent = [0.5, 3]
-        latency_y_ticks_agent = [0.2, 1, 2]
-        latency_y_ticks_baseline = [0.2, 1, 2]
-        ratio_y_lim = [0.2, 0.9]
-        cpu_y_lim = [-0.1, 1.1]
+        latency_y_lim_baselines = [0.005, 100]
+        latency_y_lim_agent = [0.5, 2]
+        latency_y_ticks_agent = [0.6, 1, 2]
+        latency_y_ticks_baseline = [0.1, 1.5, 10]
+        ratio_y_lim = [0.5, 0.8]
+        cpu_y_lim = [0.3, 0.9]
         smoothing_window_size = 10
 
     initial_opacity = 0.3
@@ -259,7 +259,7 @@ def plot_graphs(
     axs[9].set_ylabel("CPU cons.", fontsize=text_fontsize)
     axs[9].set_xlabel(
         # r"Baseline ($D$ value, or $R$ for random)", fontsize=text_fontsize
-        r"Baseline ($D$ value), or Agent policy",
+        r"Baseline ($X$ value), or Agent policy",
         fontsize=text_fontsize,
     )  # Only the last subplot needs the x-axis label
     axs[9].set_xticks(np.arange(1, len(xtick_labels) + 1))  # Set tick positions
