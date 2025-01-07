@@ -35,6 +35,7 @@ sleep_until_time_or_pid() {
 # Define base folder and input file
 
 bootstrapServer=129.16.20.158:9092
+bootstrapServer=129.16.20.20:9092 # THIS IS MICHELANGELO
 cpuThreshold=100
 
 # This is for Linear Road
@@ -64,7 +65,7 @@ episodes=30
 steps=40
 compressions=(0 1 2 3 4 5 6 7 8 9 10 r) # 
 
-episodes=1
+episodes=20
 steps=1
 compressions=(10) # 
 state_measurement_check_period=60.0
