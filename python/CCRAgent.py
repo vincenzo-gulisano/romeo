@@ -73,6 +73,7 @@ class SPEEnvironment(Env):
         self.producer = KafkaActionsProducer(self.consumer)
 
         self.stepsPerEpisode = stepsPerEpisode
+        self.state_measurement_check_period = state_measurement_check_period
         self.remaingSteps = self.stepsPerEpisode
 
         self.prev_stat_time = time.time()
