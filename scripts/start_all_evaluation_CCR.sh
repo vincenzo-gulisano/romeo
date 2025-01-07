@@ -38,7 +38,7 @@ bootstrapServer=129.16.20.158:9092
 cpuThreshold=100
 
 # This is for Linear Road
-base_folder="/home/vincenzo/romeo/data/output/09/linearroad-CCR"
+base_folder="/home/vincenzo/romeo/data/overhead/linearroad"
 input_file="/home/vincenzo/woost/data/input/input.txt"
 wa=5
 ws=600
@@ -47,18 +47,18 @@ starting_time_min=900
 starting_time_max=9900
 usecase="LinearRoad"
 
-# # This is for the synthetic query
-base_folder="/home/vincenzo/romeo/data/output/13/AOB/synthetic-CCR"
-input_file="/home/vincenzo/romeo/data/input/synthetic.csv"
-wa=1
-ws=900
-d=10
-starting_time_min=1200
-starting_time_max=6800
-usecase="Synthetic"
+# # # This is for the synthetic query
+# base_folder="/home/vincenzo/romeo/data/overhead/synthetic"
+# input_file="/home/vincenzo/romeo/data/input/synthetic.csv"
+# wa=1
+# ws=900
+# d=10
+# starting_time_min=1200
+# starting_time_max=6800
+# usecase="Synthetic"
 
 # Define lists of values
-policy="WEAOB" # CHOSE ONE OUT OF WEAOB - Wallclock, Event time, Aggregate OBlivios, EAOB - Event time, Aggregate OBlivios, AOB - Aggregate OBlivios, WEAAW - Wallclock, Event time, Aggregate AWare
+policy="WELOB" # CHOSE ONE OUT OF WEAOB - Wallclock, Event time, Aggregate OBlivios, EAOB - Event time, Aggregate OBlivios, AOB - Aggregate OBlivios, WEAAW - Wallclock, Event time, Aggregate AWare
 duration=100000000
 episodes=30
 steps=40
