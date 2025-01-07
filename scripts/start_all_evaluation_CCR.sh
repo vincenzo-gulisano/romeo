@@ -68,6 +68,7 @@ episodes=1
 steps=1
 compressions=(10) # 
 state_measurement_check_period=60.0
+randomSeed=123
 
 for compression in "${compressions[@]}"; do
     echo "Compression: $compression"
@@ -114,7 +115,7 @@ for compression in "${compressions[@]}"; do
 
     echo "Starting experiment for ${id} (compression)"
     # args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase} -pb ${policy}"
-    args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase} -pb ${policy} -rer True -bs ${bootstrapServer} -ct ${cpuThreshold}"
+    args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase} -pb ${policy} -randomSeed ${randomSeed} -bs ${bootstrapServer} -ct ${cpuThreshold}"
     echo "args=${args}"
     
     mvn clean compile package exec:java -Dexec.mainClass="com.vincenzogulisano.javapythoncommunicator.JPComm" -Dexec.args="${args}" > ${exp_folder}/spe.log 2>&1 &
