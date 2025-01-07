@@ -63,7 +63,11 @@ duration=100000000
 episodes=30
 steps=40
 compressions=(0 1 2 3 4 5 6 7 8 9 10 r) # 
-compressions=(0) # 
+
+episodes=1
+steps=1
+compressions=(10) # 
+state_measurement_check_period=60.0
 
 for compression in "${compressions[@]}"; do
     echo "Compression: $compression"
@@ -103,7 +107,7 @@ for compression in "${compressions[@]}"; do
     ./scripts/start_kafka.sh ${exp_folder}
 
     echo "Starting Python agent"
-    python_pid=$(./scripts/start_CCR_agent.sh ${episodes} ${steps} ${compression} ${exp_folder})
+    python_pid=$(./scripts/start_CCR_agent.sh ${episodes} ${steps} ${compression} ${state_measurement_check_period} ${exp_folder})
     echo "The PID of the python agent is ${python_pid}"
 
     echo "Starting SPE"
