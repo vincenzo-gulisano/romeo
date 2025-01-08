@@ -141,7 +141,8 @@ public class JPComm {
         System.out.println("bootstrapServer: " + bootstrapServer);
 
         long latencyThreshold = Long.valueOf(expOps.commandLine().getOptionValue("latencyTreshold", "1500"));
-        double CPUThreshold = Double.valueOf(expOps.commandLine().getOptionValue("CPUTreshold", "90"));
+        // double CPUThreshold = Double.valueOf(expOps.commandLine().getOptionValue("CPUTreshold", "90"));
+        double CPUThreshold = Double.valueOf(expOps.commandLine().getOptionValue("CPUTreshold", "100"));
         double earlyTerminationLatencyThreshold = Double
                 .valueOf(expOps.commandLine().getOptionValue("earlyTerminationLatencyThreshold", "2000"));
 
@@ -169,6 +170,17 @@ public class JPComm {
                         earlyTerminationLatencyThreshold, statsFolder, bootstrapServer);
                 jpc2.startInternalThread();
                 q2.activateQuery();
+
+                break;
+            
+            case "Synthetic5s":
+
+                QuerySynthetic q3 = new QuerySynthetic();
+                q3.createQuery(args);
+                JPComm jpc3 = JPComm.createInstance(q3, q3, latencyThreshold, CPUThreshold,
+                        earlyTerminationLatencyThreshold, statsFolder, bootstrapServer);
+                jpc3.startInternalThread();
+                q3.activateQuery();
 
                 break;
 
