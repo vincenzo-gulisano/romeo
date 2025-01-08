@@ -48,15 +48,15 @@ starting_time_min=900
 starting_time_max=9900
 usecase="LinearRoad"
 
-# # # This is for the synthetic query
-# base_folder="/home/vincenzo/romeo/data/overhead/synthetic"
-# input_file="/home/vincenzo/romeo/data/input/synthetic.csv"
-# wa=1
-# ws=900
-# d=10
-# starting_time_min=1200
-# starting_time_max=6800
-# usecase="Synthetic"
+# # This is for the synthetic query
+base_folder="/home/vincenzo/romeo/data/overhead/synthetic"
+input_file="/home/vincenzo/romeo/data/input/synthetic.csv"
+wa=1
+ws=900
+d=10
+starting_time_min=1200
+starting_time_max=6800
+usecase="Synthetic"
 
 # Define lists of values
 policy="WELOB" # CHOSE ONE OUT OF WEAOB - Wallclock, Event time, Aggregate OBlivios, EAOB - Event time, Aggregate OBlivios, AOB - Aggregate OBlivios, WEAAW - Wallclock, Event time, Aggregate AWare
@@ -65,17 +65,35 @@ episodes=30
 steps=40
 compressions=(0 1 2 3 4 5 6 7 8 9 10 r) # 
 
-episodes=20
-steps=1
-compressions=(10) # 
-state_measurement_check_period=60.0
-randomSeed=123
+randomSeeds=(123 2 122 1242 5)
+policy="WELAW"
+episodes=1
 
+compressions=(10 r) # 
+
+declare -A steps_map
+declare -A period_map
+
+# Define mappings for steps and state_measurement_check_period
+steps_map["10"]=2
+steps_map["r"]=40
+
+period_map["10"]=120.0
+period_map["r"]=0.5
+
+for randomSeed in "${randomSeeds[@]}"; do
 for compression in "${compressions[@]}"; do
-    echo "Compression: $compression"
+    
+    # Default values
+    steps=${steps_map[$compression]:-2} # Default to 2 if not mapped
+    state_measurement_check_period=${period_map[$compression]:-120.0} # Default to 120.0 if not mapped
+    
+    echo "For compression $compression:"
+    echo "  steps: $steps"
+    echo "  state_measurement_check_period: $state_measurement_check_period"
 
     # Define id variable with concatenation of values
-    id="${wa}/${ws}/${compression}"
+    id="${compression}/${randomSeed}"
 
     # Create folder with id in base folder
     exp_folder=${base_folder}/${id}
@@ -142,4 +160,5 @@ for compression in "${compressions[@]}"; do
     ./scripts/stop_kafka.sh
     ./scripts/stop_kafka.sh
 
+done
 done

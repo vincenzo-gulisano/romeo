@@ -1,7 +1,7 @@
 import argparse
 import os
 import pandas as pd
-
+import matplotlib.pyplot as plt
 
 def process_experiment_data(folder_base, folder_agent, experiment_ids, output_csv):
     # Create an empty DataFrame to store the consolidated data
@@ -45,6 +45,39 @@ def process_experiment_data(folder_base, folder_agent, experiment_ids, output_cs
             latency_df_b["type"] = "agent"
             consolidated_data.append(latency_df_b.rename(columns={"value": "value"}))
 
+        # Create output folder for plots
+        output_folder = os.path.dirname(output_csv)
+        os.makedirs(output_folder, exist_ok=True)
+
+        if 'cpu_df_a' in locals() and 'cpu_df_b' in locals():
+            plt.figure(figsize=(10, 6))
+            plt.plot(cpu_df_a["timestamp"], cpu_df_a["value"], label="Base CPU", color='blue')
+            plt.plot(cpu_df_b["timestamp"], cpu_df_b["value"], label="Agent CPU", color='orange')
+            plt.plot(cpu_df_a["timestamp"], cpu_df_b["value"] - cpu_df_a["value"], label="Difference (Agent - Base)", color='green')
+            plt.xlabel("Timestamp")
+            plt.ylabel("Value")
+            plt.title(f"CPU Stats for Experiment {exp_id}")
+            plt.legend()
+            cpu_plot_path = os.path.join(output_folder, f"CPU_plot_exp_{exp_id}.pdf")
+            plt.savefig(cpu_plot_path)
+            plt.close()
+            print(f"Saved CPU plot for experiment {exp_id} to {cpu_plot_path}")
+                
+        # Plot Latency data if both files exist
+        if 'latency_df_a' in locals() and 'latency_df_b' in locals():
+            plt.figure(figsize=(10, 6))
+            plt.plot(latency_df_a["timestamp"], latency_df_a["value"], label="Base Latency", color='blue')
+            plt.plot(latency_df_b["timestamp"], latency_df_b["value"], label="Agent Latency", color='orange')
+            plt.plot(latency_df_a["timestamp"], latency_df_b["value"] - latency_df_a["value"], label="Difference (Agent - Base)", color='green')
+            plt.xlabel("Timestamp")
+            plt.ylabel("Value")
+            plt.title(f"Latency Stats for Experiment {exp_id}")
+            plt.legend()
+            latency_plot_path = os.path.join(output_folder, f"Latency_plot_exp_{exp_id}.pdf")
+            plt.savefig(latency_plot_path)
+            plt.close()
+            print(f"Saved Latency plot for experiment {exp_id} to {latency_plot_path}")
+            
     # Combine all data into a single DataFrame
     consolidated_df = pd.concat(consolidated_data, ignore_index=True)
     consolidated_df = consolidated_df[["timestamp", "exp_id", "stat", "type", "value"]]
