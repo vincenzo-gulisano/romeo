@@ -48,18 +48,18 @@ starting_time_min=900
 starting_time_max=9900
 usecase="LinearRoad"
 
-# # This is for the synthetic query
-base_folder="/home/vincenzo/romeo/data/overhead/synthetic"
-input_file="/home/vincenzo/romeo/data/input/synthetic.csv"
-wa=1
-ws=900
-d=10
-starting_time_min=1200
-starting_time_max=6800
-usecase="Synthetic"
+# # # This is for the synthetic query
+# base_folder="/home/vincenzo/romeo/data/overhead/synthetic"
+# input_file="/home/vincenzo/romeo/data/input/synthetic.csv"
+# wa=1
+# ws=900
+# d=10
+# starting_time_min=1200
+# starting_time_max=6800
+# usecase="Synthetic"
 
 # Define lists of values
-policy="WELOB" # CHOSE ONE OUT OF WEAOB - Wallclock, Event time, Aggregate OBlivios, EAOB - Event time, Aggregate OBlivios, AOB - Aggregate OBlivios, WEAAW - Wallclock, Event time, Aggregate AWare
+# policy="WELOB" # CHOSE ONE OUT OF WEAOB - Wallclock, Event time, Aggregate OBlivios, EAOB - Event time, Aggregate OBlivios, AOB - Aggregate OBlivios, WEAAW - Wallclock, Event time, Aggregate AWare
 duration=100000000
 episodes=30
 steps=40
@@ -75,12 +75,19 @@ declare -A steps_map
 declare -A period_map
 
 # Define mappings for steps and state_measurement_check_period
+# Baseline pretending there is no Agent
 steps_map["10"]=2
-steps_map["r"]=40
-
 period_map["10"]=120.0
+
+# Agent
+steps_map["r"]=40
 period_map["r"]=0.5
 
+# Baseline with Agent saying always 10
+steps_map["10"]=80
+period_map["10"]=0.5
+
+compressions=(10) # 
 for randomSeed in "${randomSeeds[@]}"; do
 for compression in "${compressions[@]}"; do
     
@@ -93,7 +100,7 @@ for compression in "${compressions[@]}"; do
     echo "  state_measurement_check_period: $state_measurement_check_period"
 
     # Define id variable with concatenation of values
-    id="${compression}/${randomSeed}"
+    id="${compression}/${randomSeed}/${steps}/${state_measurement_check_period}"
 
     # Create folder with id in base folder
     exp_folder=${base_folder}/${id}
