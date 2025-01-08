@@ -34,7 +34,7 @@ lr = 0.01
 buffer_size = 10000  # replay buffer size
 batch_size = 128
 #episodes = 50
-target_update = 20  # the frequency for copying parameters from net to target_net
+target_update = 1000  # update target net every 1000 steps
 #steps = 100
 # EPSILON_START = 0.01
 # EPSILON_END = 0.01
@@ -152,7 +152,7 @@ class DQN(object):
         #action = self.net(torch.Tensor(state))
         self.sample_count += 1
 
-        # if self.first_step:
+        # if self.first_step:detach
         #     self.first_step = False
         #     self.net.reinitialize_final_layer()
         if self.sample_count == batch_size + 1 and not self.reinitialized:
@@ -323,21 +323,17 @@ class SPEEnvironment(Env):
         self.consumer.start_consumer()
 
         self.latency_last_events = -1
-
         self.latency_violations_per_episode = 1
         self.cpu_violations_per_episode = 1
-        # define initial compression ratio
-        self.current_compression = 100 
+        self.current_compression = 100  # define initial compression ratio
         self.bonus_latency_threshold = 1000
         self.latency_record = []
-        # track the number of steps since last reward
-        self.steps_since_last_bonus = 0
+        self.steps_since_last_bonus = 0 # track the number of steps since last reward
         self.bonus_step_interval = 10
         self.bonus_ten_steps = 30
-        self.bonus_all_steps = 0
+        self.bonus_below_latency = 60
         self.entropy_threshold = 0.6
         self.entropy_penalty = -5
-
 
         # self.state_labels = ["injectionrate", "throughput", "outrate", "latency", "compressionratio", "CPU-agg", "eventtime"]
         self.state_labels = ["injectionrate", "throughput", "outrate", "latency", "compressionratio", "CPU-agg"]
@@ -455,20 +451,20 @@ class SPEEnvironment(Env):
                     print(f'reward {self.consumer.tracker.reward} || {self.consumer.tracker.original_reward}', flush=True)
                     state_measurement_available = True
                     
-
         # We start at 0
-        self.consumer.tracker.reward = 0
+        # self.consumer.tracker.reward = 0
 
         # give extra if completing predefined number of steps
         if self.steps_since_last_bonus == self.bonus_step_interval - 1:
             self.consumer.tracker.reward += self.bonus_ten_steps
-            # But remove some if entropy is too loo
+            # but remove some if entropy is too low
             if entropy_ready and entropy_ma < self.entropy_threshold:  # Penalize if entropy is low
                 self.consumer.tracker.reward += self.entropy_penalty
             print(f"Extra reward bonus +{self.consumer.tracker.reward} for completing {self.bonus_step_interval} steps", flush=True)
         elif entropy_ready and entropy_ma < self.entropy_threshold:  # Penalize if entropy is low (single step)
             self.consumer.tracker.reward -= 1
-            print(f"-1 penalty for low entropy at {self.bonus_step_interval} steps", flush=True)
+            # print(f"-1 penalty for low entropy at {self.bonus_step_interval} steps", flush=True)
+            print(f"-1 penalty for low entropy at this step", flush=True)
 
         self.steps_since_last_bonus += 1
         if self.steps_since_last_bonus == self.bonus_step_interval:
@@ -513,7 +509,6 @@ class SPEEnvironment(Env):
 
         # Increment the episodic return
         self.ep_return += 1
-
         return state_transformed[:-1], self.consumer.tracker.reward, done, []
     
     def close(self):
@@ -708,71 +703,24 @@ if __name__ == "__main__":
     Agent = DQN(input_shape, hidden_size, output_size)
 
     #load model's paras and replay buffer
-    # model_file = 'image/Exp16_1/1_WELOB/linear/1-100/Exp16-1_welob_l_paras-1-100/exp16-1_welob_l_dqn_model_episode_100.pth'
-    # buffer_file = 'image/Exp16_1/1_WELOB/linear/1-100/Exp16-1_welob_l_replay_buffer-1-100/exp16-1_welob_l_buffer_after_100_episodes.pkl'
+    # model_file = 'image/exp16-5/WELAW/synthetic5s/1-60/model_paras/dqn_model_episode_50.pth'
+    # buffer_file = 'image/exp16-5/WELAW/synthetic5s/1-60/replay_buffer/replay_buffer_episode_50.pkl'
     # load_model_and_buffer(Agent, model_file, buffer_file)
 
-    exp_folder = args.baseFolder #  args.exp_folder
-    paras_folder = create_folder_and_path(exp_folder, 'Exp16-2_elob_s_paras-1-100')
-    q_value_folder = create_folder_and_path(exp_folder, 'Exp16-2_elob_s_q_values_plot-1-100')
-    replay_buffer_folder = create_folder_and_path(exp_folder, 'Exp16-2_elob_s_replay_buffer-1-100')
-    step_tot_reward_path = create_folder_and_path(exp_folder, '', 'step_tot_reward.csv')
-    action_time_reward_path = create_folder_and_path(exp_folder, '', 'rewards.csv')
-    probs_path = create_folder_and_path(exp_folder, '', 'probs.csv')
+    #exp_folder = args.baseFolder #  args.exp_folder
+    paras_folder = create_folder_and_path(args.baseFolder, 'model_paras')
+    q_value_folder = create_folder_and_path(args.baseFolder, 'q_values_plot')
+    replay_buffer_folder = create_folder_and_path(args.baseFolder, 'replay_buffer')
+    step_tot_reward_path = create_folder_and_path(args.baseFolder, '', 'step_tot_reward.csv')
+    action_time_reward_path = create_folder_and_path(args.baseFolder, '', 'rewards.csv')
+    probs_path = create_folder_and_path(args.baseFolder, '', 'probs.csv')
 
     if args.agentstate is not None:
         Agent.net.load_state_dict(torch.load(args.agentstate))
    
     incremental_average_reward = 0  # average reward of all episodes for incermental averaging
+    cumulative_steps = 0 # track steps across episodes
 
-    # create folder to store paras (linear)
-    # paras_folder_name = 'data/output/WELOB/linear/5/600/5000000000/10/Exp16_welob_l_paras-1-200'
-    # if not os.path.exists(paras_folder_name):
-    #     os.makedirs(paras_folder_name)
-
-    # # create folder to store paras (synthetic)
-    paras_folder_name = os.path.join(args.baseFolder, 's_paras')
-    if not os.path.exists(paras_folder_name):
-        os.makedirs(paras_folder_name)
-
-    # create folder to store q value plots (linear)
-    # q_value_folder_name = 'data/output/WELOB/linear/5/600/5000000000/10/Exp16_welob_l_q_value_plot-1-200'
-    # if not os.path.exists(q_value_folder_name):
-    #     os.makedirs(q_value_folder_name)
-
-    # create folder to store q value plots (synthetic)
-    q_value_folder_name = os.path.join(args.baseFolder, 'q_values_plot')
-    # q_value_folder_name = 'data/output/LOB/synthetic/1/900/5000000000/10/Exp16-1_lob_s_q_values_plot-1-100'
-    if not os.path.exists(q_value_folder_name):
-        os.makedirs(q_value_folder_name)
-    
-    # create folder to store replay buffer (linear)
-    # replay_buffer_folder_name = 'data/output/WELOB/linear/5/600/5000000000/10/Exp16_welob_l_replay_buffer-1-200'
-    # if not os.path.exists(replay_buffer_folder_name):
-    #     os.makedirs(replay_buffer_folder_name)
-    
-    # # create folder to store replay buffer (synthetic)
-    replay_buffer_folder_name = os.path.join(args.baseFolder, 'replay_buffer')
-    # replay_buffer_folder_name = 'data/output/LOB/synthetic/1/900/5000000000/10/Exp16-1_lob_s_replay_buffer-1-100'
-    if not os.path.exists(replay_buffer_folder_name):
-        os.makedirs(replay_buffer_folder_name)
-
-    # create csv file to save episode - #step - total reward (linear)
-    # step_tot_reward_folder_name = 'data/output/WELOB/linear/5/600/5000000000/10'
-    # if not os.path.exists(step_tot_reward_folder_name):
-    #     os.makedirs(step_tot_reward_folder_name)
-    # step_tot_reward_path = os.path.join(step_tot_reward_folder_name, 'step_tot_reward_welob_l_exp16.csv')
-
-    # create csv file to save episode - #step - total reward (synthetic)
-    # step_tot_reward_folder_name = args.baseFolder, 'replay_buffer')
-    # step_tot_reward_folder_name = 'data/output/LOB/synthetic/1/900/5000000000/10/'
-    # if not os.path.exists(step_tot_reward_folder_name):
-    #     os.makedirs(step_tot_reward_folder_name)
-    step_tot_reward_path = os.path.join(args.baseFolder, 'rewards.steps.csv')
-
-    with open(step_tot_reward_path, mode = 'w', newline = '') as file:
-        writer = csv.writer(file)
-        writer.writerow(['episode', 'step', 'total_reward'])
 
     for i_episode in range(0, int(args.episodes)):
         print('starting episode',i_episode + 1, flush=True)
@@ -792,16 +740,12 @@ if __name__ == "__main__":
             # for epsilon greedy strategy
             # a0, action_type, action_time, epsilon, current_compression = Agent.select_action(s0)
             # for Boltzmann(softmax) exploration strategy
-            a0, action_type, action_time, tau, action_probablities, current_compression, entropy, moving_average_entropy, is_moving_average_ready  = Agent.select_action(s0)
+            a0, action_type, action_time, tau, action_probablities, current_compression, entropy, moving_average_entropy, is_moving_average_ready = Agent.select_action(s0)
             q_values = Agent.net(torch.Tensor(s0)).detach().numpy().squeeze()
             # for epsilon greedy strategy
             # print(f"Episode {i_episode + 1}, Step {step_count + 1}, Action {a0}, Current Compression: {current_compression}, Action type: {action_type}, Epsilon: {epsilon:.6f}, Q values: {q_values}, Action time: {action_time}") 
             # for Boltzmann(softmax) exploration strategy
             print(f"Episode {i_episode + 1}, Step {step_count + 1}, Tau: {tau:.6f}, Q values: {q_values}, Action Probablities: {action_probablities}, Action {a0}, Entropy: {entropy}, Entropy MA: {moving_average_entropy}, Entropy MA ready: {is_moving_average_ready}, Current Compression: {current_compression}, Action time: {action_time}, Action type: {action_type}", flush=True)
-
-            # if env.bonus_given:
-            #     print(f"Extra reward bonus +5 for completing {env.bonus_step_interval} steps")
-            #     env.bonus_given = False
 
             steps.append(step_count)
             for i, q_value in enumerate(q_values):
@@ -810,6 +754,8 @@ if __name__ == "__main__":
             # only keep the return value of s1, r, done, ignore the fourth return value
             step_result = env.step(a0, current_compression, moving_average_entropy, is_moving_average_ready)
             s1, r, done = step_result[:3]
+            total_reward += r # cal total reward of current episode
+            print(f"After {step_count + 1} steps, total reward so far in this episode: {total_reward}", flush=True)
             
             write_to_csv(action_time_reward_path, mode = 'a', data = [int(action_time), r], data_type = 'rewards')
             # episode, step, prob 0, prob 1, prob 2, entropy, entropy_ma, entropy_ready, reward
@@ -817,19 +763,6 @@ if __name__ == "__main__":
                                                          action_probablities[0], action_probablities[1], 
                                                          action_probablities[2], entropy, 
                                                          moving_average_entropy, is_moving_average_ready, r], data_type = 'probs')
-
-            # total_time += r  # cal. total time of current episode
-            total_reward += r # cal total reward of current episode
-            step_count += 1 # increment the step 
-
-            t = 1 if done else 0
-            Agent.put(s0, a0, r, t, s1)  # put into replay buffer
-            s0 = s1
-
-            if args.learningactive:
-                Agent.update_parameters()
-            
-            print(f"After {step_count + 1} steps, total reward so far in this episode: {total_reward}", flush=True)
             
             if done == True:
                 end_time = time.time() # end time of per episode
@@ -844,38 +777,26 @@ if __name__ == "__main__":
                 write_to_csv(step_tot_reward_path, mode = 'a', data = [i_episode + 1, step_count + 1, total_reward], data_type = 'step_tot_reward')
                 break
 
-        if i_episode % target_update == 0:
-            Agent.target_net.load_state_dict(Agent.net.state_dict())
+            step_count += 1 # increment the step for each episode
+            cumulative_steps += 1 # increment the step across the episode
 
-        plt.figure()
-        colors = ['red', 'green', 'blue', 'cyan', 'magenta', 'yellow', 'black', 'orange', 'purple', 'brown', 'pink']
-        # markers = ['o', 'v', '^', '<', '>', 's', 'p', '*', 'h', 'H', 'D']
-        for i, action_q_values in enumerate(q_values_history):
-                if len(steps) == len(action_q_values):
-                    action_q_values = [val[0] if isinstance(val, np.ndarray) and len(val) == 1 else val for val in action_q_values]
-                    # plt.plot(steps, action_q_values, label = f'Action {i}', color = colors[i % len(colors)], marker = markers[i % len(markers)])
-                    plt.plot(steps, action_q_values, label = f'Action {i}', color = colors[i % len(colors)])
-                else:
-                    print(f"Error: Mismatch in lengths for Action {i}", flush=True)
+            t = 1 if done else 0
+            Agent.put(s0, a0, r, t, s1)  # put into replay buffer
+            s0 = s1
 
-
-        # saving q value plots
-        plt.xlabel('Stpes')
-        plt.ylabel('Q Values')
-        plt.title(f'Q Values Over Episodes (Episode {i_episode + 1})')
-        plt.legend()
-        q_value_file_path = os.path.join(q_value_folder_name, f'exp16-1_lob_s_values_plot_{i_episode + 1}.png')
-        plt.savefig(q_value_file_path)
-        plt.close()
+            if args.learningactive:
+                Agent.update_parameters()
             
-        # saving paras and replay buffer per 10 episodes
-        if (i_episode + 1) % 10 == 0: 
-            # save model paras every 10 episodes
-            paras_file_path = os.path.join(paras_folder_name, f'exp16-1_lob_s_dqn_model_episode_{i_episode + 1}.pth')
-            torch.save(Agent.net.state_dict(), paras_file_path)
-            replay_buffer_file_path = os.path.join(replay_buffer_folder_name, f'exp16-1_lob_s_buffer_after_{i_episode + 1}_episodes.pkl')
-            with open (replay_buffer_file_path, 'wb') as f:
-                pickle.dump(Agent.buffer, f)
+            if (cumulative_steps + 1) % target_update == 0:
+                Agent.target_net.load_state_dict(Agent.net.state_dict())
+                print(f"Target network updated after {cumulative_steps + 1} steps.", flush=True)
+
+        q_value_file_path = os.path.join(q_value_folder, f'q_value_plot_{i_episode + 1}.png')
+        plot_q_values(steps, q_values_history, i_episode + 1, q_value_file_path)
+        model_file_path = os.path.join(paras_folder, f'dqn_model_episode_{i_episode + 1}.pth')
+        buffer_file_path = os.path.join(replay_buffer_folder, f'replay_buffer_episode_{i_episode + 1}.pkl')
+        if (i_episode + 1) % 10 == 0:
+            save_model_and_buffer(Agent, i_episode + 1, model_file_path, buffer_file_path)
                  
     print('closing', flush=True)
     env.close()
