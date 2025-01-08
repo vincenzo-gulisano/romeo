@@ -558,12 +558,12 @@ public class EnvironmentStateCalculator implements StatReporter {
                 return 0;
             }
 
-            // if (lstRatio.value < pstRatio.value && lstLatStatus == LatStatus.BELOW) {
-            // reward = (long) Math.pow(100 - lstRatio.value, 0.3);
-            // }
+            if (lstRatio.value < pstRatio.value && lstLatStatus == LatStatus.BELOW) {
+                reward = Math.round(Math.pow(pstRatio.value - lstRatio.value, 0.5));
+            }
 
-            logger.debug("Returning always 0!");
-            reward = 0;
+            // logger.debug("Returning always 0!");
+            // reward = 0;
 
         }
 
