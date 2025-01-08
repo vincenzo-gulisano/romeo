@@ -429,13 +429,14 @@ latency for any 3 steps in each episode is higher than 2.5 seconds --> terminate
 3. store entropy of the action for each step
 
 ## Exp16-5 (120/1000)
-1. no cpu violation
-2. update target network every 1000 steps
-3. calculate entropy_ma: the average entropy for the last 1000 steps
-4. action-based reward: 
-   - if n/c ratio decreased && latency < hard latency threshold --> reward = round ((pstRatio.value - lstRatio.value)^0.5) else 0
+1. action-based reward
+   - if n/c ratio decreased && latency < hard latency threshold:
+      - reward = round ((pstRatio.value - lstRatio.value)^0.5) else 0
    - elif entropy_ready and entropy_ma < self.entropy_threshold (=0.6):  # Penalize if entropy is low (single step)
-            self.consumer.tracker.reward -= 1
-5. step-based reward:
-   - if the entropy of last step of every ten < self.entropy_threshold (=0.6):
-            elf.consumer.tracker.reward -= 5
+       - self.consumer.tracker.reward -= 1
+2. step-based reward
+   - if the entropy of last step of every 10 steps < self.entropy_threshold (=0.6):
+       - self.consumer.tracker.reward -= 5
+3. no cpu violation
+4. update target network every 1000 steps
+5. calculate entropy_ma: the average entropy for every 1000 steps
