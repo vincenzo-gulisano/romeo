@@ -331,7 +331,7 @@ class SPEEnvironment(Env):
         self.steps_since_last_bonus = 0 # track the number of steps since last reward
         self.bonus_step_interval = 10
         self.bonus_ten_steps = 30
-        self.bonus_below_latency = 60
+        self.bonus_all_steps = 0
         self.entropy_threshold = 0.6
         self.entropy_penalty = -5
 
@@ -423,6 +423,23 @@ class SPEEnvironment(Env):
         # return states except eventtime
         return state_transformed[:-1]
     
+    def scaled_compression_reward(self, ratio, bonus_step_interval_points_compression):
+        """
+        Scales a reward based on the compression level, where 0 compression gives maximum reward 
+        and 100 compression gives zero reward.
+        
+        Parameters:
+        - compression: int or float, where 0 indicates maximum compression and 100 indicates no compression.
+        - bonus_step_interval_points_compression: int or float, the maximum reward given at 0 compression.
+
+        Returns:
+        - Scaled reward between 0 and bonus_step_interval_points_compression based on the compression level.
+        """
+
+        # Calculate reward, where 0 compression gives maximum reward, 100 compression gives zero
+        reward = bonus_step_interval_points_compression * (1 - (ratio / 100))
+        return reward
+    
     def step(self, action, current_compression, entropy_ma, entropy_ready):
     
         self.remaingSteps -= 1
@@ -457,7 +474,7 @@ class SPEEnvironment(Env):
         # give extra if completing predefined number of steps
         if self.steps_since_last_bonus == self.bonus_step_interval - 1:
             self.consumer.tracker.reward += self.bonus_ten_steps
-            # but remove some if entropy is too low
+            # But remove some if entropy is too loo
             if entropy_ready and entropy_ma < self.entropy_threshold:  # Penalize if entropy is low
                 self.consumer.tracker.reward += self.entropy_penalty
             print(f"Extra reward bonus +{self.consumer.tracker.reward} for completing {self.bonus_step_interval} steps", flush=True)
@@ -520,6 +537,7 @@ class MeasurementTracker:
     def __init__(self, valuesPerObservation):
         self.last_time = None
         self.state = None
+        self.latest_compression = None
         self.original_reward = None
         self.reward = None
         self.data_lock = threading.Lock()
@@ -554,6 +572,19 @@ class MeasurementTracker:
                 # self.state = np.array(doubles_list, dtype=np.float32).reshape(11, self.valuesPerObservation)
                 # Convert the list to a NumPy array of float32 and reshape it to 7x7
                 self.state = np.array(selected_state, dtype=np.float32).reshape(7, self.valuesPerObservation)
+                
+                # Find the latest compression value that is not -1
+                # Extract the 6th row (index 5) from self.state
+                compression_values = self.state[5]
+
+                # Find the latest value in the row that is not -1
+                self.latest_compression = None
+                for value in reversed(compression_values):
+                    if value != -1:
+                        self.latest_compression = value
+                        break
+
+                
             except Exception as e:
                 raise RuntimeError("An error occured parsing " + input_str) from e
             

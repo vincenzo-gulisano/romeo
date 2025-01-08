@@ -6,12 +6,13 @@ import numpy as np
 import sys
 import plotly.tools as tls
 
-def plot_files_in_folder(folder,episodesstatsfile,makeplots,print_global_events,print_episode_events):
+def plot_files_in_folder(folder,episodesstatsfile,makeplots,dumpdata,print_global_events,print_episode_events):
 
     # Font size used in the per-episode plots
     fs = 6
 
     print('Make episode plots?',makeplots)
+    print('Dump data?',dumpdata)
 
     valid_csv_files = []
 
@@ -154,6 +155,14 @@ def plot_files_in_folder(folder,episodesstatsfile,makeplots,print_global_events,
                 temp_df = df[(df.iloc[:, 0] >= start_time) & (df.iloc[:, 0] <= stop_time)]
                 filtered_df = temp_df[temp_df.iloc[:, 1] != -1]
 
+                # Dump data
+                if dumpdata and (y_label == 'CPU-agg.average' or y_label == 'latency.average'):
+                    # Create a DataFrame for saving to CSV
+                    csv_data = pd.DataFrame({'timestamp': filtered_df.iloc[:, 0]-start_time, 'value': filtered_df.iloc[:, 1]})
+                    output_csv_path = os.path.join(episode_folder, f'{y_label}.{episode_value:03}.csv')  # Customize the naming if needed
+                    csv_data.to_csv(output_csv_path, index=False)
+                    print(f"Saved plot data to {output_csv_path}")
+                    
                 # Plot
                 if makeplots:
                     ax2[i].plot(filtered_df.iloc[:, 0]-start_time,filtered_df.iloc[:, 1])
@@ -215,10 +224,15 @@ if __name__ == "__main__":
     parser.add_argument('--makeplots', action='store_true', help='Whether or not to create plots')
     parser.add_argument('--print_global_events', action='store_true', help='Print episodes and events')
     parser.add_argument('--print_episode_events', action='store_true', help='Print episodes and events')
+    parser.add_argument('--dumpdata', action='store_true', help='Whether or not to dump data')
 
     args = parser.parse_args()
     if args.makeplots:
         print("Making plots because makeplots is True")
     else:
         print("Not making plots because makeplots is False")
-    plot_files_in_folder(args.folder,args.episodesstats,args.makeplots,args.print_global_events,args.print_episode_events)
+    if args.dumpdata:
+        print("Dumping CPU and latency data")
+    else:
+        print("Not dumping CPU and latency data")
+    plot_files_in_folder(args.folder,args.episodesstats,args.makeplots,args.dumpdata,args.print_global_events,args.print_episode_events)

@@ -48,7 +48,7 @@ for folder_to_explore in "${folders_to_explore[@]}"; do
 
     echo "Creating plots and stats"
     if [ "$plot_probabilities" = "True" ]; then
-        python plotting/plot_experiment_stats_exp.py ${exp_folder}/ ${exp_folder}/episodesstats.csv --makeplots
+        python plotting/plot_experiment_stats_exp.py ${exp_folder}/ ${exp_folder}/episodesstats.csv --makeplots --dumpdata
     else
         python plotting/plot_experiment_stats_exp.py ${exp_folder}/ ${exp_folder}/episodesstats.csv
     fi

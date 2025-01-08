@@ -34,6 +34,9 @@ sleep_until_time_or_pid() {
 
 # Define base folder and input file
 
+bootstrapServer=129.16.20.158:9092
+cpuThreshold=100
+
 # This is for Linear Road
 base_folder="/home/vincenzo/romeo/data/output/09/linearroad-CCR"
 input_file="/home/vincenzo/woost/data/input/input.txt"
@@ -106,10 +109,11 @@ for compression in "${compressions[@]}"; do
     echo "Starting SPE"
 
     echo "Starting experiment for ${id} (compression)"
-    args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase} -pb ${policy}"
-
+    # args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase} -pb ${policy}"
+    args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase} -pb ${policy} -rer True -bs ${bootstrapServer} -ct ${cpuThreshold}"
+    echo "args=${args}"
+    
     mvn clean compile package exec:java -Dexec.mainClass="com.vincenzogulisano.javapythoncommunicator.JPComm" -Dexec.args="${args}" > ${exp_folder}/spe.log 2>&1 &
-
     sleep 5
 
     # Use pgrep to find the PID of the Java process

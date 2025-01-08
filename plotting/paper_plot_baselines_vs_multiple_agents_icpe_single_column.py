@@ -6,6 +6,11 @@ import numpy as np
 import matplotlib.ticker as ticker
 
 
+# Define a function to handle edge cases
+def rolling_mean_custom(series, window):
+    return [np.mean(series[max(0, i - window // 2): i + window // 2 + 1]) for i in range(len(series))]
+
+
 def plot_graphs(
     base_folder,
     rate_file_path,
@@ -98,12 +103,12 @@ def plot_graphs(
         boundary_text_align = ["left", "left"]
         latency_y_scale = "log"
         latency_y_lim_baselines = [0.03, 6]
-        latency_y_lim_agent = [0.01, 3]
-        latency_y_ticks_agent = [0.5, 2]
-        latency_y_ticks_baseline = [0.1, 1, 2]
+        latency_y_lim_agent = [0.1, 4]
+        latency_y_ticks_agent = [0.2, 0.5, 2]
+        latency_y_ticks_baseline = [0.1, 1.5, 5]
         ratio_y_lim = [-0.1, 1.1]
-        cpu_y_lim = [0.0, 0.2]
-        smoothing_window_size = 5
+        cpu_y_lim = [0.0, 1.1]
+        smoothing_window_size = 10
 
     elif usecase == "synthetic":
 
@@ -112,18 +117,18 @@ def plot_graphs(
         boundary_text = ["safe"]  # , "", "unsafe"]
         boundary_text_align = ["left", "left", "right"]
         latency_y_scale = "log"
-        latency_y_lim_baselines = [0.005, 50]
-        latency_y_lim_agent = [0.1, 3]
-        latency_y_ticks_agent = [0.2, 1, 2]
-        latency_y_ticks_baseline = [0.01, 0.1, 1, 10]
-        ratio_y_lim = [-0.1, 1.1]
-        cpu_y_lim = [-0.1, 1.1]
-        smoothing_window_size = 5
+        latency_y_lim_baselines = [0.005, 100]
+        latency_y_lim_agent = [0.5, 2]
+        latency_y_ticks_agent = [0.6, 1, 2]
+        latency_y_ticks_baseline = [0.1, 1.5, 10]
+        ratio_y_lim = [0.5, 0.8]
+        cpu_y_lim = [0.3, 0.9]
+        smoothing_window_size = 10
 
     initial_opacity = 0.3
     final_opacity = 0.9
     splits = 2  # Number of portions to divide the subset into
-    max_line_width = 2.5  # Set your desired maximum line width
+    max_line_width = 1  # Set your desired maximum line width
     agent_color = "green"
 
     # Specify color and font size
@@ -131,7 +136,7 @@ def plot_graphs(
     text_fontsize = 7  # Example font size
 
     latencies_thresholds = [1.5]
-    latencies_thresholds_ids = ["QoS threshold"]
+    latencies_thresholds_ids = [r"  $\ell$ threshold"]
 
     # Read the first and second columns from the CSV
     dfrate = pd.read_csv(rate_file_path, usecols=[0, 1], header=None)
@@ -219,7 +224,7 @@ def plot_graphs(
         )  # Horizontal line at max_latency
         # Add text for threshold latency
         axs[8].text(
-            0.5,
+            0.7,
             latency_threshold * 1.05,
             latencies_thresholds_ids[lat_idx],
             color="red",
@@ -251,10 +256,10 @@ def plot_graphs(
             pc.set_facecolor("#008000")  # Different color for baseline_df data
         pc.set_edgecolor("black")
         pc.set_alpha(1)
-    axs[9].set_ylabel("CPU (%)", fontsize=text_fontsize)
+    axs[9].set_ylabel("CPU cons.", fontsize=text_fontsize)
     axs[9].set_xlabel(
         # r"Baseline ($D$ value, or $R$ for random)", fontsize=text_fontsize
-        r"Baseline ($D$ value), or Agent policy",
+        r"Baseline ($X$ value), or Agent policy",
         fontsize=text_fontsize,
     )  # Only the last subplot needs the x-axis label
     axs[9].set_xticks(np.arange(1, len(xtick_labels) + 1))  # Set tick positions
@@ -322,8 +327,11 @@ def plot_graphs(
             portion = portion.sort_values(by="eventtime_start")
 
             # Line width proportional to portion number, scaled between 1 and max_line_width
-            line_width = 1 + (portion_num - 1) * (max_line_width - 1) / (splits - 1)
-
+            if splits>1:
+                line_width = 1 + (portion_num - 1) * (max_line_width - 1) / (splits - 1)
+            else:
+                line_width = max_line_width
+                
             # Extract x and y coordinates
             x_coords = portion["eventtime_start"] - dfrate["x"].min()
             y_coords_ratio = portion["mean_ratio"] / 100
@@ -332,26 +340,30 @@ def plot_graphs(
             y_coords_duration = portion["duration"]
 
             # smooth the line
-            smooth_points_ratio = (
-                pd.Series(y_coords_ratio)
-                .rolling(window=smoothing_window_size, center=True)
-                .mean()
-            )
-            smooth_points_latency = (
-                pd.Series(y_coords_latency)
-                .rolling(window=smoothing_window_size, center=True)
-                .mean()
-            )
-            smooth_points_cpu = (
-                pd.Series(y_coords_cpu)
-                .rolling(window=smoothing_window_size, center=True)
-                .mean()
-            )
-            smooth_points_duration = (
-                pd.Series(y_coords_duration)
-                .rolling(window=smoothing_window_size, center=True)
-                .mean()
-            )
+            smooth_points_ratio = rolling_mean_custom(y_coords_ratio, smoothing_window_size)
+            # smooth_points_ratio = (
+            #     pd.Series(y_coords_ratio)
+            #     .rolling(window=smoothing_window_size, center=True)
+            #     .mean()
+            # )
+            smooth_points_latency = rolling_mean_custom(y_coords_latency, smoothing_window_size)
+            # smooth_points_latency = (
+            #     pd.Series(y_coords_latency)
+            #     .rolling(window=smoothing_window_size, center=True)
+            #     .mean()
+            # )
+            smooth_points_cpu = rolling_mean_custom(y_coords_cpu, smoothing_window_size)
+            # smooth_points_cpu = (
+            #     pd.Series(y_coords_cpu)
+            #     .rolling(window=smoothing_window_size, center=True)
+            #     .mean()
+            # )
+            smooth_points_duration = rolling_mean_custom(y_coords_duration, smoothing_window_size)
+            # smooth_points_duration = (
+            #     pd.Series(y_coords_duration)
+            #     .rolling(window=smoothing_window_size, center=True)
+            #     .mean()
+            # )
 
             # Plot the line for the current portion with line thickness proportional to portion number
             # axs[2].plot(x_coords, y_coords_ratio, color=agent_plots[baseline][4],
@@ -362,8 +374,7 @@ def plot_graphs(
                 smooth_points_ratio,
                 color=colors[agent_num],
                 linewidth=line_width,
-                alpha=opacities[portion_num - 1],
-                label=barplots_ids_labels[agent_num]
+                alpha=opacities[portion_num - 1]
             )
             
 
@@ -389,6 +400,7 @@ def plot_graphs(
                 color=colors[agent_num],
                 linewidth=line_width,
                 alpha=opacities[portion_num - 1],
+                label=barplots_ids_labels[agent_num],
             )
 
             axs[5].plot(
@@ -401,12 +413,12 @@ def plot_graphs(
 
 
             # Update min_et and max_et based on the current portion
-            if min_et is None or x_coords.min() < min_et:
+            if min_et is None or x_coords.min() > min_et:
                 min_et = x_coords.min()
-            if max_et is None or x_coords.max() > max_et:
+            if max_et is None or x_coords.max() < max_et:
                 max_et = x_coords.max()
 
-    axs[2].legend(ncol=2)
+    axs[4].legend(ncol=4, handletextpad=0.5, columnspacing=0.5)
     axs[2].set_ylabel("n/c ratio", fontsize=text_fontsize)
     axs[2].set_ylim(ratio_y_lim)
     axs[2].set_xticks([])
@@ -442,7 +454,7 @@ def plot_graphs(
         ticker.FuncFormatter(lambda x, pos: f"{x:.1f}" if x % 1 else f"{int(x)}")
     )
 
-    axs[4].set_ylabel("CPU (%)", fontsize=text_fontsize)
+    axs[4].set_ylabel("CPU cons.", fontsize=text_fontsize)
     axs[4].set_ylim(cpu_y_lim)
     axs[4].set_xticks([])
     axs[4].grid(
@@ -459,14 +471,16 @@ def plot_graphs(
     axs[5].grid(
         True, which="major", axis="y", linestyle="-", color="gray", linewidth=0.5
     )
+    
+    print('min_et',min_et,'max_et',max_et)
 
     # adjust x lim of left plots
-    axs[0].set_xlim([min_et * 0.95, max_et])
-    axs[1].set_xlim([min_et * 0.95, max_et])
-    axs[2].set_xlim([min_et * 0.95, max_et])
-    axs[3].set_xlim([min_et * 0.95, max_et])
-    axs[4].set_xlim([min_et * 0.95, max_et])
-    axs[5].set_xlim([min_et * 0.95, max_et])
+    axs[0].set_xlim([min_et, max_et])
+    axs[1].set_xlim([min_et, max_et])
+    axs[2].set_xlim([min_et, max_et])
+    axs[3].set_xlim([min_et, max_et])
+    axs[4].set_xlim([min_et, max_et])
+    axs[5].set_xlim([min_et, max_et])
 
     # Adjust layout
     fig.tight_layout()
