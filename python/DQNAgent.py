@@ -331,7 +331,7 @@ class SPEEnvironment(Env):
         self.steps_since_last_bonus = 0 # track the number of steps since last reward
         self.bonus_step_interval = 10
         self.bonus_ten_steps = 30
-        self.bonus_all_steps = 0
+        self.bonus_all_steps = 60
         self.entropy_threshold = 0.6
         self.entropy_penalty = -5
 
