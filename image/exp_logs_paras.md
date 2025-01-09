@@ -440,3 +440,10 @@ latency for any 3 steps in each episode is higher than 2.5 seconds --> terminate
 3. no cpu violation
 4. update target network every 1000 steps
 5. calculate entropy_ma: the average entropy for every 1000 steps
+   
+# Shepherd
+1. monitor the Agent's resource usage for cpu, rss (resident set size), vms (virtual memory size)
+   - measure cpu usage over a 1-second period (`cpu_percent`)
+   - wait the loop by 1 second (`time.sleep`)
+2. run synthetic with WELAW for 20/1000 episodes/steps
+3. run linear with WELAW for 10/1000 episodes/steps
