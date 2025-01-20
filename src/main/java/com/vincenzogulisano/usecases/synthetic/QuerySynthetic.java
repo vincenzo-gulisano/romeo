@@ -5,13 +5,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,7 +17,6 @@ import com.vincenzogulisano.javapythoncommunicator.PolicyBarrier;
 import com.vincenzogulisano.javapythoncommunicator.PolicyBarrierCalculator;
 import com.vincenzogulisano.javapythoncommunicator.StatReporter;
 import com.vincenzogulisano.usecases.linearroad.SinkLogAndLatency;
-import com.vincenzogulisano.usecases.linearroad.TupleCarStops;
 import com.vincenzogulisano.usecases.linearroad.InjectorType;
 import com.vincenzogulisano.util.EpisodesLogger;
 import com.vincenzogulisano.util.ExperimentOptions;
@@ -175,8 +169,6 @@ public class QuerySynthetic implements Actionable, EnvironmentMonitor {
         // first episode
         reset();
 
-        // Util.sleep(experimentLength);
-
     }
 
     @Override
@@ -267,24 +259,13 @@ public class QuerySynthetic implements Actionable, EnvironmentMonitor {
         }
         logger.debug("Got Ack from the Agg");
         sink.reset();
-        // while (!sink.getResetAck()) {
-        // Util.sleep(500);
-        // }
         logger.debug("Sink reset");
-
-        // logger.debug("Sleeping 2 seconds before resetting the compression
-        // threshold");
-        // Util.sleep(2000);
 
         long newCompression = (long) ((double) ws * ((double) valueDAtEpisodeStart / 10.0));
         logger.debug("Reset compression threshold of the Aggregate to {}", newCompression);
         long changeDEventTime = woostAgg.changeD(newCompression);
         logger.debug("latestEventTime returned by changeD: {} (not used, logging to make sure we reach this point)",
                 changeDEventTime);
-
-        // logger.debug("Sleeping 2 seconds before giving green light for state filling
-        // tuples");
-        // Util.sleep(2000);
 
         logger.debug("invoking giveGreenlightToStartSendingStateFillingTuples");
         sourceFunction.giveGreenlightToStartSendingStateFillingTuples();
@@ -302,7 +283,6 @@ public class QuerySynthetic implements Actionable, EnvironmentMonitor {
         sourceFunction.giveGreenlightToStartSendingRealRateTuples();
 
         firstEpisodeStarted = true;
-        // Util.sleep(sleepBeforeRealRate);
         episodesLogger.writeStartEvent();
 
         logger.debug("Resetting the EnvironmentStateCalculator");
@@ -338,7 +318,6 @@ public class QuerySynthetic implements Actionable, EnvironmentMonitor {
         episodesLogger.close();
 
         threadCPUMonitor.stopMonitoring();
-        // q.deActivate();
     }
 
 }

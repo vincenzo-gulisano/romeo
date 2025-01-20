@@ -20,7 +20,6 @@ public class ExperimentOptions {
         options.addOption("ws", "windowSize", true, "Aggregate's window size");
         options.addOption("o", "outputFile", true, "File to output tuples");
         options.addOption("t", "injectorType", true, "Type of injector");
-        // options.addOption("n", "nanoSleep", true, "Sleeptime between sends in nanoseconds");
         options.addOption("stmin", "startingTimeMinimum", true, "minimum starting time for RL");
         options.addOption("stmax", "startingTimeMaximum", true, "maximum starting time for RL");
         options.addOption("log4j", "log4jConfigFile", true, "log4j config file");

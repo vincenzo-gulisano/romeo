@@ -1,17 +1,3 @@
-/**
- * 
-Write a Java class called DataGenerator
-It generates a CSV File with the format timestamp,key,value (without header)
-the timestamps go from 0 to max_timestamp
-to generate the tuples, until the timestamp is not equal to max_timestamp it does like the following:
-- it chooses the next peak timestamp to be from min_peak_distance to max_peak distance
-- for the given next peak timestamp, it chooses the next peak randomly between min_peak to max_peak
-- it then writes a linearly increasing number of entries for each timestamp until the next peak, from 1000 to the choosen peak, and then a linearly decreasing number of entries for each timestamp during the same amount of time
-For the keys, it generates them according to a Gaussian distribution centered in a random value between mean_min and mean_max and with a variance between variance_min variance_max
-the mean and variance change every distribution_duration seconds, where distribution_duration is randomly chosen between distribution_min and distribution_max
-the value is just a random integer
- */
-
 package com.vincenzogulisano.usecases.synthetic;
 
 import java.io.FileWriter;

@@ -1,7 +1,6 @@
 package com.vincenzogulisano.util;
 
 import java.lang.management.ManagementFactory;
-import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.util.HashMap;
 import java.util.List;

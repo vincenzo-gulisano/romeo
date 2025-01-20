@@ -33,18 +33,15 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
     private long firstInvocationTs;
     private long firstTupleTs;
     private long lastSendNano;
-    // private long nanoSleep;
 
     private long startingTS;
     private ConcurrentLinkedQueue<Long> startingTSUpdates;
     private long WS;
-    // private long sleepBeforeRealRate;
     private boolean firstTupleAtRealRate;
     private boolean firstTuplesSkipped;
 
     private volatile boolean resetRequest;
     private volatile boolean resetAck;
-    // private volatile boolean resetReader;
     private volatile boolean waitingForSPEGreenlightToStartSendingStateFillingTuples;
     private volatile boolean ackFromSPEGreenlightToStartSendingStateFillingTuples;
     private volatile boolean allStateFillingTuplesSent;
@@ -59,7 +56,6 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         Validate.notBlank(path, "path");
         this.path = path;
         this.type = type;
-        // this.nanoSleep = nanoSleep;
         this.startingTS = startingTS;
         this.startingTSUpdates = new ConcurrentLinkedQueue<>();
         this.WS = WS;
@@ -68,12 +64,10 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         firstInvocationTs = -1;
         firstTupleTs = -1;
         lastSendNano = 0;
-        // sleepBeforeRealRate = 5000;
         firstTupleAtRealRate = true;
         firstTuplesSkipped = false;
         resetRequest = false;
         resetAck = false;
-        // resetReader = false;
         waitingForSPEGreenlightToStartSendingStateFillingTuples = false;
         ackFromSPEGreenlightToStartSendingStateFillingTuples = false;
         allStateFillingTuplesSent = false;
@@ -343,9 +337,4 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         firstEpisodeCanStart = true;
     }
 
-    // public void reset() {
-    // // resetRequest = false;
-    // // resetAck = false;
-    // // reset = true;
-    // }
 }
