@@ -5,13 +5,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -38,7 +33,6 @@ import query.Query;
 public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonitor {
 
     private Query q = new Query();
-    private long experimentLength;
     private WoostAggregateWithCompression<TupleInput, TupleCarStops> woostAgg;
     private SourceReadFromFile sourceFunction;
     private SinkLogAndLatency<TupleCarStops> sink;
@@ -69,11 +63,10 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         statsFolder = expOps.commandLine().getOptionValue("s");
         String inputFile = expOps.commandLine().getOptionValue("i");
         valueDAtEpisodeStart = Long.parseLong(expOps.commandLine().getOptionValue("d", String.valueOf(Long.MAX_VALUE)));
-        experimentLength = Long.parseLong(expOps.commandLine().getOptionValue("l"));
         wa = Long.parseLong(expOps.commandLine().getOptionValue("wa"));
         ws = Long.parseLong(expOps.commandLine().getOptionValue("ws"));
         String outPath = expOps.commandLine().getOptionValue("o", "");
-        boolean writeOut = outPath.equals("") ? false : true;
+        boolean writeOut = !outPath.equals("");
         InjectorType type = InjectorType
                 .valueOf(expOps.commandLine().getOptionValue("t", String.valueOf(InjectorType.FIXEDRATE)));
         long nanoSleep = Long.valueOf(expOps.commandLine().getOptionValue("n", String.valueOf(0)));
@@ -100,7 +93,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         Source<TupleInput> s = q.addBaseSource("in", sourceFunction);
 
         woostAgg = new WoostAggregateWithCompression<>("agg",
-                0, 1, ws, wa, new WindowCountStops(), valueDAtEpisodeStart, statsFolder);
+                0, 1, ws, wa, new WindowCountStops(), valueDAtEpisodeStart);
 
         Operator<TupleInput, TupleCarStops> agg = q.addOperator(woostAgg);
 
@@ -121,8 +114,6 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         // first episode
         // NOT SURE ABOUT THIS, BUT PROBABLY NOT NEEDED
         reset();
-
-        // Util.sleep(experimentLength);
 
     }
 
@@ -214,22 +205,11 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         }
         logger.debug("Got Ack from the Agg");
         sink.reset();
-        // while (!sink.getResetAck()) {
-        // Util.sleep(500);
-        // }
         logger.debug("Sink reset");
-
-        // logger.debug("Sleeping 2 seconds before resetting the compression
-        // threshold");
-        // Util.sleep(2000);
 
         long newCompression = (long) ((double) ws * ((double) valueDAtEpisodeStart / 10.0));
         logger.debug("Reset compression threshold of the Aggregate to {}", newCompression);
         woostAgg.changeD(newCompression);
-
-        // logger.debug("Sleeping 2 seconds before giving green light for state filling
-        // tuples");
-        // Util.sleep(2000);
 
         sourceFunction.giveGreenlightToStartSendingStateFillingTuples();
 
@@ -245,7 +225,6 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         sourceFunction.giveGreenlightToStartSendingRealRateTuples();
 
         firstEpisodeStarted = true;
-        // Util.sleep(sleepBeforeRealRate);
         episodesLogger.writeStartEvent();
 
         logger.debug("Resetting the EnvironmentStateCalculator");
@@ -279,7 +258,6 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         episodesLogger.close();
 
         threadCPUMonitor.stopMonitoring();
-        // q.deActivate();
     }
 
 }

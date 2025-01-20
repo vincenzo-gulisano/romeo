@@ -32,7 +32,6 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
     private InjectorType type;
     private long firstInvocationTs;
     private long firstTupleTs;
-    private long lastSendNano;
 
     private long startingTS;
     private ConcurrentLinkedQueue<Long> startingTSUpdates;
@@ -63,7 +62,6 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         done = false;
         firstInvocationTs = -1;
         firstTupleTs = -1;
-        lastSendNano = 0;
         firstTupleAtRealRate = true;
         firstTuplesSkipped = false;
         resetRequest = false;
@@ -93,7 +91,6 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         }
         firstInvocationTs = -1;
         firstTupleTs = -1;
-        lastSendNano = 0;
         firstTupleAtRealRate = true;
         firstTuplesSkipped = false;
     }
@@ -189,7 +186,6 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         switch (type) {
             case FIXEDRATE:
                 throw new RuntimeException("This injector does not support FIXEDRATE");
-                // break;
             case REALRATE:
                 while ((System.currentTimeMillis() - firstInvocationTs) < (result.getTimestamp() - firstTupleTs)
                         * 1000) {

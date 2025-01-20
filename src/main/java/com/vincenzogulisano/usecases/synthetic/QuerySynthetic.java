@@ -121,8 +121,6 @@ public class QuerySynthetic implements Actionable, EnvironmentMonitor {
         boolean writeOut = outPath.equals("") ? false : true;
         InjectorType type = InjectorType
                 .valueOf(expOps.commandLine().getOptionValue("t", String.valueOf(InjectorType.FIXEDRATE)));
-        // long nanoSleep = Long.valueOf(expOps.commandLine().getOptionValue("n",
-        // String.valueOf(0)));
         startingTimeMinimum = Long.valueOf(expOps.commandLine().getOptionValue("stmin",
                 String.valueOf(0)));
         startingTimeMaximum = Long.valueOf(expOps.commandLine().getOptionValue("stmax",
@@ -148,7 +146,7 @@ public class QuerySynthetic implements Actionable, EnvironmentMonitor {
         Source<TupleInput> s = q.addBaseSource("in", sourceFunction);
 
         woostAgg = new WoostAggregateWithCompression<>("agg",
-                0, 1, ws, wa, new WindowSynthetic(), valueDAtEpisodeStart, statsFolder);
+                0, 1, ws, wa, new WindowSynthetic(), valueDAtEpisodeStart);
 
         Operator<TupleInput, TupleInput> agg = q.addOperator(woostAgg);
 

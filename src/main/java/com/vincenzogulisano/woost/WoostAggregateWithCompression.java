@@ -77,8 +77,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
             long windowSize,
             long windowSlide,
             WoostTimeWindow<IN, OUT> aggregateWindow,
-            long compressionTimeThreshold,
-            String statsFolder) {
+            long compressionTimeThreshold) {
         super(id, instance, parallelismDegree, windowSize, windowSlide, aggregateWindow, new BaseKeyExtractor<IN>());
 
         this.aggregateWindow = aggregateWindow;
@@ -166,14 +165,14 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         outputtMetric.disable();
     }
 
-    private void pingMetrics() {
-        compressionsMetric.ping();
-        decompressionMetric.ping();
-        maxEventTimeMetric.ping();
-        compressionRatio.ping();
-        throughputMetric.ping();
-        outputtMetric.ping();
-    }
+    // private void pingMetrics() {
+    //     compressionsMetric.ping();
+    //     decompressionMetric.ping();
+    //     maxEventTimeMetric.ping();
+    //     compressionRatio.ping();
+    //     throughputMetric.ping();
+    //     outputtMetric.ping();
+    // }
 
     // Iterators and entries used by the processTupleIn1 function
     Iterator<Entry<String, byte[]>> i1;
