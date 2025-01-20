@@ -24,7 +24,7 @@ def plot_files_in_folder(folder,episodesstatsfile,makeplots,dumpdata,print_globa
         try:
             df = pd.read_csv(file_path, dtype={0: 'int64', 1: 'float64'}, header=None)
             # Check if the CSV file has exactly 2 columns and contains numerical values
-            if len(df.columns) == 2 and all(df.map(lambda x: isinstance(x, (int, float))).all(axis=1)):
+            if len(df.columns) == 2 and df.applymap(lambda x: isinstance(x, (int, float))).all().all():
                 # print(file_path,'is a valid file path')
                 valid_csv_files.append(file_path)
             else:

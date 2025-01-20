@@ -53,7 +53,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
     private long wa;
     private long ws;
     private Random r;
-    private boolean randomizeSeed;
+    private long randomSeed;
     private PolicyBarrier policyBarrier;
 
     public final static long sleepBeforeRealRate = 1000;
@@ -79,7 +79,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         long nanoSleep = Long.valueOf(expOps.commandLine().getOptionValue("n", String.valueOf(0)));
         startingTimeMinimum = Long.valueOf(expOps.commandLine().getOptionValue("stmin", String.valueOf(0)));
         startingTimeMaximum = Long.valueOf(expOps.commandLine().getOptionValue("stmax", String.valueOf(0)));
-        randomizeSeed = Boolean.valueOf(expOps.commandLine().getOptionValue("rer", "False"));
+        randomSeed = Long.valueOf(expOps.commandLine().getOptionValue("randomSeed", String.valueOf(0L)));
         policyBarrier = PolicyBarrier.valueOf(expOps.commandLine().getOptionValue("pb", "WEAAW"));
 
         r = new Random(0);
@@ -185,10 +185,8 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
 
         logger.debug("SPE - Got a RESET request");
 
-        if (randomizeSeed) {
-            r = new Random(System.currentTimeMillis());
-        }
-
+        r = new Random(randomSeed);
+        
         long startingTS = startingTimeMinimum + r.nextInt((int) (startingTimeMaximum - startingTimeMinimum) + 1);
         logger.debug("SPE - Updating source starting time to " + startingTS);
         sourceFunction.setStartingTS(startingTS);

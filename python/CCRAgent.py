@@ -1,6 +1,7 @@
 import threading
 import argparse
 import time
+import datetime
 from confluent_kafka import Producer, Consumer, KafkaError
 import numpy as np 
 import cv2 
@@ -15,7 +16,7 @@ import time
 font = cv2.FONT_HERSHEY_COMPLEX_SMALL 
 
 class SPEEnvironment(Env):
-    def __init__(self, stepsPerEpisode):
+    def __init__(self, stepsPerEpisode, state_measurement_check_period):
         super(SPEEnvironment, self).__init__()
 
 
@@ -72,6 +73,7 @@ class SPEEnvironment(Env):
         self.producer = KafkaActionsProducer(self.consumer)
 
         self.stepsPerEpisode = stepsPerEpisode
+        self.state_measurement_check_period = state_measurement_check_period
         self.remaingSteps = self.stepsPerEpisode
 
         self.prev_stat_time = time.time()
@@ -99,9 +101,9 @@ class SPEEnvironment(Env):
         # Wait for the state and reward measurement
         self.prev_stat_time = time.time()
         state_measurement_available = False
-        print('Waiting for new observation')
+        print(f"{datetime.datetime.now()} - Waiting for new observation", flush=True)
         while not state_measurement_available:
-            time.sleep(1)
+            time.sleep(self.state_measurement_check_period)
             with self.consumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by other threads
                 if self.consumer.tracker.state is not None and self.consumer.tracker.last_time > self.prev_stat_time:
                     print('Got a new state/reward pair:',self.consumer.tracker.last_time)
@@ -129,9 +131,9 @@ class SPEEnvironment(Env):
         # Wait for the state and reward measurement
         self.prev_stat_time = time.time()
         state_measurement_available = False
-        print('Waiting for new observation')
+        print(f"{datetime.datetime.now()} - Waiting for new observation", flush=True)
         while not state_measurement_available:
-            time.sleep(1)
+            time.sleep(self.state_measurement_check_period)
             with self.consumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by other threads
                 # print('self.consumer.tracker.state is not None',(self.consumer.tracker.state is not None),'self.consumer.tracker.last_time',self.consumer.tracker.last_time,'self.prev_stat_time',self.prev_stat_time)
                 if self.consumer.tracker.state is not None and self.consumer.tracker.last_time > self.prev_stat_time:
@@ -272,9 +274,10 @@ if __name__ == "__main__":
     parser.add_argument('episodes', help='Number of episodes')
     parser.add_argument('steps', help='Number of steps')
     parser.add_argument('compression', help='Compression level')
+    parser.add_argument('state_measurement_check_period', help='How many seconds to sleep in between checks for state measurements')
     args = parser.parse_args()
     
-    env = SPEEnvironment(int(args.steps))
+    env = SPEEnvironment(int(args.steps),float(args.state_measurement_check_period))
 
     for i in range(int(args.episodes)):
         print('starting episode',i+1)
