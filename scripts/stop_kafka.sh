@@ -1,4 +1,4 @@
-kafka_folder=/home/vincenzo/kafka_2.13-3.6.0
+kafka_folder=/home/jingyu/kafka_2.13-3.6.0
 echo "killing kafka processes"
 ${kafka_folder}/bin/zookeeper-server-stop.sh
 ${kafka_folder}/bin/kafka-server-stop.sh
