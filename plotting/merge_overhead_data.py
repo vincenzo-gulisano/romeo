@@ -49,31 +49,52 @@ def process_experiment_data(folder_base, folder_agent, experiment_ids, output_cs
         output_folder = os.path.dirname(output_csv)
         os.makedirs(output_folder, exist_ok=True)
 
+        # Extract the file name without the extension
+        output_id = os.path.splitext(os.path.basename(output_csv))[0]
+        
         if 'cpu_df_a' in locals() and 'cpu_df_b' in locals():
+            
+            # Align data by timestamp
+            aligned_cpu_df = pd.merge(
+                cpu_df_a[["timestamp", "value"]],
+                cpu_df_b[["timestamp", "value"]],
+                on="timestamp",
+                suffixes=("_base", "_agent")
+            )
+            
             plt.figure(figsize=(10, 6))
             plt.plot(cpu_df_a["timestamp"], cpu_df_a["value"], label="Base CPU", color='blue')
             plt.plot(cpu_df_b["timestamp"], cpu_df_b["value"], label="Agent CPU", color='orange')
-            plt.plot(cpu_df_a["timestamp"], cpu_df_b["value"] - cpu_df_a["value"], label="Difference (Agent - Base)", color='green')
+            plt.plot(aligned_cpu_df["timestamp"], aligned_cpu_df["value_agent"] - aligned_cpu_df["value_base"], label="Difference (Agent - Base)", color='green')
             plt.xlabel("Timestamp")
             plt.ylabel("Value")
             plt.title(f"CPU Stats for Experiment {exp_id}")
             plt.legend()
-            cpu_plot_path = os.path.join(output_folder, f"CPU_plot_exp_{exp_id}.pdf")
+            cpu_plot_path = os.path.join(output_folder, f"{output_id}.CPU_plot_exp_{exp_id}.pdf")
             plt.savefig(cpu_plot_path)
             plt.close()
             print(f"Saved CPU plot for experiment {exp_id} to {cpu_plot_path}")
                 
         # Plot Latency data if both files exist
         if 'latency_df_a' in locals() and 'latency_df_b' in locals():
+            
+            # Align data by timestamp
+            aligned_latency_df = pd.merge(
+                latency_df_a[["timestamp", "value"]],
+                latency_df_b[["timestamp", "value"]],
+                on="timestamp",
+                suffixes=("_base", "_agent")
+            )
+            
             plt.figure(figsize=(10, 6))
             plt.plot(latency_df_a["timestamp"], latency_df_a["value"], label="Base Latency", color='blue')
             plt.plot(latency_df_b["timestamp"], latency_df_b["value"], label="Agent Latency", color='orange')
-            plt.plot(latency_df_a["timestamp"], latency_df_b["value"] - latency_df_a["value"], label="Difference (Agent - Base)", color='green')
+            plt.plot(aligned_latency_df["timestamp"], aligned_latency_df["value_agent"] - aligned_latency_df["value_base"], label="Difference (Agent - Base)", color='green')
             plt.xlabel("Timestamp")
             plt.ylabel("Value")
             plt.title(f"Latency Stats for Experiment {exp_id}")
             plt.legend()
-            latency_plot_path = os.path.join(output_folder, f"Latency_plot_exp_{exp_id}.pdf")
+            latency_plot_path = os.path.join(output_folder, f"{output_id}.latency_plot_exp_{exp_id}.pdf")
             plt.savefig(latency_plot_path)
             plt.close()
             print(f"Saved Latency plot for experiment {exp_id} to {latency_plot_path}")

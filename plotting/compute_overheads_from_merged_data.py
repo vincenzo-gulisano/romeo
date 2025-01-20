@@ -87,7 +87,7 @@ def compute_differences(input_csv, output_csv):
     filtered_df.loc[:, "percentage_diff"] = (filtered_df["value_diff"] / filtered_df["value_base"]) * 100
 
     # Select the relevant columns for the output
-    result_df = filtered_df[["timestamp", "exp_id", "stat", "value_diff", "percentage_diff"]]
+    result_df = filtered_df[["timestamp", "exp_id", "stat", "value_base", "value_diff", "percentage_diff"]]
 
     # Save the results to the output CSV
     result_df.to_csv(output_csv, index=False)

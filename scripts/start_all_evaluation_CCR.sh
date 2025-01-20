@@ -39,21 +39,21 @@ bootstrapServer=129.16.20.20:9092 # THIS IS MICHELANGELO
 cpuThreshold=100
 
 # This is for Linear Road
-base_folder="/home/vincenzo/romeo/data/overhead/linearroad"
+base_folder="/home/vincenzo/romeo/data/overhead2/linearroad"
 input_file="/home/vincenzo/woost/data/input/input.txt"
-wa=5
+wa=3
 ws=600
-d=10
-starting_time_min=900
+# d=10
+starting_time_min=8500
 starting_time_max=9900
 usecase="LinearRoad"
 
-# # # This is for the synthetic query
-# base_folder="/home/vincenzo/romeo/data/overhead/synthetic"
+# # This is for the synthetic query
+# base_folder="/home/vincenzo/romeo/data/overhead2/synthetic"
 # input_file="/home/vincenzo/romeo/data/input/synthetic.csv"
 # wa=1
 # ws=900
-# d=10
+# d=7
 # starting_time_min=1200
 # starting_time_max=6800
 # usecase="Synthetic"
@@ -61,15 +61,13 @@ usecase="LinearRoad"
 # Define lists of values
 # policy="WELOB" # CHOSE ONE OUT OF WEAOB - Wallclock, Event time, Aggregate OBlivios, EAOB - Event time, Aggregate OBlivios, AOB - Aggregate OBlivios, WEAAW - Wallclock, Event time, Aggregate AWare
 duration=100000000
-episodes=30
-steps=40
-compressions=(0 1 2 3 4 5 6 7 8 9 10 r) # 
 
-randomSeeds=(123 2 122 1242 5)
+randomSeeds=(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20)
 policy="WELAW"
 episodes=1
 
-compressions=(10 r) # 
+compressions=(3) # 
+# compressions=(7) # 
 
 declare -A steps_map
 declare -A period_map
@@ -83,11 +81,14 @@ period_map["10"]=120.0
 steps_map["r"]=40
 period_map["r"]=0.5
 
-# Baseline with Agent saying always 10
-steps_map["10"]=80
-period_map["10"]=0.5
+# # # Baseline with Agent saying always 10
+steps_map["3"]=80
+period_map["3"]=0.5
+# compressions=(5)
 
-compressions=(10) # 
+steps_map["7"]=80
+period_map["7"]=0.5
+
 for randomSeed in "${randomSeeds[@]}"; do
 for compression in "${compressions[@]}"; do
     
@@ -100,7 +101,7 @@ for compression in "${compressions[@]}"; do
     echo "  state_measurement_check_period: $state_measurement_check_period"
 
     # Define id variable with concatenation of values
-    id="${compression}/${randomSeed}/${steps}/${state_measurement_check_period}"
+    id="${compression}/${steps}/${state_measurement_check_period}/${randomSeed}"
 
     # Create folder with id in base folder
     exp_folder=${base_folder}/${id}
@@ -141,7 +142,7 @@ for compression in "${compressions[@]}"; do
 
     echo "Starting experiment for ${id} (compression)"
     # args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase} -pb ${policy}"
-    args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase} -pb ${policy} -randomSeed ${randomSeed} -bs ${bootstrapServer} -ct ${cpuThreshold}"
+    args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d ${compression} -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase} -pb ${policy} -randomSeed ${randomSeed} -bs ${bootstrapServer} -ct ${cpuThreshold}"
     echo "args=${args}"
     
     mvn clean compile package exec:java -Dexec.mainClass="com.vincenzogulisano.javapythoncommunicator.JPComm" -Dexec.args="${args}" > ${exp_folder}/spe.log 2>&1 &
