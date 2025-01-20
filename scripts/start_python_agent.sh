@@ -12,3 +12,7 @@ pid=$!
 
 # Print the PID
 echo $pid
+
+# start the resource monitoring script
+nohup python ./python/monitor_agent_process.py ${pid} ${log_folder}/agent_resource_usage.csv > /dev/null 2>&1 &
+# nohup python ./python/monitor_agent_process.py ${pid} ${log_folder}/agent_resource_usage.csv > ${log_folder}/monitor.log 2>&1 &
