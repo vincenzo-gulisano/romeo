@@ -33,8 +33,8 @@ sleep_until_time_or_pid() {
 }
 
 # Define base folder and input file
-base_folder="/home/vincenzo/romeo/data/jingyu/exp2.2/DQNAgent"
-input_file="/home/vincenzo/woost/data/input/input.txt"
+base_folder="./data/jingyu/exp2.2/DQNAgent"
+input_file="./data/input/input.txt"
 
 # Define lists of values
 wa=5
