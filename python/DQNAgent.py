@@ -1,44 +1,36 @@
-import threading
+import os
 import time
+import threading
 import argparse
-from confluent_kafka import Producer, Consumer, KafkaError
+import csv
+
+import cv2 
+import math
+import random
 import numpy as np 
 import pandas as pd
-import cv2 
-import matplotlib.pyplot as plt
 import PIL.Image as Image
-import gym
-from collections import deque
-import random
+import matplotlib.pyplot as plt
 
-from gym import Env, spaces
-import time
-
+import pickle
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
 import torch.optim as optim
-from collections import namedtuple
-import math
-import os
-import pickle
-import csv
-
 from scipy.stats import linregress
 
+from confluent_kafka import Producer, Consumer, KafkaError
+from collections import namedtuple
+from gym import Env, spaces
+from collections import deque
 
 GAMMA = 0.99
 lr = 0.01
-# EPSILON = 0.1
 buffer_size = 10000  # replay buffer size
 batch_size = 128
 #episodes = 50
 target_update = 1000  # update target net every 1000 steps
-#steps = 100
-# EPSILON_START = 0.01
-# EPSILON_END = 0.01
-# EPSILON_DECAY = 500 # the higher value, the slower decay
 TAU_START = 5
 TAU_END = 1
 TAU_DECAY = 500
@@ -50,12 +42,11 @@ class Net(nn.Module):
         super(Net, self).__init__()
         # flatten the input
         self.flatten = nn.Flatten()
-        self.input_size = input_shape[0] * input_shape[1] # calculate input size after flattening
+        self.input_size = input_shape[0] * input_shape[1] # get input size after flattening
         self.Linear1 = nn.Linear(self.input_size, hidden_size)
         self.Linear2 = nn.Linear(hidden_size, hidden_size)
         self.Linear3 = nn.Linear(hidden_size, output_size)
-
-        # Initialize weights 
+        # initialize weights 
         self.init_weights() 
 
     def forward(self, x):
@@ -68,9 +59,8 @@ class Net(nn.Module):
         return x
     
     def init_weights(self): 
-        # Initialize weights and biases for each layer 
+        # initialize weights and biases for each layer 
         for m in self.modules(): 
-
             if isinstance(m, nn.Linear): 
                 if m == self.Linear3:
                     init.constant_(m.weight, 0)
@@ -79,9 +69,6 @@ class Net(nn.Module):
                     init.uniform_(m.weight, -0.03, 0.03) 
                     m.bias.data.fill_(0.05)
     
-    # def reinitialize_final_layer(self):
-    #     init.uniform_(self.Linear3.weight, -0.03, 0.03)
-    #     self.Linear3.bias.data.fill_(0.05)
     def reinitialized_weights(self):
         print("Reinitializing final layer weights...", flush=True)
         init.uniform_(self.Linear3.weight, -0.03, 0.03)
@@ -128,9 +115,9 @@ class DQN(object):
         # self.first_step = True # flag to track the first step
         self.reinitialized = False
 
-        self.entropy_list = deque(maxlen=1000)  # To store last 1000 entropy values
+        self.entropy_list = deque(maxlen=1000)  # to store last 1000 entropy values
         self.moving_average_entropy = None
-        self.is_moving_average_ready = False  # Tracks if moving average is ready
+        self.is_moving_average_ready = False  # tracks if moving average is ready
         
 
     def reset_compression(self):
@@ -139,65 +126,44 @@ class DQN(object):
     def put(self, s0, a0, r, t, s1):
         self.buffer.push(s0, a0, r, t, s1)
 
-    # Assuming compute_entropy is already defined:
+    # assuming compute_entropy is already defined:
     def compute_entropy(self, prob1, prob2, prob3):
-        # Compute entropy using the formula H = -sum(P * log(P))
+        # compute entropy by H = -sum(P * log(P))
         probs = np.array([prob1, prob2, prob3])
-        # Avoid log(0) by only computing for non-zero probabilities
+        # avoid log(0) by only computing for non-zero probabilities
         entropy = -np.sum([p * np.log(p) for p in probs if p > 0])
         return entropy
 
     def select_action(self, state):
-        # eps_threshold = random.random()
-        #action = self.net(torch.Tensor(state))
         self.sample_count += 1
 
-        # if self.first_step:detach
-        #     self.first_step = False
-        #     self.net.reinitialize_final_layer()
         if self.sample_count == batch_size + 1 and not self.reinitialized:
             self.net.reinitialized_weights()
             self.reinitialized = True
 
         # Boltzmann(softmax) exploration strategy
         self.tau = TAU_END + (TAU_START - TAU_END) * math.exp(-1 * self.sample_count / TAU_DECAY)
-        # reshape state to 1D vector
-        state = torch.Tensor(state).view(-1)
+        state = torch.Tensor(state).view(-1)  # reshape state to 1D vector
         q_values = self.net(state)
         # softmax function to convert q values into probablities that sum to one
         action_probabilities = F.softmax(q_values / self.tau, dim=-1)
         # sample from the 'action_probablities' distribution
         action = torch.multinomial(action_probabilities, 1).item()
         action_time = time.time()
-        action_type = "softmax selection"
+        action_type = 'softmax selection'
 
         probs = action_probabilities.detach().numpy()
-        # Compute entropy for the action probabilities
+        # compute entropy for the action probabilities
         entropy = self.compute_entropy(probs[0], probs[1], probs[2])
-        
-        # Add the entropy to the list (deque keeps only the last 1000 elements)
+        # add the entropy to the list (deque keeps only the last 1000 elements)
         self.entropy_list.append(entropy)
 
-        # Check if we have at least 1000 entropy values to compute the moving average
+        # check if we have at least 1000 entropy values to compute the moving average
         if len(self.entropy_list) == 1000:
             self.moving_average_entropy = np.mean(self.entropy_list)
-            self.is_moving_average_ready = True  # Moving average is ready
+            self.is_moving_average_ready = True  # moving average is ready
         else:
-            self.is_moving_average_ready = False  # Not enough data yet
-
-        # epsilon greedy decay
-        # self.epsilon = EPSILON_END + (EPSILON_START - EPSILON_END) * math.exp(-1 * self.sample_count / EPSILON_DECAY)
-        # # reshape state to 1D vector
-        # state = torch.Tensor(state).view(-1)
-        # action = self.net(state)
-        # action_time = time.time()
-
-        # if eps_threshold > self.epsilon:
-        #     action = torch.argmax(action).numpy()
-        #     action_type = "exploitation"
-        # else:
-        #     action = np.random.randint(0, action.shape[0])  # random sampling
-        #     action_type = "exploration"
+            self.is_moving_average_ready = False  # not enough data yet
         
         # uodate compression ratio based on the action
         if action == 0:
@@ -212,30 +178,19 @@ class DQN(object):
             return
         samples = self.buffer.sample(batch_size)
         batch = Transition(*zip(*samples))
-        # # convert tuple to numpy (column vector)
-        # tmp = np.vstack(batch.action)
-        # # convert to Tensor
-        # # state_batch = torch.tensor(np.array(batch.state), dtype = torch.float32)
-        # state_batch = torch.tensor(np.array(batch.state), dtype = torch.float32).view(batch_size, -1)
 
-        # action_batch = torch.tensor(tmp.astype(int), dtype = torch.long)
-        # reward_batch = torch.tensor(np.array(batch.reward), dtype = torch.float32)
-        # done_batch = torch.tensor(np.array(batch.done), dtype = torch.float32)
-        # # next_state_batch = torch.tensor(np.array(batch.next_state), dtype = torch.float32)
-        # next_state_batch = torch.tensor(np.array(batch.next_state), dtype = torch.float32).view(batch.size, -1)
-
-        # Ensure all elements in batch.state have the same shape and type
+        # ensure all elements in batch.state have the same shape and type
         state_list = [np.array(state).reshape(-1) for state in batch.state]
         next_state_list = [np.array(state).reshape(-1) for state in batch.next_state]
 
-        # Convert lists to NumPy arrays
+        # convert lists to NumPy arrays
         state_array = np.vstack(state_list)
         next_state_array = np.vstack(next_state_list)
         action_array = np.vstack(batch.action)
         reward_array = np.array(batch.reward)
         done_array = np.array(batch.done)
 
-        # Convert to PyTorch tensors
+        # convert to PyTorch tensors
         state_batch = torch.tensor(state_array, dtype=torch.float32)
         next_state_batch = torch.tensor(next_state_array, dtype=torch.float32)
         action_batch = torch.tensor(action_array, dtype=torch.long)
@@ -245,17 +200,14 @@ class DQN(object):
         q_next = torch.max(self.target_net(next_state_batch).detach(), dim=1)[0]
         q_eval = self.net(state_batch).gather(1, action_batch)
 
-        # Ensure shapes of reward_batch and q_next match
+        # ensure shapes of reward_batch and q_next match
         reward_batch = reward_batch.unsqueeze(1)
         q_next = q_next.unsqueeze(1)
 
-        # Compute target Q values
+        # compute target Q values
         q_tar = reward_batch + (1 - done_batch.unsqueeze(1)) * GAMMA * q_next
 
-        # unsqueeze(1): ensure that the shapes of (1-done_batch) and q_next match reward_batch
-        # q_tar = reward_batch.unsqueeze(1) + (1-done_batch) * GAMMA * q_next
         loss = self.loss_func(q_eval, q_tar)
-        # print(loss)
         self.optim.zero_grad()
         loss.backward()
         self.optim.step()
@@ -264,7 +216,6 @@ class DQN(object):
         with torch.no_grad():  # no gradient cal when evaluating
             state_tensor = torch.Tensor(state).view(-1)
             return self.net(state_tensor).numpy()
-
 
 font = cv2.FONT_HERSHEY_COMPLEX_SMALL 
 
@@ -275,11 +226,6 @@ class SPEEnvironment(Env):
 
         self.valuesPerObservation = 7
         self.bootstrap_server = bootstrap_server
-        # metrics = 11
-        # Define a 2-D observation space
-        # states: injectionrate, throughput, outrate, latency, compression ratio, comp, dec, CPU-in, CPU-agg, CPU-out, event time
-        # metrics = 7
-        # states: injectionrate, throughput, outrate, latency, compression ratio, CPU-agg, event time
         # metrics = 6
         # states: injectionrate, throughput, outrate, latency, compression ratio, CPU-agg
         self.observation_space = spaces.Box(low = np.array(
@@ -316,10 +262,9 @@ class SPEEnvironment(Env):
 
         self.stepsPerEpisode = stepsPerEpisode
         self.remaingSteps = self.stepsPerEpisode
-
         self.prev_stat_time = time.time()
 
-        # Start the consumer thread
+        # start the consumer thread
         self.consumer.start_consumer()
 
         self.latency_last_events = -1
@@ -335,7 +280,6 @@ class SPEEnvironment(Env):
         self.entropy_threshold = 0.6
         self.entropy_penalty = -5
 
-        # self.state_labels = ["injectionrate", "throughput", "outrate", "latency", "compressionratio", "CPU-agg", "eventtime"]
         self.state_labels = ["injectionrate", "throughput", "outrate", "latency", "compressionratio", "CPU-agg"]
         
     def print_state(self, transformed_state, original_state):
@@ -345,7 +289,6 @@ class SPEEnvironment(Env):
         column_width = max(max_label_length, max_value_length)
         for label, (slope,intercept), original_values in zip(self.state_labels, transformed_state, original_state):
             formatted_label = label.ljust(column_width)
-            # formatted_values = ' '.join(f'{value:{column_width}.2f}' for value in values)
             transformed_values = f'{slope:>{column_width}.2f} {intercept:>{column_width}.2f}'
             original_values = ' '.join(f'{value:>{column_width}.2f}' for value in original_values)
             print(f"{formatted_label} {transformed_values} || {original_values}", flush=True)
@@ -355,59 +298,53 @@ class SPEEnvironment(Env):
         slopes = []
         intercepts = []
 
-        # Time points for linear regression (assuming 0, 1, 2,... for the 7 time steps)
+        # time points for linear regression (assuming 0, 1, 2,... for the 7 time steps)
         time_points = np.arange(state_matrix.shape[1])
 
         for row in state_matrix:
-            # Ignore NaN values
+            # ignore NaN values
             mask = ~np.isnan(row)
             time_valid = time_points[mask]
             values_valid = row[mask]
 
-            # If more than one valid point, perform linear regression
+            # if more than one valid point, perform linear regression
             if len(time_valid) > 1:
                 slope, intercept, _, _, _ = linregress(time_valid, values_valid)
             else:
                 slope, intercept = 0.0, values_valid[0] if len(values_valid) > 0 else 0.0
-            
             slopes.append(slope)
             intercepts.append(intercept)
 
-        # Return a transformed matrix with slopes and intercepts
+        # return a transformed matrix with slopes and intercepts
         transformed_state = np.column_stack((slopes, intercepts))
         return transformed_state
 
     def reset(self,episode_number):
-
-        #reset negative reward counter
+        # reset variables
         self.negative_reward_counter = 0
-        # reset latency counter
         self.latency_counter = 0
-        # reset the time tracker for latency events
         self.latency_last_events = -1  
-        # reset initial compressionn ratio
         self.current_compression = 100
         self.latency_record = []
         self.steps_since_last_bonus = 0
 
-        # Send the reset
+        # send the reset
         if episode_number>0:
             print('Calling reset', flush=True)
-            self.producer.produce("reset")
+            self.producer.produce('reset')
         else:
             print('skipping reset on very first episode (already called by the SPE itself)', flush=True)
     
         self.remaingSteps = self.stepsPerEpisode
         print('self.remaingSteps set to',self.remaingSteps,'in reset', flush=True)
 
-        # Wait for the state and reward measurement
+        # wait for the state and reward measurement
         self.prev_stat_time = time.time()
         state_measurement_available = False
         print('Waiting for new observation', flush=True)
         while not state_measurement_available:
             time.sleep(0.1)
-            with self.consumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by other threads
-                # print('self.consumer.tracker.state is not None',(self.consumer.tracker.state is not None),'self.consumer.tracker.last_time',self.consumer.tracker.last_time,'self.prev_stat_time',self.prev_stat_time)
+            with self.consumer.tracker.data_lock: # to ensure this thread does not read previous_values while they are being updated by other threads
                 if self.consumer.tracker.state is not None and self.consumer.tracker.last_time > self.prev_stat_time:
                     print('Got a new state/reward/extrainfo msg:',self.consumer.tracker.last_time, flush=True)
                     state = self.consumer.tracker.state.copy()
@@ -416,71 +353,63 @@ class SPEEnvironment(Env):
                     print(f'reward {self.consumer.tracker.reward} || {self.consumer.tracker.original_reward}', flush=True)
                     state_measurement_available = True
 
-        # Reset the reward
+        # reset the reward
         self.ep_return  = self.consumer.tracker.reward
-        # get the current event time
+        # the current event time
         self.current_event_time = state[6, :]
         # return states except eventtime
         return state_transformed[:-1]
     
-    def scaled_compression_reward(self, ratio, bonus_step_interval_points_compression):
-        """
-        Scales a reward based on the compression level, where 0 compression gives maximum reward 
-        and 100 compression gives zero reward.
+    # def scaled_compression_reward(self, ratio, bonus_step_interval_points_compression):
+    #     """
+    #     Scales a reward based on the compression level, where 0 compression gives maximum reward 
+    #     and 100 compression gives zero reward.
         
-        Parameters:
-        - compression: int or float, where 0 indicates maximum compression and 100 indicates no compression.
-        - bonus_step_interval_points_compression: int or float, the maximum reward given at 0 compression.
+    #     Parameters:
+    #     - compression: int or float, where 0 indicates maximum compression and 100 indicates no compression.
+    #     - bonus_step_interval_points_compression: int or float, the maximum reward given at 0 compression.
 
-        Returns:
-        - Scaled reward between 0 and bonus_step_interval_points_compression based on the compression level.
-        """
+    #     Returns:
+    #     - Scaled reward between 0 and bonus_step_interval_points_compression based on the compression level.
+    #     """
 
-        # Calculate reward, where 0 compression gives maximum reward, 100 compression gives zero
-        reward = bonus_step_interval_points_compression * (1 - (ratio / 100))
-        return reward
+    #     # Calculate reward, where 0 compression gives maximum reward, 100 compression gives zero
+    #     reward = bonus_step_interval_points_compression * (1 - (ratio / 100))
+    #     return reward
     
     def step(self, action, current_compression, entropy_ma, entropy_ready):
-    
+
         self.remaingSteps -= 1
         done = False
-        # self.bonus_given = False
 
-        # Assert that it is a valid action 
+        # assert that it is a valid action 
         assert self.action_space.contains(action), "Invalid action"
 
         self.producer.produce("changeD," + str(int(current_compression/10)))
 
-        # Wait for the state and reward measurement
+        # wait for the state and reward measurement
         self.prev_stat_time = time.time()
         state_measurement_available = False
-        # print('Waiting for new observation')
         while not state_measurement_available:
             time.sleep(0.1)
-            with self.consumer.tracker.data_lock: # This is to ensure this thread does not read previous_values while they are being updated by other threads
-                # print('self.consumer.tracker.state is not None',(self.consumer.tracker.state is not None),'self.consumer.tracker.last_time',self.consumer.tracker.last_time,'self.prev_stat_time',self.prev_stat_time)
+            with self.consumer.tracker.data_lock: # to ensure this thread does not read previous_values while they are being updated by other threads
                 if self.consumer.tracker.state is not None and self.consumer.tracker.last_time > self.prev_stat_time:
-                    # print('Got a new state/reward pair:',self.consumer.tracker.last_time,self.consumer.tracker.state,self.consumer.tracker.reward,flush=True)
                     print('Got a new state/reward/extrainfo msg:',self.consumer.tracker.last_time, flush=True)
                     state = self.consumer.tracker.state.copy()
                     state_transformed = self.linear_regression_transform(state)
                     self.print_state(state_transformed, state)
                     print(f'reward {self.consumer.tracker.reward} || {self.consumer.tracker.original_reward}', flush=True)
                     state_measurement_available = True
-                    
-        # We start at 0
-        # self.consumer.tracker.reward = 0
 
         # give extra if completing predefined number of steps
         if self.steps_since_last_bonus == self.bonus_step_interval - 1:
             self.consumer.tracker.reward += self.bonus_ten_steps
-            # But remove some if entropy is too loo
-            if entropy_ready and entropy_ma < self.entropy_threshold:  # Penalize if entropy is low
+            # but remove some if entropy is too low
+            if entropy_ready and entropy_ma < self.entropy_threshold:  # penalize if entropy is low
                 self.consumer.tracker.reward += self.entropy_penalty
             print(f"Extra reward bonus +{self.consumer.tracker.reward} for completing {self.bonus_step_interval} steps", flush=True)
-        elif entropy_ready and entropy_ma < self.entropy_threshold:  # Penalize if entropy is low (single step)
+        elif entropy_ready and entropy_ma < self.entropy_threshold:  # penalize if entropy is low (single step)
             self.consumer.tracker.reward -= 1
-            # print(f"-1 penalty for low entropy at {self.bonus_step_interval} steps", flush=True)
             print(f"-1 penalty for low entropy at this step", flush=True)
 
         self.steps_since_last_bonus += 1
@@ -489,22 +418,7 @@ class SPEEnvironment(Env):
         
         self.current_event_time = state[6, :]  # update eventtime
 
-        # record latency of last second if it is not missing -1
-        # current_event_time = self.current_event_time
-        # current_latency = self.consumer.tracker.state[3]
-        # for event_time, latency in zip(current_event_time, current_latency):
-        #     if latency != -1:
-        #         # check if the same event time has been recorded
-        #         existing_entry = next((item for item in self.latency_record if item[0] == event_time), None)
-        #         # if the record of this eventtime already exists, then update latency
-        #         if existing_entry:
-        #             index = self.latency_record.index(existing_entry)
-        #             self.latency_record[index] = (event_time, latency)
-        #         # if not, add new record
-        #         else:
-        #             self.latency_record.append((event_time, latency))
-
-        # Check if episode should end
+        # check if episode should end
         if self.remaingSteps <= 0 or \
             self.consumer.tracker.numberOfLatencyExceedingEarlyTerminationThreshold >= self.latency_violations_per_episode or \
             self.consumer.tracker.numberOfCPUsExceedingEarlyTerminationThreshold >= self.cpu_violations_per_episode:
@@ -513,18 +427,10 @@ class SPEEnvironment(Env):
                 print("High latency observed", flush=True)
             if self.consumer.tracker.numberOfCPUsExceedingEarlyTerminationThreshold >= self.cpu_violations_per_episode:
                 print("High cpu observed", flush=True)
-            # if self.remaingSteps <= 0:
-            #     self.consumer.tracker.reward += self.bonus_below_latency
-            #     print(f"Extra reward bonus +{self.bonus_below_latency} because of reaching the end of this episode")
-            # apply bonus if conditions are met at the end of an episode
-            # valid_latencies = [latency for _, latency in self.latency_record[-10:]]  # extract only the latency values from the last 10 records
-            # if len(valid_latencies) == self.bonus_step_interval and all(latency <= self.bonus_latency_threshold for latency in valid_latencies):
-            #         self.consumer.tracker.reward += self.bonus_below_latency
-            #         print(f"Extra reward bonus +{self.bonus_below_latency} because of low latency in the last {self.bonus_step_interval} observations")
         else:
             done = False
 
-        # Increment the episodic return
+        # increment the episodic return
         self.ep_return += 1
         return state_transformed[:-1], self.consumer.tracker.reward, done, []
     
@@ -545,19 +451,14 @@ class MeasurementTracker:
 
     def process_input(self, input_str):
 
-        # print('Received:',input_str,'at time',time.time(),flush=True)
-
-        # Split the string into parts using ","
+        # split the string into parts using ","
         parts = input_str.split("/")
 
         with self.data_lock:
-
-            # Extract timestamp as an integer
+            # xxtract timestamp as an integer
             self.last_time = time.time()
-            # Convert the string to a list of floats without replacing -1.0 with np.nan
+            # convert the string to a list of floats without replacing -1.0 with np.nan
             doubles_list = [float(x) for x in parts[0].split(',')]
-            # Convert the list to a NumPy array of float32 and reshape it to 11x7
-            # self.state = np.array(doubles_list, dtype=np.float32).reshape(11, self.valuesPerObservation)
             try:
                 # select indices for specific 7 states
                 indices = [
@@ -569,32 +470,24 @@ class MeasurementTracker:
                 ]
                 # select state_data corresponding to specific 7 states
                 selected_state = [doubles_list[i] for i in indices]
-                # self.state = np.array(doubles_list, dtype=np.float32).reshape(11, self.valuesPerObservation)
-                # Convert the list to a NumPy array of float32 and reshape it to 7x7
+                # convert the list to a NumPy array of float32 and reshape it to 7x7
                 self.state = np.array(selected_state, dtype=np.float32).reshape(7, self.valuesPerObservation)
                 
-                # Find the latest compression value that is not -1
-                # Extract the 6th row (index 5) from self.state
+                # find the latest compression value that is not -1
+                # extract the 6th row (index 5) from self.state
                 compression_values = self.state[5]
 
-                # Find the latest value in the row that is not -1
+                # find the latest value in the row that is not -1
                 self.latest_compression = None
                 for value in reversed(compression_values):
                     if value != -1:
                         self.latest_compression = value
                         break
-
                 
             except Exception as e:
                 raise RuntimeError("An error occured parsing " + input_str) from e
             
             self.original_reward = int(parts[1])
-            # if self.original_reward > 0:
-            #     self.reward = 2
-            # elif self.original_reward < 0:
-            #     self.reward = -2
-            # else:
-            #     self.reward = 0
             self.reward = self.original_reward
             self.numberOfLatencyExceedingEarlyTerminationThreshold = int(parts[2])
             self.numberOfCPUsExceedingEarlyTerminationThreshold = int(parts[3])
@@ -621,8 +514,8 @@ class KafkaStatsConsumer:
         self.consumer = Consumer({
             'bootstrap.servers': self.bootstrap_servers,
             'group.id': self.group_id,
-            'auto.offset.reset': 'earliest',  # Start from the beginning when no offset is stored
-            'enable.auto.commit': False  # Disable automatic offset commit
+            'auto.offset.reset': 'earliest',  # start from the beginning when no offset is stored
+            'enable.auto.commit': False  # disable automatic offset commit
         })
 
     def consume_stats(self):
@@ -640,7 +533,7 @@ class KafkaStatsConsumer:
                     print(msg.error(), flush=True)
                     break
 
-            # Process the received message
+            # process the received message
             stat = msg.value().decode('utf-8')
             print(f"Received message from 'stats' topic: {stat}", flush=True)
             self.tracker.process_input(stat)
@@ -651,12 +544,11 @@ class KafkaStatsConsumer:
         consumer_thread.start()
 
 
-
 def create_folder_and_path(base_folder, sub_folder, file_name=None):
     folder_path = os.path.join(base_folder, sub_folder)
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)    
-    # If a file name is provided, join it to the folder path
+    # if a file name is provided, join it to the folder path
     if file_name:
         return os.path.join(folder_path, file_name)
     else:
@@ -725,18 +617,11 @@ if __name__ == "__main__":
     print('agentstate:',args.agentstate, flush=True)
     print('learningactive:',args.learningactive, flush=True)
     
-
     env = SPEEnvironment(int(args.steps),args.bootstrapServer)
-    # input_shape = (11, 7)
     input_shape = (6, 2)
     hidden_size = 128
     output_size = env.action_space.n
     Agent = DQN(input_shape, hidden_size, output_size)
-
-    #load model's paras and replay buffer
-    # model_file = 'image/exp16-5/WELAW/synthetic5s/1-60/model_paras/dqn_model_episode_50.pth'
-    # buffer_file = 'image/exp16-5/WELAW/synthetic5s/1-60/replay_buffer/replay_buffer_episode_50.pkl'
-    # load_model_and_buffer(Agent, model_file, buffer_file)
 
     #exp_folder = args.baseFolder #  args.exp_folder
     paras_folder = create_folder_and_path(args.baseFolder, 'model_paras')
@@ -752,7 +637,6 @@ if __name__ == "__main__":
     incremental_average_reward = 0  # average reward of all episodes for incermental averaging
     cumulative_steps = 0 # track steps across episodes
 
-
     for i_episode in range(0, int(args.episodes)):
         print('starting episode',i_episode + 1, flush=True)
         start_time = time.time() # start time of per episode
@@ -761,31 +645,25 @@ if __name__ == "__main__":
         Agent.reset_compression()
 
         total_reward = 0  # total reward per episode
-        # total_time = 0  # actual processing time per episode
-        step_count = 0 # count the number of steps in every episode
+        step_count = 0 # count the number of steps in each episode
 
         steps = [] # store the steps for plotting
         q_values_history = [[] for _ in range(env.action_space.n)]
 
         while True:
-            # for epsilon greedy strategy
-            # a0, action_type, action_time, epsilon, current_compression = Agent.select_action(s0)
-            # for Boltzmann(softmax) exploration strategy
+            # Boltzmann(softmax) exploration strategy
             a0, action_type, action_time, tau, action_probablities, current_compression, entropy, moving_average_entropy, is_moving_average_ready = Agent.select_action(s0)
             q_values = Agent.net(torch.Tensor(s0)).detach().numpy().squeeze()
-            # for epsilon greedy strategy
-            # print(f"Episode {i_episode + 1}, Step {step_count + 1}, Action {a0}, Current Compression: {current_compression}, Action type: {action_type}, Epsilon: {epsilon:.6f}, Q values: {q_values}, Action time: {action_time}") 
-            # for Boltzmann(softmax) exploration strategy
+            # Boltzmann(softmax) exploration strategy
             print(f"Episode {i_episode + 1}, Step {step_count + 1}, Tau: {tau:.6f}, Q values: {q_values}, Action Probablities: {action_probablities}, Action {a0}, Entropy: {entropy}, Entropy MA: {moving_average_entropy}, Entropy MA ready: {is_moving_average_ready}, Current Compression: {current_compression}, Action time: {action_time}, Action type: {action_type}", flush=True)
 
             steps.append(step_count)
             for i, q_value in enumerate(q_values):
                 q_values_history[i].append(q_value)
 
-            # only keep the return value of s1, r, done, ignore the fourth return value
             step_result = env.step(a0, current_compression, moving_average_entropy, is_moving_average_ready)
-            s1, r, done = step_result[:3]
-            total_reward += r # cal total reward of current episode
+            s1, r, done = step_result[:3] # only keep the return value of s1, r, done, ignore the fourth return value
+            total_reward += r # cumulative reward under each episode
             print(f"After {step_count + 1} steps, total reward so far in this episode: {total_reward}", flush=True)
             
             write_to_csv(action_time_reward_path, mode = 'a', data = [int(action_time), r], data_type = 'rewards')
