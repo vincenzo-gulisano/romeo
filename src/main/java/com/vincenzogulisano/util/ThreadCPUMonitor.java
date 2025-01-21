@@ -1,7 +1,6 @@
 package com.vincenzogulisano.util;
 
 import java.lang.management.ManagementFactory;
-import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.util.HashMap;
 import java.util.List;
@@ -45,10 +44,7 @@ public class ThreadCPUMonitor {
             isMonitoring = true;
 
             for (Thread thread : Thread.getAllStackTraces().keySet()) {
-                // System.out.println("Found thread " + thread.getName() + " " +
-                // thread.getId());
                 if (threadsToMonitor.contains(thread.getName())) {
-                    // System.out.println("... registered!");
                     threadNames.put(thread.getId(), thread.getName());
                 }
             }
@@ -56,13 +52,10 @@ public class ThreadCPUMonitor {
             for (TimeMetric stat : threadStats.values()) {
                 stat.enable();
             }
-            // System.out.println("Starting cpu monitoring thread");
             threadMXBean = ManagementFactory.getThreadMXBean();
             Thread monitoringThread = new Thread(this::monitorThreadCPU);
             monitoringThread.start();
-        } else {
-            // System.out.println("Monitoring is already started.");
-        }
+        } 
     }
 
     public void stopMonitoring() {
@@ -71,8 +64,6 @@ public class ThreadCPUMonitor {
 
     private void monitorThreadCPU() {
         while (isMonitoring) {
-
-            long ts = System.currentTimeMillis();
 
             if (firstRetrieval) {
                 firstRetrieval = false;
@@ -102,9 +93,6 @@ public class ThreadCPUMonitor {
                     lastThreadCPUTime.put(threadName, currentThreadCPUTime);
 
                     double cpuUsage = (double) threadCPUDelta / (double) totalUptimeDelta * 100.0;
-                    // System.out.println(
-                    // String.format("%d - Thread ID %d Name %s CPU: %.2f", ts, threadId,
-                    // threadName, cpuUsage));
                     this.threadStats.get(threadName).record(Math.round(cpuUsage));
                 }
 

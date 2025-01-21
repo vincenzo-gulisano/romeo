@@ -24,9 +24,6 @@ public class WindowSynthetic implements WoostTimeWindow<TupleInput, TupleInput>,
     long getLastAddedTs;
     long squaresSum;
 
-    // // Compression related
-    // transient boolean isCompressed;
-
     // Latency related
     transient long latestStimulus;
 
@@ -102,29 +99,6 @@ public class WindowSynthetic implements WoostTimeWindow<TupleInput, TupleInput>,
         return tuplesSize + 104;
     }
 
-    // @Override
-    // public boolean isCompressed() {
-    //     return isCompressed;
-    // }
-
-    // @Override
-    // public void compress() {
-    //     if (isCompressed) {
-    //         throw new UnsupportedOperationException("Cannot invoke method 'compress' on an already compressed window");
-    //     } else {
-    //         isCompressed = true;
-    //     }
-    // }
-
-    // @Override
-    // public void decompress() {
-    //     if (!isCompressed) {
-    //         throw new UnsupportedOperationException("Cannot invoke method 'decompress' on an already decompressed window");
-    //     } else {
-    //         isCompressed = false;
-    //     }
-    // }
-
 	@Override
 	public void setLatestStimulus(long latestStimulus) {
 		this.latestStimulus = latestStimulus;
@@ -142,7 +116,5 @@ public class WindowSynthetic implements WoostTimeWindow<TupleInput, TupleInput>,
                 + ", tuplesSize=" + tuplesSize + ", getLastAddedTs=" + getLastAddedTs
                 + ", latestStimulus=" + latestStimulus + "]";
     }
-
-    
 
 }
