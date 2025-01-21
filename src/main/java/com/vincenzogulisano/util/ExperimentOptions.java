@@ -24,8 +24,7 @@ public class ExperimentOptions {
         options.addOption("stmin", "startingTimeMinimum", true, "minimum starting time for RL");
         options.addOption("stmax", "startingTimeMaximum", true, "maximum starting time for RL");
         options.addOption("log4j", "log4jConfigFile", true, "log4j config file");
-        options.addOption("randomSeed", "randomizeEpisodeRate", true,
-                "long randomg seed");
+        options.addOption("rer", "randomizeEpisodeRate", true, "If true, each episode resets the random seed to the current time");
         options.addOption("usecase", "usecase", true, "Which usecase to run");
         options.addOption("pb", "policyBarrier", true, "Which policy to use for the barrier");
         options.addOption("bs", "bootstrapServer", true, "boostrapServer");
