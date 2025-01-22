@@ -54,11 +54,11 @@ declare -A period_map
 
 # Comment the one you are not going to use
 
-# # # Agent contacting every 0.5 seconds, 80 times <- this is agent ON
+# Agent contacting every 0.5 seconds, 80 times <- this is agent ON
 steps_map["3"]=80
 period_map["3"]=0.5
 
-# # # Agent contacting every 80 seconds, 2 times <- this is agent OFF
+# Agent contacting every 80 seconds, 2 times <- this is agent OFF
 steps_map["3"]=2
 period_map["3"]=80
 

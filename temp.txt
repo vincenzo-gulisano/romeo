@@ -1,0 +1,12 @@
+./scripts/start_all_evaluation_CCR.sh
+    ./scripts/stop_kafka.sh
+    ./scripts/start_kafka.sh
+    ./scripts/start_CCR_agent.sh
+./scripts/create_plots_for_exp.sh
+    ./plotting/create_action_probabilities_csv_from_python_log.py
+    ./plotting/plot_action_probabilities.py
+    ./plotting/plot_experiment_stats_exp.py
+    ./plotting/append_episodesstatscsv_to_global_one.py
+./plotting/merge_overhead_data.py
+./plotting/compute_overheads_from_merged_data.py
+./plotting/plot_overheads.py
