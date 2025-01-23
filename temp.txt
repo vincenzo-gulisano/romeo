@@ -10,3 +10,12 @@
 ./plotting/merge_overhead_data.py
 ./plotting/compute_overheads_from_merged_data.py
 ./plotting/plot_overheads.py
+
+
+
+
+./scripts/start_all.sh
+    ./scripts/start_kafka.sh 
+    ./scripts/stop_kafka.sh
+    ./scripts/start_python_agent.sh
+    ./python/DQNAgent.py
