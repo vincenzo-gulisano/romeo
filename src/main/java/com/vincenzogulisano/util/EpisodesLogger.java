@@ -6,12 +6,10 @@ import java.io.IOException;
 
 public class EpisodesLogger {
 
-    private String fileName;
     private BufferedWriter writer;
     private int counter;
 
     public EpisodesLogger(String fileName) {
-        this.fileName = fileName;
         this.counter = 0;
 
         try {
