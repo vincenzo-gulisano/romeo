@@ -65,7 +65,6 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
 
     public Logger logger = LogManager.getLogger();
 
-    private volatile boolean resetRequest;
     private volatile boolean resetAck;
     // Temp
     private volatile boolean firstCallAfterReset;
@@ -84,7 +83,6 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         this.compressionTimeThreshold = compressionTimeThreshold;
         this.dUpdates = new ConcurrentLinkedQueue<>();
 
-        this.resetRequest = false;
         this.resetAck = false;
         this.firstCallAfterReset = false;
 
@@ -93,7 +91,6 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
     public void reset() {
         logger.debug("Registering reset request");
         resetAck = false;
-        resetRequest = true;
         firstCallAfterReset = false;
         logger.debug("{} tuples in input stream", getInput().size());
         while (getInput().size() > 0 || inProcess) {
@@ -131,7 +128,6 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         outputtMetric.reset();
         logger.debug("Acking back to SPE");
         resetAck = true;
-        resetRequest = false;
         firstCallAfterReset = true;
     }
 
@@ -164,15 +160,6 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         throughputMetric.disable();
         outputtMetric.disable();
     }
-
-    // private void pingMetrics() {
-    //     compressionsMetric.ping();
-    //     decompressionMetric.ping();
-    //     maxEventTimeMetric.ping();
-    //     compressionRatio.ping();
-    //     throughputMetric.ping();
-    //     outputtMetric.ping();
-    // }
 
     // Iterators and entries used by the processTupleIn1 function
     Iterator<Entry<String, byte[]>> i1;
@@ -212,7 +199,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
         }
 
         // Create result
-        List<OUT> result = new LinkedList<OUT>();
+        List<OUT> result = new LinkedList<>();
 
         // Extract tuple info
         latestTimestamp = t.getTimestamp();
@@ -253,12 +240,12 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
                             e1.getKey(), e1.getValue().length);
                     try {
                         byte[] snappyUncompress = Snappy.uncompress(e1.getValue());
-                        logger.warn("snappyUncompress length:", snappyUncompress.length);
+                        logger.warn("snappyUncompress length: {}", snappyUncompress.length);
                         try {
                             wToDecompress = (WoostTimeWindow<IN, OUT>) new ObjectInputStream(
                                     new ByteArrayInputStream(Snappy.uncompress(e1.getValue()))).readObject();
                         } catch (ClassNotFoundException e) {
-                            logger.warn("Window for {} still null!");
+                            logger.warn("Window still null!");
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -443,7 +430,7 @@ public class WoostAggregateWithCompression<IN extends RichTuple, OUT extends Ric
     }
 
     public long changeD(long v) {
-        logger.debug("Storing change request to d:" + v);
+        logger.debug("Storing change request to d: {}",v);
         dUpdates.add(v);
         return latestEventTime;
     }
