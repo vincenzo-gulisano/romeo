@@ -29,7 +29,6 @@ GAMMA = 0.99
 lr = 0.01
 buffer_size = 10000  # replay buffer size
 batch_size = 128
-#episodes = 50
 target_update = 1000  # update target net every 1000 steps
 TAU_START = 5
 TAU_END = 1
@@ -112,7 +111,6 @@ class DQN(object):
         self.sample_count = 0
         self.reset_compression()
 
-        # self.first_step = True # flag to track the first step
         self.reinitialized = False
 
         self.entropy_list = deque(maxlen=1000)  # to store last 1000 entropy values
@@ -455,7 +453,7 @@ class MeasurementTracker:
         parts = input_str.split("/")
 
         with self.data_lock:
-            # xxtract timestamp as an integer
+            # extract timestamp as an integer
             self.last_time = time.time()
             # convert the string to a list of floats without replacing -1.0 with np.nan
             doubles_list = [float(x) for x in parts[0].split(',')]
