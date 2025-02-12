@@ -31,13 +31,15 @@ sleep_until_time_or_pid() {
     done
 }
 
+##################################################################
 
-# This is for Linear Road
+# This is for Linear Road - Agent performance
+
 bootstrapServer=129.16.20.20:9092 # THIS IS MICHELANGELO
 cpuThreshold=100
 base_folder="./data/scalability/linearroad"
 input_file="./data/input/input.txt"
-wa=3
+wa=5
 ws=600
 starting_time_min=8500
 starting_time_max=9900
@@ -46,7 +48,6 @@ duration=100000000
 randomSeeds=(1 2 3 4 5)
 policy="WELAW"
 episodes=1
-
 compressions=(3)
 
 declare -A steps_map
@@ -54,13 +55,47 @@ declare -A period_map
 
 # Comment the one you are not going to use
 
-# Agent contacting every 0.5 seconds, 80 times <- this is agent ON
-steps_map["3"]=80
-period_map["3"]=0.5
+# # Agent contacting every 0.5 seconds, 80 times <- this is agent ON
+# steps_map["3"]=80
+# period_map["3"]=0.5
 
 # Agent contacting every 80 seconds, 2 times <- this is agent OFF
 steps_map["3"]=2
 period_map["3"]=80
+
+##################################################################
+
+# This is for Linear Road - Scalability
+
+bootstrapServer=129.16.20.20:9092 # THIS IS MICHELANGELO
+cpuThreshold=100
+base_folder="./data/scalability/linearroad"
+input_file="./data/input/input.txt"
+wa=5
+ws=600
+starting_time_min=8500
+starting_time_max=9900
+usecase="LinearRoad"
+duration=100000000
+randomSeeds=(1 2 3 4 5)
+policy="WELAW"
+episodes=1
+compressions=(3)
+
+declare -A steps_map
+declare -A period_map
+
+# Comment the one you are not going to use
+
+# # Agent contacting every 0.5 seconds, 80 times <- this is agent ON
+# steps_map["3"]=80
+# period_map["3"]=0.5
+
+# Agent contacting every 80 seconds, 2 times <- this is agent OFF
+steps_map["3"]=2
+period_map["3"]=80
+
+##################################################################
 
 for randomSeed in "${randomSeeds[@]}"; do
 for compression in "${compressions[@]}"; do
