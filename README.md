@@ -3,15 +3,15 @@ ReinfOrceMent lEarning cOmpressor
 
 # Linear Road Experiments (Fig. 7)
 
-- To begin with, run the baselines for different X values 
-
-
-(notice I changed from WELAW to WELOB only for compression 0 and always starting with compression 10 when loading the state... this is now hardcoded and might be better to have as a parameter since I am not sure whether it affects the scalability experiments)
-
+- To begin with, run the baselines for different X values (notice I changed from WELAW to WELOB only for compression 0 and always starting with compression 10 when loading the state... this is now hardcoded and might be better to have as a parameter since I am not sure whether it affects the scalability experiments)
+- `./scripts/start_all_evaluation_CCR.sh`
+- `./scripts/create_plots_for_exp.sh data/agentperformance/linearroad True 0/40/0.5/1 1/40/0.5/1 2/40/0.5/1 3/40/0.5/1 4/40/0.5/1 5/40/0.5/1 6/40/0.5/1 7/40/0.5/1 8/40/0.5/1 9/40/0.5/1 10/40/0.5/1`
+- `python plotting/create_summary_data.py data/agentperformance/linearroad`
 
 The final plot
+`python plotting/paper_plot_baselines_vs_multiple_agents_icpe_single_column.py data/agentperformance/linearroad data/lr_rate.csv data/exp16.20/merged.csv data/exp16.20/lr_baseline_vs_multiple_agents.pdf data/exp16.20/lr_baseline_vs_multiple_agents.png linearroad welaw_linear welob_linear,elob_linear,lob_linear,welaw_linear WEL-OB,EL-OB,L-OB,WEL-AW`
 
-`python plotting/paper_plot_baselines_vs_multiple_agents_icpe_single_column.py data/10/linearroad-CCR/5/600 data/10/linearroad-CCR/5/600/lr_rate.csv data/exp16.20/merged.csv data/exp16.20/lr_baseline_vs_multiple_agents.pdf data/exp16.20/lr_baseline_vs_multiple_agents.png linearroad welaw_linear welob_linear,elob_linear,lob_linear,welaw_linear WEL-OB,EL-OB,L-OB,WEL-AW`
+- Probably need to change the naming of the folders, for now did it manually
 
 # Scalability Experiments
 
