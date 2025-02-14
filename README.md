@@ -1,7 +1,17 @@
 # romeo
 ReinfOrceMent lEarning cOmpressor
 
+# Linear Road Experiments (Fig. 7)
 
+- To begin with, run the baselines for different X values 
+
+
+(notice I changed from WELAW to WELOB only for compression 0 and always starting with compression 10 when loading the state... this is now hardcoded and might be better to have as a parameter since I am not sure whether it affects the scalability experiments)
+
+
+The final plot
+
+`python plotting/paper_plot_baselines_vs_multiple_agents_icpe_single_column.py data/10/linearroad-CCR/5/600 data/10/linearroad-CCR/5/600/lr_rate.csv data/exp16.20/merged.csv data/exp16.20/lr_baseline_vs_multiple_agents.pdf data/exp16.20/lr_baseline_vs_multiple_agents.png linearroad welaw_linear welob_linear,elob_linear,lob_linear,welaw_linear WEL-OB,EL-OB,L-OB,WEL-AW`
 
 # Scalability Experiments
 

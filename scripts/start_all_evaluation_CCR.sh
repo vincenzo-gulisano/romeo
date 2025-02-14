@@ -37,63 +37,78 @@ sleep_until_time_or_pid() {
 
 bootstrapServer=129.16.20.20:9092 # THIS IS MICHELANGELO
 cpuThreshold=100
-base_folder="./data/scalability/linearroad"
+base_folder="./data/agentperformance/linearroad"
 input_file="./data/input/input.txt"
 wa=5
 ws=600
-starting_time_min=8500
+starting_time_min=900
 starting_time_max=9900
 usecase="LinearRoad"
 duration=100000000
-randomSeeds=(1 2 3 4 5)
-policy="WELAW"
-episodes=1
-compressions=(3)
+randomSeeds=(1)
+policy="WELOB"
+episodes=30
+compressions=(10 9 8 7 6 5 4 3 2 1 0)
+compressions=(0)
 
 declare -A steps_map
 declare -A period_map
 
-# Comment the one you are not going to use
-
-# # Agent contacting every 0.5 seconds, 80 times <- this is agent ON
-# steps_map["3"]=80
-# period_map["3"]=0.5
-
-# Agent contacting every 80 seconds, 2 times <- this is agent OFF
-steps_map["3"]=2
-period_map["3"]=80
+# Agent contacting every 0.5 seconds, 40 times
+steps_map["0"]=40
+period_map["0"]=0.5
+steps_map["1"]=40
+period_map["1"]=0.5
+steps_map["2"]=40
+period_map["2"]=0.5
+steps_map["3"]=40
+period_map["3"]=0.5
+steps_map["4"]=40
+period_map["4"]=0.5
+steps_map["5"]=40
+period_map["5"]=0.5
+steps_map["6"]=40
+period_map["6"]=0.5
+steps_map["7"]=40
+period_map["7"]=0.5
+steps_map["8"]=40
+period_map["8"]=0.5
+steps_map["9"]=40
+period_map["9"]=0.5
+steps_map["10"]=40
+period_map["10"]=0.5
 
 ##################################################################
 
-# This is for Linear Road - Scalability
+# # This is for Linear Road - Scalability
 
-bootstrapServer=129.16.20.20:9092 # THIS IS MICHELANGELO
-cpuThreshold=100
-base_folder="./data/scalability/linearroad"
-input_file="./data/input/input.txt"
-wa=5
-ws=600
-starting_time_min=8500
-starting_time_max=9900
-usecase="LinearRoad"
-duration=100000000
-randomSeeds=(1 2 3 4 5)
-policy="WELAW"
-episodes=1
-compressions=(3)
+# bootstrapServer=129.16.20.20:9092 # THIS IS MICHELANGELO
+# cpuThreshold=100
+# base_folder="./data/scalability/linearroad"
+# input_file="./data/input/input.txt"
+# wa=5
+# ws=600
+# starting_time_min=8500
+# starting_time_max=9900
+# usecase="LinearRoad"
+# duration=100000000
+# randomSeeds=(1 2 3 4 5)
+# policy="WELAW"
+# episodes=1
+# compressions=(3)
 
-declare -A steps_map
-declare -A period_map
+# declare -A steps_map
+# declare -A period_map
 
-# Comment the one you are not going to use
+# # Comment the one you are not going to use
 
-# # Agent contacting every 0.5 seconds, 80 times <- this is agent ON
-# steps_map["3"]=80
-# period_map["3"]=0.5
+# # # Agent contacting every 0.5 seconds, 80 times <- this is agent ON
+# # steps_map["3"]=80
+# # period_map["3"]=0.5
 
-# Agent contacting every 80 seconds, 2 times <- this is agent OFF
-steps_map["3"]=2
-period_map["3"]=80
+# # Agent contacting every 80 seconds, 2 times <- this is agent OFF
+# steps_map["3"]=2
+# period_map["3"]=80
 
 ##################################################################
 
@@ -149,7 +164,7 @@ for compression in "${compressions[@]}"; do
     echo "Starting SPE"
 
     echo "Starting experiment for ${id} (compression)"
-    args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d ${compression} -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase} -pb ${policy} -randomSeed ${randomSeed} -bs ${bootstrapServer} -ct ${cpuThreshold}"
+    args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d 10 -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase} -pb ${policy} -randomSeed ${randomSeed} -bs ${bootstrapServer} -ct ${cpuThreshold}"
     echo "args=${args}"
     
     mvn clean compile package exec:java -Dexec.mainClass="com.vincenzogulisano.javapythoncommunicator.JPComm" -Dexec.args="${args}" > ${exp_folder}/spe.log 2>&1 &
