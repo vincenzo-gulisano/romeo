@@ -12,6 +12,7 @@ The final plot
 `python plotting/paper_plot_baselines_vs_multiple_agents_icpe_single_column.py data/agentperformance/linearroad data/lr_rate.csv data/exp16.20/merged.csv data/exp16.20/lr_baseline_vs_multiple_agents.pdf data/exp16.20/lr_baseline_vs_multiple_agents.png linearroad welaw_linear welob_linear,elob_linear,lob_linear,welaw_linear WEL-OB,EL-OB,L-OB,WEL-AW`
 
 - Probably need to change the naming of the folders, for now did it manually
+- Looked at previous data (the previous baselines and it seems the format was the same, so going on for now)
 
 # Scalability Experiments
 
