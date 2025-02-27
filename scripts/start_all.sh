@@ -80,8 +80,8 @@ echo "Starting Time Min: $starting_time_min"
 echo "Starting Time Max: $starting_time_max"
 
 duration=5000000000
-episodes=30
-steps=1000
+episodes=15
+steps=200
 randomizeSeed=True
 
 #bootstrapServer=129.16.20.158:9092

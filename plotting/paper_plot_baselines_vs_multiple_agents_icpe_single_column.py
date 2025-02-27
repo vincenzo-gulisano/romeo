@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import os
 import numpy as np
 import matplotlib.ticker as ticker
+import sys
 
 
 # Define a function to handle edge cases
@@ -20,7 +21,6 @@ def plot_graphs(
     # probs,
     # probs_episod,
     usecase,
-    id,
     barplots_ids,
     barplots_ids_labels,
 ):
@@ -508,12 +508,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("output_pdf", type=str, help="Output PDF file.")
     parser.add_argument("output_png", type=str, help="Output png file.")
-    # parser.add_argument("probs", type=str, help="CSV with the probabilities")
-    # parser.add_argument(
-    #     "probs_episod", type=int, help="Episode of which to plot probabilities"
-    # )
     parser.add_argument("usecase", type=str, help="usecase")
-    parser.add_argument("id", type=str, help="id")
+    # parser.add_argument("id", type=str, help="id")
 
     parser.add_argument("barplots_ids", type=str, help="id")
     parser.add_argument("barplots_ids_labels", type=str, help="id")
@@ -532,7 +528,6 @@ if __name__ == "__main__":
         # args.probs,
         # args.probs_episod,
         args.usecase,
-        args.id,
         barplots_ids,
         barplots_ids_labels,
     )

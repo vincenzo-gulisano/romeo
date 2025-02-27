@@ -2,7 +2,7 @@ import argparse
 import pandas as pd
 import os
 
-def process_subfolder(subfolder):
+def process_subfolder(subfolder,id):
     csv_file = os.path.join(subfolder, 'compressionandepisodesstats.csv')
     if not os.path.exists(csv_file):
         return None
@@ -41,7 +41,7 @@ def process_subfolder(subfolder):
         
         # Append to data list
         data.append({
-            'baseline': os.path.basename(subfolder),
+            'baseline': id,
             'episode': episode,
             'q2_rate': q2_rate,
             'cum_reward': cum_reward,
@@ -67,31 +67,30 @@ def process_subfolder(subfolder):
     
     return pd.DataFrame(data)
 
-def aggregate_data(base_folder):
+def aggregate_data(folders):
     baselines_data = pd.DataFrame(columns=['baseline', 'episode', 'q2_rate', 'cum_reward', 'q1_ratio', 'q2_ratio', 'q3_ratio', 'mean_ratio', 
                                            'q2_violations','sum_violations','q1_latency','q2_latency','q3_latency','mean_latency','q1_cpu','q2_cpu','q3_cpu','mean_cpu',
                                            'steps','duration','eventtime_start','eventtime_end'])
     
-    for subfolder in os.listdir(base_folder):
-        subfolder_path = os.path.join(base_folder, subfolder)
-        if os.path.isdir(subfolder_path):
-            
-            subfolder_data = process_subfolder(subfolder_path)
-            if subfolder_data is not None:
-                baselines_data = pd.concat([baselines_data, subfolder_data], ignore_index=True)
+    for folder_id in folders:
+        base_folder, id_ = folder_id.split(':')
+        subfolder_data = process_subfolder(base_folder, id_)
+        if subfolder_data is not None:
+            baselines_data = pd.concat([baselines_data, subfolder_data], ignore_index=True)
     
     return baselines_data
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Aggregate data from multiple subfolders into a single DataFrame.")
-    parser.add_argument('base_folder', type=str, help='Base folder containing the subfolders.')
+    parser = argparse.ArgumentParser(description="Aggregate data from folders into a single DataFrame.")
+    parser.add_argument('folders', type=str, nargs='+', help='List of base_folder and id pairs (e.g., base1:id1 base2:id2 ...).')
+    parser.add_argument('output_path', type=str, help='Path to save the aggregated CSV.')
+
     
     args = parser.parse_args()
     
-    baselines_data = aggregate_data(args.base_folder)
+    baselines_data = aggregate_data(args.folders)
     
     # Save the DataFrame to a CSV file in the base folder
-    output_path = os.path.join(args.base_folder, 'baselines_data.csv')
-    baselines_data.to_csv(output_path, index=False)
+    baselines_data.to_csv(args.output_path, index=False)
     
-    print(f"Data aggregated and saved to {output_path}")
+    print(f"Data aggregated and saved to {args.output_path}")
