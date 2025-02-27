@@ -82,6 +82,7 @@ echo "Starting Time Max: $starting_time_max"
 duration=5000000000
 episodes=30
 steps=1000
+randomizeSeed=True
 
 #bootstrapServer=129.16.20.158:9092
 bootstrapServer='michelangelo.cse.chalmers.se:9092'
@@ -128,7 +129,7 @@ echo "The PID of the python agent is ${python_pid}"
 echo "Starting SPE"
 
 echo "Starting experiment for ${id} (compression)"
-args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase} -pb ${policy} -rer True -bs ${bootstrapServer} -ct ${cpuThreshold}"
+args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase} -pb ${policy} -rer ${randomizeSeed} -bs ${bootstrapServer} -ct ${cpuThreshold}"
 echo "args=${args}"
 mvn clean compile package exec:java -Dexec.mainClass="com.vincenzogulisano.javapythoncommunicator.JPComm" -Dexec.args="${args}" > ${exp_folder}/spe.log 2>&1 &
 

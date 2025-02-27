@@ -78,6 +78,8 @@ period_map["9"]=0.5
 steps_map["10"]=40
 period_map["10"]=0.5
 
+randomizeSeed=True
+
 ##################################################################
 
 # # This is for Linear Road - Scalability
@@ -109,6 +111,8 @@ period_map["10"]=0.5
 # # Agent contacting every 80 seconds, 2 times <- this is agent OFF
 # steps_map["3"]=2
 # period_map["3"]=80
+
+# randomizeSeed=False
 
 ##################################################################
 
@@ -164,7 +168,7 @@ for compression in "${compressions[@]}"; do
     echo "Starting SPE"
 
     echo "Starting experiment for ${id} (compression)"
-    args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d 10 -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase} -pb ${policy} -randomSeed ${randomSeed} -bs ${bootstrapServer} -ct ${cpuThreshold}"
+    args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d 10 -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase} -pb ${policy} -rer ${randomizeSeed} -randomSeed ${randomSeed} -bs ${bootstrapServer} -ct ${cpuThreshold}"
     echo "args=${args}"
     
     mvn clean compile package exec:java -Dexec.mainClass="com.vincenzogulisano.javapythoncommunicator.JPComm" -Dexec.args="${args}" > ${exp_folder}/spe.log 2>&1 &
