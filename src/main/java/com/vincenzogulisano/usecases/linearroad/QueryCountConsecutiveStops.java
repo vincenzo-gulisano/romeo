@@ -48,6 +48,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
     private long ws;
     private Random r;
     private long randomSeed;
+    private boolean randomizeSeed;
     private PolicyBarrier policyBarrier;
 
     public final static long sleepBeforeRealRate = 1000;
@@ -73,6 +74,7 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         startingTimeMinimum = Long.valueOf(expOps.commandLine().getOptionValue("stmin", String.valueOf(0)));
         startingTimeMaximum = Long.valueOf(expOps.commandLine().getOptionValue("stmax", String.valueOf(0)));
         randomSeed = Long.valueOf(expOps.commandLine().getOptionValue("randomSeed", String.valueOf(0L)));
+        randomizeSeed = Boolean.valueOf(expOps.commandLine().getOptionValue("rer", "False"));
         policyBarrier = PolicyBarrier.valueOf(expOps.commandLine().getOptionValue("pb", "WEAAW"));
 
         r = new Random(0);
@@ -176,9 +178,14 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
 
         logger.debug("SPE - Got a RESET request");
 
-        r = new Random(randomSeed);
-        
-        long startingTS = startingTimeMinimum + r.nextInt((int) (startingTimeMaximum - startingTimeMinimum) + 1);
+        if (randomizeSeed) {
+            r = new Random(System.currentTimeMillis());
+        } else {
+            r = new Random(randomSeed);
+        }
+
+        long startingTS = startingTimeMinimum + r.nextInt((int) (startingTimeMaximum - startingTimeMinimum)
+                + 1);
         logger.debug("SPE - Updating source starting time to " + startingTS);
         sourceFunction.setStartingTS(startingTS);
 
@@ -207,7 +214,8 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         sink.reset();
         logger.debug("Sink reset");
 
-        long newCompression = (long) ((double) ws * ((double) valueDAtEpisodeStart / 10.0));
+        long newCompression = (long) ((double) ws * ((double) valueDAtEpisodeStart
+                / 10.0));
         logger.debug("Reset compression threshold of the Aggregate to {}", newCompression);
         woostAgg.changeD(newCompression);
 
@@ -238,13 +246,16 @@ public class QueryCountConsecutiveStops implements Actionable, EnvironmentMonito
         logger.debug("Since the reset is complete, adding a token to the state monitor");
         long latestEventTime = woostAgg.getLatestEventTime();
         long latestClockTime = System.currentTimeMillis() / 1000;
-        // In this case I pass the barriers automatically because it's the beginning of the episode.
+        // In this case I pass the barriers automatically because it's the beginning of
+        // the episode.
         PolicyBarrierCalculator barrier = PolicyBarrierCalculator.getBarriers(policyBarrier, latestClockTime,
-                latestEventTime, wa, ws);
+                latestEventTime, wa,
+                ws);
         logger.debug(
                 "Reset completed at event time {} and clock time {}. Barriers: event time >= {} and clock time >= {}",
                 latestEventTime, latestClockTime, barrier.getEventTimeBarrier(), barrier.getWallclockTimeBarrier());
-        reporter.addSendStateToken(barrier.getWallclockTimeBarrier(), barrier.getEventTimeBarrier(), valueDAtEpisodeStart);
+        reporter.addSendStateToken(barrier.getWallclockTimeBarrier(), barrier.getEventTimeBarrier(),
+                valueDAtEpisodeStart);
 
     }
 

@@ -51,6 +51,7 @@ public class QuerySynthetic implements Actionable, EnvironmentMonitor {
     private long ws;
     private Random r;
     private long randomSeed;
+    private boolean randomizeSeed;
     private PolicyBarrier policyBarrier;
 
     public final static long sleepBeforeRealRate = 1000;
@@ -126,6 +127,7 @@ public class QuerySynthetic implements Actionable, EnvironmentMonitor {
         startingTimeMaximum = Long.valueOf(expOps.commandLine().getOptionValue("stmax",
                 String.valueOf(0)));
         randomSeed = Long.valueOf(expOps.commandLine().getOptionValue("randomSeed", String.valueOf(0L)));
+        randomizeSeed = Boolean.valueOf(expOps.commandLine().getOptionValue("rer", "False"));
         policyBarrier = PolicyBarrier.valueOf(expOps.commandLine().getOptionValue("pb", "WEAAW"));
 
         r = new Random(0);
@@ -228,7 +230,11 @@ public class QuerySynthetic implements Actionable, EnvironmentMonitor {
 
         logger.debug("SPE - Got a RESET request");
 
-        r = new Random(randomSeed);
+        if (randomizeSeed) {
+            r = new Random(System.currentTimeMillis());
+        } else {
+            r = new Random(randomSeed);
+        }
 
         long startingTS = startingTimeMinimum + r.nextInt((int) (startingTimeMaximum - startingTimeMinimum) + 1);
         logger.debug("SPE - Updating source starting time to " + startingTS);
