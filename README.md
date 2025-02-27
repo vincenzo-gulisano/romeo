@@ -7,6 +7,13 @@ ReinfOrceMent lEarning cOmpressor
 - `./scripts/start_all_evaluation_CCR.sh`
 - `./scripts/create_plots_for_exp.sh data/agentperformance/linearroad True 0/40/0.5/1 1/40/0.5/1 2/40/0.5/1 3/40/0.5/1 4/40/0.5/1 5/40/0.5/1 6/40/0.5/1 7/40/0.5/1 8/40/0.5/1 9/40/0.5/1 10/40/0.5/1`
 - `python plotting/create_summary_data.py data/agentperformance/linearroad`
+- Then run the agent-based version for the different policies, using start_all.sh
+  - `./scripts/start_all.sh LinearRoad WELOB`
+  - `./scripts/start_all.sh LinearRoad ELOB`
+  - `./scripts/start_all.sh LinearRoad LOB`
+  - `./scripts/start_all.sh LinearRoad WELAW`
+  - `./scripts/create_plots_for_exp.sh data/agentperformance_dqn True WELOB/linear ELOB/linear LOB/linear WELAW/linear`
+  - `python plotting/create_summary_data.py data/agentperformance_dqn`
 
 The final plot
 `python plotting/paper_plot_baselines_vs_multiple_agents_icpe_single_column.py data/agentperformance/linearroad data/lr_rate.csv data/exp16.20/merged.csv data/exp16.20/lr_baseline_vs_multiple_agents.pdf data/exp16.20/lr_baseline_vs_multiple_agents.png linearroad welaw_linear welob_linear,elob_linear,lob_linear,welaw_linear WEL-OB,EL-OB,L-OB,WEL-AW`

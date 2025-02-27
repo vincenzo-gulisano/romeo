@@ -37,7 +37,7 @@ policy=$2
 
 # Set variables depending on the usecase
 if [ "$usecase" = "LinearRoad" ]; then
-    base_folder="./data/output/${policy}/linear"
+    base_folder="./data/agentperformance_dqn/${policy}/linear"
     input_file="./data/input/input.txt"
     wa=5
     ws=600
@@ -46,7 +46,7 @@ if [ "$usecase" = "LinearRoad" ]; then
     starting_time_max=6000
     cpuThreshold=100
 elif [ "$usecase" = "Synthetic" ]; then
-    base_folder="./data/output/${policy}/synthetic"
+    base_folder="./data/agentperformance_dqn/${policy}/synthetic"
     input_file="./data/input/synthetic.csv"
     wa=1
     ws=900
@@ -55,7 +55,7 @@ elif [ "$usecase" = "Synthetic" ]; then
     starting_time_max=5800
     cpuThreshold=100
 elif [ "$usecase" = "Synthetic5s" ]; then
-    base_folder="./data/output/${policy}/synthetic5s"
+    base_folder="./data/agentperformance_dqn/${policy}/synthetic5s"
     input_file="./data/input/synthetic.csv"
     wa=5
     ws=900
@@ -64,7 +64,7 @@ elif [ "$usecase" = "Synthetic5s" ]; then
     starting_time_max=2100
     cpuThreshold=100
 else
-    echo "Invalid usecase. Please choose either 'LinearRoad' or 'Synthetic'."
+    echo "Invalid usecase."
     exit 1
 fi
 
@@ -80,7 +80,7 @@ echo "Starting Time Min: $starting_time_min"
 echo "Starting Time Max: $starting_time_max"
 
 duration=5000000000
-episodes=5
+episodes=30
 steps=1000
 
 #bootstrapServer=129.16.20.158:9092
