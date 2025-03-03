@@ -20,6 +20,13 @@ ReinfOrceMent lEarning cOmpressor
 - To plot such a graph, extrac the actions from an episode (make an excerpt of the actions.csv file in the corresponding folder) and then run:
 - `python plotting/plot_episode_actions.py data/agentperformance_dqn/WELAW/linear/actions.excerpt.csv data/agentperformance_dqn/actions.pdf`
 
+# State creation times (Figure 10)
+- To plot such graph, extract the required data for both Linear and synthetic like this
+- `./scripts/extract_state_initilization_csv.sh data/agentperformance_dqn/WELAW/linear/spe.log data/agentperformance_dqn/WELAW/linear/statecreationtimes.csv`
+- and then run
+- `python plotting/plot_state_initilization_times.py data/agentperformance_dqn/WELAW/linear/statecreationtimes.csv data/agentperformance_dqn/WELAW/linear/statecreationtimes.csv data/agentperformance_dqn/statecreationtimes.pdf`
+  - Note in this case I am passing twice the linear road data, pass the synthetic one once you create it
+
 # Scalability Experiments
 - These are started using the start_all_evaluation_CCR.sh script.
   - The experiment config needs to be added in the beginning. The script contains a sample setup to compare no agent vs. agent for a given compression for Linear Road

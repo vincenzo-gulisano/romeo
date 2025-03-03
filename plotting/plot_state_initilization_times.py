@@ -6,7 +6,8 @@ import os
 def main():
     # Set up argument parser
     parser = argparse.ArgumentParser(description='Plot eventtime vs. end-start from a CSV file.')
-    parser.add_argument('base_folder', type=str, help='Path to the CSV file')
+    parser.add_argument('lineardata', type=str, help='Path to the CSV file for linear')
+    parser.add_argument('syntheticdata', type=str, help='Path to the CSV file for synthetic')
     parser.add_argument('output', type=str, help='Path to save the plot (optional)')
     args = parser.parse_args()
 
@@ -22,7 +23,11 @@ def main():
     fig = plt.figure(figsize=(text_width_in, text_height_in))
     
     # Read CSV file
-    data = pd.read_csv(os.path.join(args.base_folder, 'linear3cols.csv'))
+    data = pd.read_csv(args.lineardata, skipinitialspace=True)
+
+    # Strip any unexpected spaces in column names
+    data.columns = data.columns.str.strip()
+
     # Ensure the required columns are present
     if not all(column in data.columns for column in ['start', 'eventtime', 'end']):
         raise ValueError('CSV file must contain start, eventtime, and end columns.')
@@ -41,7 +46,11 @@ def main():
     plt.plot(sorted_data['eventtime'], sorted_data['duration'], linestyle='-', color='b', label='Linear Road')
 
     # Read CSV file
-    data = pd.read_csv(os.path.join(args.base_folder, 'synthetic3cols.csv'))
+    data = pd.read_csv(args.syntheticdata, skipinitialspace=True)
+
+    # Strip any unexpected spaces in column names
+    data.columns = data.columns.str.strip()
+
     # Ensure the required columns are present
     if not all(column in data.columns for column in ['start', 'eventtime', 'end']):
         raise ValueError('CSV file must contain start, eventtime, and end columns.')

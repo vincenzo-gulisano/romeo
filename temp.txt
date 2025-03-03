@@ -21,3 +21,6 @@
     ./scripts/stop_kafka.sh
     ./scripts/start_python_agent.sh
     ./python/DQNAgent.py
+
+./scripts/extract_state_initilization_csv.sh
+plotting/plot_state_initilization_times.py
