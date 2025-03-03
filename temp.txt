@@ -2,6 +2,7 @@
     ./scripts/stop_kafka.sh
     ./scripts/start_kafka.sh
     ./scripts/start_CCR_agent.sh
+        ./python/CCRAgent.py
 ./scripts/create_plots_for_exp.sh
     ./plotting/create_action_probabilities_csv_from_python_log.py
     ./plotting/plot_action_probabilities.py
@@ -10,8 +11,8 @@
 ./plotting/merge_overhead_data.py
 ./plotting/compute_overheads_from_merged_data.py
 ./plotting/plot_overheads.py
-
-
+./plotting/create_summary_data.py
+./plotting/paper_plot_baselines_vs_multiple_agents_icpe_single_column.py
 
 
 ./scripts/start_all.sh
