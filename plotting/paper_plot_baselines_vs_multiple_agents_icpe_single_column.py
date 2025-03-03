@@ -57,17 +57,17 @@ def plot_graphs(
     axs[6].set_visible(False)
 
     given_order = [
-        "10",
-        "9",
-        "8",
-        "7",
-        "6",
-        "5",
-        "4",
-        "3",
-        "2",
-        "1",
-        "0",
+        10,
+        9,
+        8,
+        7,
+        6,
+        5,
+        4,
+        3,
+        2,
+        1,
+        0,
         # "r",
     ]
     # The desired order for baselines
@@ -239,6 +239,7 @@ def plot_graphs(
         df[df["baseline"] == baseline]["q2_cpu"].dropna() / 100
         for baseline in unique_baselines
     ]
+    
     # axs[4,1].boxplot(data_cpu, labels=unique_baselines)
     for barplot_id in barplots_ids:
         data_cpu.append(

@@ -46,36 +46,35 @@ starting_time_max=9900
 usecase="LinearRoad"
 duration=100000000
 randomSeeds=(1)
-policy="WELOB"
-episodes=30
+policy="ELOB"
+episodes=15
 compressions=(10 9 8 7 6 5 4 3 2 1 0)
-compressions=(0)
 
 declare -A steps_map
 declare -A period_map
 
 # Agent contacting every 0.5 seconds, 40 times
-steps_map["0"]=40
+steps_map["0"]=200
 period_map["0"]=0.5
-steps_map["1"]=40
+steps_map["1"]=200
 period_map["1"]=0.5
-steps_map["2"]=40
+steps_map["2"]=200
 period_map["2"]=0.5
-steps_map["3"]=40
+steps_map["3"]=200
 period_map["3"]=0.5
-steps_map["4"]=40
+steps_map["4"]=200
 period_map["4"]=0.5
-steps_map["5"]=40
+steps_map["5"]=200
 period_map["5"]=0.5
-steps_map["6"]=40
+steps_map["6"]=200
 period_map["6"]=0.5
-steps_map["7"]=40
+steps_map["7"]=200
 period_map["7"]=0.5
-steps_map["8"]=40
+steps_map["8"]=200
 period_map["8"]=0.5
-steps_map["9"]=40
+steps_map["9"]=200
 period_map["9"]=0.5
-steps_map["10"]=40
+steps_map["10"]=200
 period_map["10"]=0.5
 
 randomizeSeed=True
