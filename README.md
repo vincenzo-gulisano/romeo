@@ -1,7 +1,7 @@
 # romeo
 ReinfOrceMent lEarning cOmpressor
 
-# Linear Road Experiments (Fig. 7)
+# Linear Road Experiments (Fig. 7) / Fig. 9 can be done similarly
 
 - To begin with, run the baselines for different X values
 - `./scripts/start_all_evaluation_CCR.sh`
@@ -16,8 +16,11 @@ ReinfOrceMent lEarning cOmpressor
   - `python plotting/create_summary_data.py data/agentperformance_dqn/WELOB/linear:welob_linear data/agentperformance_dqn/ELOB/linear:elob_linear data/agentperformance_dqn/LOB/linear:lob_linear data/agentperformance_dqn/WELAW/linear:welaw_linear data/agentperformance_dqn/baselines_data.csv`
   - `python plotting/paper_plot_baselines_vs_multiple_agents_icpe_single_column.py data/agentperformance/linearroad data/lr_rate.csv data/agentperformance_dqn/baselines_data.csv data/agentperformance_dqn/lr_baseline_vs_multiple_agents.pdf data/agentperformance_dqn/lr_baseline_vs_multiple_agents.png linearroad welob_linear,elob_linear,lob_linear,welaw_linear WEL-OB,EL-OB,L-OB,WEL-AW`
 
-# Scalability Experiments
+# Actions (Figure 8)
+- To plot such a graph, extrac the actions from an episode (make an excerpt of the actions.csv file in the corresponding folder) and then run:
+- `python plotting/plot_episode_actions.py data/agentperformance_dqn/WELAW/linear/actions.excerpt.csv data/agentperformance_dqn/actions.pdf`
 
+# Scalability Experiments
 - These are started using the start_all_evaluation_CCR.sh script.
   - The experiment config needs to be added in the beginning. The script contains a sample setup to compare no agent vs. agent for a given compression for Linear Road
 - To then create the plots, you can use the following scripts (these are using the folders given in the sample `start_all_evaluation_CCR.sh` script)

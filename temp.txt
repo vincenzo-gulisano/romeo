@@ -13,6 +13,7 @@
 ./plotting/plot_overheads.py
 ./plotting/create_summary_data.py
 ./plotting/paper_plot_baselines_vs_multiple_agents_icpe_single_column.py
+./plotting/plot_episode_actions.py
 
 
 ./scripts/start_all.sh
