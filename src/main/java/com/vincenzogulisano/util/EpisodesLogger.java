@@ -3,17 +3,13 @@ package com.vincenzogulisano.util;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
 public class EpisodesLogger {
 
-    private String fileName;
     private BufferedWriter writer;
     private int counter;
 
     public EpisodesLogger(String fileName) {
-        this.fileName = fileName;
         this.counter = 0;
 
         try {

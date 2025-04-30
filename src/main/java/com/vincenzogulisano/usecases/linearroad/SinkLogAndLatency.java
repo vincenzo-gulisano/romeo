@@ -4,9 +4,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
-import java.util.TreeMap;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 import org.apache.logging.log4j.LogManager;
@@ -32,26 +29,15 @@ public class SinkLogAndLatency<T extends RichTuple> extends BaseSink<T> {
 
     public Logger logger = LogManager.getLogger();
 
-    // private volatile boolean resetRequest;
-    // private volatile boolean resetAck;
-    // private Lock resetLock;
-
     public SinkLogAndLatency(String id, SinkFunction<T> function, boolean writeOut, String outPath) {
         super(id, function);
         this.writeOut = writeOut;
         this.outPath = outPath;
 
-        // this.resetRequest = false;
-        // this.resetAck = false;
-        // this.resetLock = new ReentrantLock();
-
     }
 
     public void reset() {
         logger.debug("Registering reset request");
-        // resetAck = false;
-        // resetRequest = true;
-        // resetLock.lock();
         logger.debug("Got the reset lock");
         while (getInput().size() > 0) {
             logger.debug("There are tuples in the input stream, waiting");
@@ -63,7 +49,6 @@ public class SinkLogAndLatency<T extends RichTuple> extends BaseSink<T> {
         } else {
             logger.debug("There exist tuples in the input stream, deferring the reset to main thread");
         }
-        // resetLock.unlock();
     }
 
     private void internalReset() {
@@ -71,14 +56,7 @@ public class SinkLogAndLatency<T extends RichTuple> extends BaseSink<T> {
         getInput().clear();
         outrateMetric.reset();
         latencyMetric.reset();
-        // logger.debug("Acking back to SPE");
-        // resetAck = true;
-        // resetRequest = false;
     }
-
-    // public boolean getResetAck() {
-    // return resetAck;
-    // }
 
     // This method gets called by the BaseSink, and there are no concurrent calls to
     // process, so there should be no need for locks
@@ -115,14 +93,6 @@ public class SinkLogAndLatency<T extends RichTuple> extends BaseSink<T> {
 
     @Override
     public void processTuple(T t) {
-
-        // if (resetRequest) {
-        // logger.debug("Processing reset request");
-        // resetLock.lock();
-        // logger.debug("Got the reset lock");
-        // internalReset();
-        // resetLock.unlock();
-        // }
 
         super.processTuple(t);
         outrateMetric.record(1);

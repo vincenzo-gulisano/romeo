@@ -4,13 +4,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 
-def create_violin_plots(bo_co_lr, bo_aa_lr, bo_co_s, bo_aa_s, output_pdf):
+def create_violin_plots(bo_co_lr, bo_co_s, output_pdf):
     # Load data from the input CSV files
     data_sources = {
         "bo_co_lr": bo_co_lr,
-        # "bo_aa_lr": bo_aa_lr,
         "bo_co_s": bo_co_s,
-        # "bo_aa_s": bo_aa_s,
     }
     
     dataframes = {}
@@ -30,8 +28,6 @@ def create_violin_plots(bo_co_lr, bo_aa_lr, bo_co_s, bo_aa_s, output_pdf):
     cpu_data_means = cpu_data.groupby(['source', 'exp_id'])['value_base'].mean().reset_index()
     cpu_data_diff_means = cpu_data.groupby(['source', 'exp_id'])['abs_value_diff'].mean().reset_index()
 
-    print(cpu_data_means)
-
     latency_data = combined_df[combined_df['stat'] == 'Latency']
 
     # Aggregate CPU data by 'exp_id' to compute the mean per experiment
@@ -49,9 +45,6 @@ def create_violin_plots(bo_co_lr, bo_aa_lr, bo_co_s, bo_aa_s, output_pdf):
     cpu_data_diff_means['abs_value_diff'] /= 100
     latency_data_means['value_base'] /= 1000
     latency_data_diff_means['abs_value_diff'] /= 1000
-
-    print(np.min(cpu_data))
-    print(np.max(cpu_data))
 
     text_width_pt = 506 / 2
     text_height_pt = 270 * 0.35 * 2
@@ -75,13 +68,9 @@ def create_violin_plots(bo_co_lr, bo_aa_lr, bo_co_s, bo_aa_s, output_pdf):
         scale='width',
         inner=None, showmeans=False, showmedians=False, showextrema=False,
         linewidth=0.5,  # Set the outer line width
-        # showmeans=False,  # Boxplot does not typically show means
-        # meanline=False,
-        # showfliers=False  # Disable outliers
     )
     axes[0,0].set_ylabel('Base CPU Cons.')
     axes[0,0].set_xlabel('')  # Remove Y-axis label
-    # axes[0].set_ylabel('')  # Remove Y-axis label
     axes[0,0].set_xticks(range(len(cpu_data['source'].unique())))  # Set custom X-ticks
     axes[0,0].set_xticklabels(
             ['', '']
@@ -97,14 +86,6 @@ def create_violin_plots(bo_co_lr, bo_aa_lr, bo_co_s, bo_aa_s, output_pdf):
             color='black', linestyle='-', linewidth=1.5, label=f"Mean ({source})" if i == 0 else ""
         )
 
-    # # Annotate the plot with quartile values
-    # for i, source in enumerate(cpu_means['source']):
-    #     if i==0:
-    #         mean = cpu_means.loc[cpu_means['source'] == source, 'value_base'].values[0]
-    #         axes[0, 0].text(
-    #             i, mean*1.2, f"{mean:.2f}", color='black', ha='center', va='bottom', fontsize=6
-    #         )
-        
     # Right: Violin plot for Latency
     sns.violinplot(
         data=latency_data_means,
@@ -116,13 +97,9 @@ def create_violin_plots(bo_co_lr, bo_aa_lr, bo_co_s, bo_aa_s, output_pdf):
         scale='width', 
         inner=None, showmeans=False, showmedians=False, showextrema=False,
         linewidth=0.5,  # Set the outer line width
-        # showmeans=False,  # Boxplot does not typically show means
-        # meanline=False,
-        # showfliers=False  # Disable outliers
     )
     axes[0,1].set_ylabel('Base Latency (s)')
     axes[0,1].set_xlabel('')  # Remove Y-axis label
-    # axes[1].set_ylabel('')  # Remove Y-axis label
     axes[0,1].set_xticks(range(len(latency_data['source'].unique())))  # Set custom X-ticks
     axes[0,1].set_xticklabels(
         ['', '']
@@ -149,13 +126,9 @@ def create_violin_plots(bo_co_lr, bo_aa_lr, bo_co_s, bo_aa_s, output_pdf):
         scale='width',
         inner=None, showmeans=False, showmedians=False, showextrema=False,
         linewidth=0.5,  # Set the outer line width
-        # showmeans=False,  # Boxplot does not typically show means
-        # meanline=False,
-        # showfliers=False  # Disable outliers
     )
     axes[1,0].set_ylabel('CPU Cons. Diff.')
     axes[1,0].set_xlabel('')  # Remove Y-axis label
-    # axes[0].set_ylabel('')  # Remove Y-axis label
     axes[1,0].set_xticks(range(len(cpu_data['source'].unique())))  # Set custom X-ticks
     axes[1,0].set_xticklabels(
         ['LR', 'S']
@@ -182,13 +155,9 @@ def create_violin_plots(bo_co_lr, bo_aa_lr, bo_co_s, bo_aa_s, output_pdf):
         scale='width', 
         inner=None, showmeans=False, showmedians=False, showextrema=False,
         linewidth=0.5,  # Set the outer line width
-        # showmeans=False,  # Boxplot does not typically show means
-        # meanline=False,
-        # showfliers=False  # Disable outliers
     )
     axes[1,1].set_ylabel('Latency Diff. (s)')
     axes[1,1].set_xlabel('')  # Remove Y-axis label
-    # axes[1].set_ylabel('')  # Remove Y-axis label
     axes[1,1].set_xticks(range(len(latency_data['source'].unique())))  # Set custom X-ticks
     axes[1,1].set_xticklabels(
         ['LR', 'S']
@@ -253,36 +222,6 @@ def create_violin_plots(bo_co_lr, bo_aa_lr, bo_co_s, bo_aa_s, output_pdf):
     )
     print(latency_stats)
 
-    # # Left: Boxplot for CPU
-    # sns.boxplot(
-    #     data=cpu_data,
-    #     x='source',
-    #     y='value_diff',
-    #     ax=axes[0],
-    #     palette='muted',
-    #     showmeans=False,  # Boxplot does not typically show means
-    #     meanline=False,
-    #     showfliers=False  # Disable outliers
-    # )
-    # axes[0].set_title('CPU Value Differences')
-    # axes[0].set_xlabel('Source')
-    # axes[0].set_ylabel('Value Difference')
-
-    # # Right: Boxplot for Latency
-    # sns.boxplot(
-    #     data=latency_data,
-    #     x='source',
-    #     y='value_diff',
-    #     ax=axes[1],
-    #     palette='muted',
-    #     showmeans=False,  # Boxplot does not typically show means
-    #     meanline=False,
-    #     showfliers=False  # Disable outliers
-    # )
-    # axes[1].set_title('Latency Value Differences')
-    # axes[1].set_xlabel('Source')
-    # axes[1].set_ylabel('Value Difference')
-
     # Save the plot to the output PDF
     plt.tight_layout()
     plt.savefig(output_pdf)
@@ -292,10 +231,8 @@ def create_violin_plots(bo_co_lr, bo_aa_lr, bo_co_s, bo_aa_s, output_pdf):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Create violin plots from experiment data")
     parser.add_argument("bo_co_lr", help="Input file for bo_co_lr")
-    parser.add_argument("bo_aa_lr", help="Input file for bo_aa_lr")
     parser.add_argument("bo_co_s", help="Input file for bo_co_s")
-    parser.add_argument("bo_aa_s", help="Input file for bo_aa_s")
     parser.add_argument("output_pdf", help="Output PDF file for the plots")
     args = parser.parse_args()
 
-    create_violin_plots(args.bo_co_lr, args.bo_aa_lr, args.bo_co_s, args.bo_aa_s, args.output_pdf)
+    create_violin_plots(args.bo_co_lr, args.bo_co_s, args.output_pdf)

@@ -1,7 +1,7 @@
 log_folder=$1
 echo "Log folder for kafka related logs: ${log_folder}"
 
-kafka_folder=/home/jingyu/kafka_2.13-3.6.0
+kafka_folder=~/kafka_2.13-3.6.0
 
 rm -rf /tmp/kafka-logs
 rm -rf /tmp/zookeeper

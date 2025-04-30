@@ -16,7 +16,6 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-// import com.vincenzogulisano.usecases.linearroad.IRLRCPUMatrix_ESC;
 import com.vincenzogulisano.usecases.linearroad.QueryCountConsecutiveStops;
 import com.vincenzogulisano.usecases.synthetic.QuerySynthetic;
 import com.vincenzogulisano.util.ExperimentOptions;
@@ -36,25 +35,18 @@ public class JPComm {
         this.actionable = actionable;
 
         properties = new Properties();
-        // TODO this should not be hardcoded!
-        properties.put("bootstrap.servers", bootstrapServer); // "michelangelo.cse.chalmers.se:9092");
-        // TODO this should not be hardcoded!
+        properties.put("bootstrap.servers", bootstrapServer);
         properties.put("group.id", "0");
         properties.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         properties.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         properties.put("key.deserializer", StringDeserializer.class.getName());
         properties.put("value.deserializer", StringDeserializer.class.getName());
-        // properties.put("log4j.logger.kafka", "ERROR");
 
         producer = new KafkaProducer<>(properties);
         consumer = new KafkaConsumer<>(properties);
-        // TODO topic should not be hardcoded!
         consumer.subscribe(Collections.singletonList("dchanges"));
-        // esc = new LatencyAndRatioDeltaESC(20, producer, "/");
-        // esc = new IRLRCPU_ESC(10,producer, "/");
         esc = new EnvironmentStateCalculator(7, producer, "/", 7, latencyTreshold, CPUThreshold,
                 earlyTerminationLatencyThreshold, statsFolder + File.separator + "rewards.actions.csv");
-        // esc.addSendStateToken();
 
     }
 
@@ -72,11 +64,8 @@ public class JPComm {
             Thread reportingThread = new Thread(() -> {
 
                 while (true) {
-                    // logger.debug("Polling consumer");
                     ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
-                    // System.out.println("Checking consumer records...");
                     records.forEach(record -> {
-                        // System.out.println("... got " + record);
                         // Parse and process the received message
                         logger.debug("Received record " + record);
                         String[] parts = record.value().split(",");
@@ -85,11 +74,9 @@ public class JPComm {
                             Long change = Long.parseLong(action);
                             logger.debug("Got action " + change);
                             actionable.changeD(change);
-                            // esc.addSendStateToken();
                         } else if (parts[0].equals("reset")) {
                             logger.debug("Got a reset request");
                             actionable.reset();
-                            // esc.addSendStateToken();
                         } else if (parts[0].equals("close")) {
                             logger.debug("Closing SPE");
                             actionable.close();
@@ -119,17 +106,6 @@ public class JPComm {
 
     }
 
-    // @Override
-    // public void report(long ts, String id, double value) {
-    // // System.out.println("Received report for ts:" + ts + " id:" + id + "
-    // value:" +
-    // // value);
-    // // Create a message and send it to the 'stats' topic
-    // // TODO topic should not be hardcoded!
-    // producer.send(new ProducerRecord<>("stats", String.format("%d,%s,%.2f", ts,
-    // id, value)));
-    // }
-
     public static void main(String[] args) throws InterruptedException, ParseException, IOException {
 
         ExperimentOptions expOps = new ExperimentOptions(args);
@@ -138,17 +114,10 @@ public class JPComm {
         String statsFolder = expOps.commandLine().getOptionValue("statsFolder");
         String bootstrapServer = expOps.commandLine().getOptionValue("bootstrapServer");
 
-        System.out.println("bootstrapServer: " + bootstrapServer);
-
         long latencyThreshold = Long.valueOf(expOps.commandLine().getOptionValue("latencyTreshold", "1500"));
-        // double CPUThreshold = Double.valueOf(expOps.commandLine().getOptionValue("CPUTreshold", "90"));
         double CPUThreshold = Double.valueOf(expOps.commandLine().getOptionValue("CPUTreshold", "100"));
         double earlyTerminationLatencyThreshold = Double
                 .valueOf(expOps.commandLine().getOptionValue("earlyTerminationLatencyThreshold", "2000"));
-
-        System.out.println("latencyThreshold: " + latencyThreshold);
-        System.out.println("CPUThreshold: " + CPUThreshold);
-        System.out.println("earlyTerminationLatencyThreshold: " + earlyTerminationLatencyThreshold);
 
         switch (usecase) {
             case "LinearRoad":
@@ -188,8 +157,6 @@ public class JPComm {
                 throw new RuntimeException("Unkown usecase " + usecase);
         }
 
-        // Util.sleep(q.getQueryDuration());
-        // q.deactivateQuery();
     }
 
 }

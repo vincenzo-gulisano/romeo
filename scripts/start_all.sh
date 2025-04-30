@@ -37,8 +37,8 @@ policy=$2
 
 # Set variables depending on the usecase
 if [ "$usecase" = "LinearRoad" ]; then
-    base_folder="/home/jingyu/romeo/data/output/${policy}/linear"
-    input_file="/home/vincenzo/woost/data/input/input.txt"
+    base_folder="./data/agentperformance_dqn/${policy}/linear"
+    input_file="./data/input/input.txt"
     wa=5
     ws=600
     d=10
@@ -46,8 +46,8 @@ if [ "$usecase" = "LinearRoad" ]; then
     starting_time_max=6000
     cpuThreshold=100
 elif [ "$usecase" = "Synthetic" ]; then
-    base_folder="/home/jingyu/romeo/data/output/${policy}/synthetic"
-    input_file="/home/vincenzo/romeo/data/input/synthetic.csv"
+    base_folder="./data/agentperformance_dqn/${policy}/synthetic"
+    input_file="./data/input/synthetic.csv"
     wa=1
     ws=900
     d=10
@@ -55,8 +55,8 @@ elif [ "$usecase" = "Synthetic" ]; then
     starting_time_max=5800
     cpuThreshold=100
 elif [ "$usecase" = "Synthetic5s" ]; then
-    base_folder="/home/jingyu/romeo/data/output/${policy}/synthetic5s"
-    input_file="/home/vincenzo/romeo/data/input/synthetic.csv"
+    base_folder="./data/agentperformance_dqn/${policy}/synthetic5s"
+    input_file="./data/input/synthetic.csv"
     wa=5
     ws=900
     d=10
@@ -64,7 +64,7 @@ elif [ "$usecase" = "Synthetic5s" ]; then
     starting_time_max=2100
     cpuThreshold=100
 else
-    echo "Invalid usecase. Please choose either 'LinearRoad' or 'Synthetic'."
+    echo "Invalid usecase."
     exit 1
 fi
 
@@ -80,8 +80,9 @@ echo "Starting Time Min: $starting_time_min"
 echo "Starting Time Max: $starting_time_max"
 
 duration=5000000000
-episodes=5
-steps=1000
+episodes=15
+steps=200
+randomizeSeed=True
 
 #bootstrapServer=129.16.20.158:9092
 bootstrapServer='michelangelo.cse.chalmers.se:9092'
@@ -128,7 +129,7 @@ echo "The PID of the python agent is ${python_pid}"
 echo "Starting SPE"
 
 echo "Starting experiment for ${id} (compression)"
-args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase} -pb ${policy} -rer True -bs ${bootstrapServer} -ct ${cpuThreshold}"
+args="-s ${exp_folder} -i ${input_file} -l ${duration} -wa ${wa} -ws ${ws} -t RL -d ${d} -stmin ${starting_time_min} -stmax ${starting_time_max} -usecase ${usecase} -pb ${policy} -rer ${randomizeSeed} -bs ${bootstrapServer} -ct ${cpuThreshold}"
 echo "args=${args}"
 mvn clean compile package exec:java -Dexec.mainClass="com.vincenzogulisano.javapythoncommunicator.JPComm" -Dexec.args="${args}" > ${exp_folder}/spe.log 2>&1 &
 

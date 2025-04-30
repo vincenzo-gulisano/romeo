@@ -23,9 +23,6 @@ public class WindowCountStops implements WoostTimeWindow<TupleInput, TupleCarSto
     long tuplesSize;
     long getLastAddedTs;
 
-    // // Compression related
-    // transient boolean isCompressed;
-
     // Latency related
     transient long latestStimulus;
 
@@ -107,29 +104,6 @@ public class WindowCountStops implements WoostTimeWindow<TupleInput, TupleCarSto
         return tuplesSize + 144;
     }
 
-    // @Override
-    // public boolean isCompressed() {
-    //     return isCompressed;
-    // }
-
-    // @Override
-    // public void compress() {
-    //     if (isCompressed) {
-    //         throw new UnsupportedOperationException("Cannot invoke method 'compress' on an already compressed window");
-    //     } else {
-    //         isCompressed = true;
-    //     }
-    // }
-
-    // @Override
-    // public void decompress() {
-    //     if (!isCompressed) {
-    //         throw new UnsupportedOperationException("Cannot invoke method 'decompress' on an already decompressed window");
-    //     } else {
-    //         isCompressed = false;
-    //     }
-    // }
-
 	@Override
 	public void setLatestStimulus(long latestStimulus) {
 		this.latestStimulus = latestStimulus;
@@ -147,7 +121,5 @@ public class WindowCountStops implements WoostTimeWindow<TupleInput, TupleCarSto
                 + ", tuplesSize=" + tuplesSize + ", getLastAddedTs=" + getLastAddedTs
                 + ", latestStimulus=" + latestStimulus + "]";
     }
-
-    
 
 }

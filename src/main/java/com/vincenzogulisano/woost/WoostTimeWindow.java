@@ -12,13 +12,6 @@ public interface WoostTimeWindow<IN extends RichTuple, OUT extends RichTuple> ex
 
     public WoostTimeWindow<IN,OUT> woostFactory();
 
-    // Compression related
-    // public boolean isCompressed();
-
-    // public void compress();
-
-    // public void decompress();
-
     public void setLatestStimulus(long latestStimulus);
 
     public long getLastAddedTs();

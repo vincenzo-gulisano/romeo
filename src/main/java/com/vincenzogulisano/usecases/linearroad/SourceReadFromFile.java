@@ -36,13 +36,11 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
     private long startingTS;
     private ConcurrentLinkedQueue<Long> startingTSUpdates;
     private long WS;
-    // private long sleepBeforeRealRate;
     private boolean firstTupleAtRealRate;
     private boolean firstTuplesSkipped;
 
     private volatile boolean resetRequest;
     private volatile boolean resetAck;
-    // private volatile boolean resetReader;
     private volatile boolean waitingForSPEGreenlightToStartSendingStateFillingTuples;
     private volatile boolean ackFromSPEGreenlightToStartSendingStateFillingTuples;
     private volatile boolean allStateFillingTuplesSent;
@@ -66,12 +64,10 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         firstInvocationTs = -1;
         firstTupleTs = -1;
         lastSendNano = 0;
-        // sleepBeforeRealRate = 5000;
         firstTupleAtRealRate = true;
         firstTuplesSkipped = false;
         resetRequest = false;
         resetAck = false;
-        // resetReader = false;
         waitingForSPEGreenlightToStartSendingStateFillingTuples = false;
         ackFromSPEGreenlightToStartSendingStateFillingTuples = false;
         allStateFillingTuplesSent = false;
@@ -129,7 +125,6 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
 
             resetRequest = false; // Clear the request
             resetAck = true; // Tell SPE I have stopped
-            // resetReader = true; // Make sure next call I reset the reader
             waitingForSPEGreenlightToStartSendingStateFillingTuples = true; // Wait for ack from SPE to start sending
                                                                             // state filling tuples
             ackFromSPEGreenlightToStartSendingStateFillingTuples = false; // Register the ack has not been received yet
@@ -343,9 +338,4 @@ public class SourceReadFromFile implements SourceFunction<TupleInput> {
         firstEpisodeCanStart = true;
     }
 
-    // public void reset() {
-    // // resetRequest = false;
-    // // resetAck = false;
-    // // reset = true;
-    // }
 }

@@ -55,12 +55,4 @@ for folder_to_explore in "${folders_to_explore[@]}"; do
 
     python plotting/append_episodesstatscsv_to_global_one.py ${exp_folder}/episodesstats.csv ${exp_folder}/compressionandepisodesstats.csv ${folder_to_explore}
 
-    # python plotting/create_stat_episodes_boxplot_for_compressions.py ${exp_folder}/compressionandepisodesstats.csv ${exp_folder}/ rewards,sum,,
-    # python plotting/create_stat_episodes_boxplot_for_compressions.py ${exp_folder}/compressionandepisodesstats.csv ${exp_folder}/ ratio.percent,mean,,
-    # python plotting/create_stat_episodes_boxplot_for_compressions.py ${exp_folder}/compressionandepisodesstats.csv ${exp_folder}/ latency.violations,sum,,
-    # python plotting/create_stat_episodes_boxplot_for_compressions.py ${exp_folder}/compressionandepisodesstats.csv ${exp_folder}/ steps,sum,,
-    # python plotting/plot_scatter.py ${exp_folder}/ ${exp_folder}/cum_reward_vs_event_time.pdf --stat_X=eventtime.max --stat_Y=rewards --aggregation_X=min --aggregation_Y=sum
-    # python plotting/plot_scatter.py ${exp_folder}/ ${exp_folder}/ratio_vs_event_time.pdf --stat_X=eventtime.max --stat_Y=ratio.percent --aggregation_X=min --aggregation_Y=mean
-    # python plotting/plot_scatter.py ${exp_folder}/ ${exp_folder}/violations_vs_event_time.pdf --stat_X=eventtime.max --stat_Y=latency.violations --aggregation_X=min --aggregation_Y=sum
-
 done

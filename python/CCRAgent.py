@@ -284,7 +284,7 @@ if __name__ == "__main__":
         obs = env.reset()
         negative_rewards = 0
 
-        prev_action = 10;
+        prev_action = 10
         
         while True:
             
